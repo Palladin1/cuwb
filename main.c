@@ -1371,9 +1371,9 @@ void custom_at_handler(u08 *pData)
 	else if (strncmp((char *)pData, ">", 1) == 0) {
         ModemAnsver = ACK_CAN_SEND;    
 	}
-	else if (strncmp((char *)pData, "", 6) == 0) {
-        ;
-	}
+//	else if (strncmp((char *)pData, "", 6) == 0) {
+//        ;
+//	}
 	else if (strncmp((char *)pData, "OK", 2) == 0) {
         ModemAnsver = ACK_OK;
 	}
