@@ -83,7 +83,7 @@
 #define configQUEUE_REGISTRY_SIZE	0
 #define configUSE_MUTEXES           1
 
-#define configCHECK_FOR_STACK_OVERFLOW  2
+#define configCHECK_FOR_STACK_OVERFLOW  0//2
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 		0

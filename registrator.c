@@ -1,4 +1,4 @@
-#include  "separator.h"
+#include  "registrator.h"
 #include  <stdlib.h>
 
 
@@ -9,14 +9,16 @@
 #define  R_SEND_DATA_LEN     20
 #define  R_RECIV_DATA_LEN    20
  
-
-struct registrator_status {
-    u08 S0;
-    u08 S1;
-    u08 S2;
-    u08 S3;
-    u08 S4;
-    u08 S5;
+typedef enum frame_state {
+    FRAME_WAIT,
+    FRAME_LEN,
+    FRAME_SEQ,
+    FRAME_CMD,
+    FRAME_ERROR_CODE,
+    FRAME_DATA, 
+    FRAME_STATUS,
+    FRAME_CRC,    
+    FRAME_END 
 };
 
 struct registrator_send_message {
@@ -40,17 +42,35 @@ struct registrator_recive_message {
     u08 bcc[R_CRC_LEN];
 };
 
+
+u08 registrator_frame_get (u08 c);
+void registrator_frame_send (void);     
+       
+u08 increase_seq (u08 cur);
+u08 make_data_type_n (u08 *to, u32 d);
+u08 make_data_type_m (u08 *to, u32 d);
+u08 make_data_type_q (u08 *to, u32 d);
+void set_point (char *s, u08 pos);
+
+void makecrc (u08 * crc);
+
+void sendnstr (u08 *s, u08 len);
+
+
 static struct registrator_send_message send_message; 
 static struct registrator_receive_message receive_message;
 
 static REGISTRATOR_STATUS registrator_status;
 static u32 timer_var;
 
+static u08 should_send_data;
+
 
 void RegistratorInit (void)
 {
     u08 i;
-    registrator_status = WAIT;
+    registrator_status = WAIT_CONNECTION;
+    should_send_data = 0;
     timer_var = 0;
     
     send_message.cmd = 0;
@@ -64,101 +84,119 @@ void RegistratorInit (void)
 } 
 
 
-void RegistratorProcessing (u08 time_correcting)
+void RegistratorProcessing (u08 *registrator_receive_buf, u08 time_correcting)
 {
     u08 ans;
     static enum processing_state { 
         P_IDDLE,
         P_REQUEST,
-        P_CANSELL,
         P_ANSWER
     } state = IDDLE;
    
-    timer_var++;
-    
     switch (state) {
         case P_IDDLE: {
-             if (time_var == R_TIMEOUT_WAIT_CHACK) {
-                 send_message.cmd = ALLOW;
-                 timer_var = 0;
-                 registrator_status = WAIT;
-                 state = P_REQUEST;
-             }
+             able to send
+             registrator_status = WAIT_CONNECTION;    
              break;
         }
         case P_REQUEST: {
+             timer_var = 0;
              RegistratorFrameSend();
              state = P_ANSWER;
              break;
         }
         case P_ANSWER: {
-             cmd = RegistratorFrameGet(xxx);
-             if (cmd == RANSVER_SYN) {
+             ans = 0;
+             
+             if (registrator_receive_buf != NULL) {
+                 while (*registrator_receive_buf != '\0') {
+                     ans = registrator_frame_get(*registrator_receive_buf++);
+                 }
+             }
+             
+             if (ans == RANSVER_SYN) {
                  timer_var = 0;
              }
-             else if (cmd = RANSVER_NAK) {
+             else if (ans = RANSVER_NAK) {
                  timer_var = 0;
                  send_message.seq = increase_seq(send_message.seq);
                  state = P_REQUEST;                     
              }
-             else if (cmd = RANSVER_AK) {
+             else if (ans = RANSVER_AK) {
                  timer_var = 0;
                  send_message.seq = increase_seq(send_message.seq);
+                 registrator_status = OK_CONNECTION;
+                 
+                 (should_send_data == 1) ? should_send_data = 0 : 0;
                  state = P_IDDLE;                     
              }
-             state = P_ANSWER;
-             break;
-        }
-        case P_REQUEST: {
-             RegistratorFrameSend();
-             state = P_ANSWER;
-             break;
-        }
-        
+             else if (timer_var == R_TIMEOUT_WAIT) {
+                 registrator_status = ERROR_CONNECTION;
+                 state = P_REQUEST;    
+             }
              
-            
-u08 increase_seq (u08 cur)
-{
-    return (cur++ < SEQ_VALUE_MAX) ? cur : 0;  
-}     
-    
-
-
-void RegistratorDataSet (u08 cmd, u32 data[], u08 ndata) 
-{
-    u08 i, offset;
-    
-    offset = 0;
-    
-    for (i = 0; i < ndata; i++) {
-        itoa(data[i], send_message.data[offset], 10);  
-        offset += strlen(send_message.data);
-        send_message.data[offset] = RDATA_SEPARATOR;
-        offset++;
+             timer_var++;
+             break;
+        }
+//      default : {
+//           break;
+//      }
     }
-    
-    send_message.data_len = offset;
 }
 
 REGISTRATOR_STATUS RegistratorStatusGet (void) 
 {
     return registrator_status;
 }
+            
+
+void RegistratorDataSet (u08 cmd, void * data[]) 
+{
+    u08 i, offset;
     
+    while (should_send_data)
+        ;
+    
+    switch (cmd) {
+        case RCMD_SELL_START: {
+             send_message.cmd = RCMD_SELL_START;
+             send_message.data[0] = '\0';
+                
+             should_send_data = 1;
+             break;
+        }
+        case RCMD_SELL_END: {
+             send_message.cmd = RCMD_SELL_END;
+             offset = make_data_type_n(&send_message.data[0], (u32)*data[0]);
+             send_message.data[offset++] = RDATA_SEPARATOR;
+             offset += make_data_type_m(&send_message.data[offset], (u32)*data[1]);
+             send_message.data[offset++] = RDATA_SEPARATOR;
+             offset += make_data_type_q(&send_message.data[offset], (u32)*data[2]);
+             send_message.data[offset++] = RDATA_SEPARATOR;
+             send_message.data[offset] = '\0';
+             send_message.data_len = offset;
+             
+                
+             should_send_data = 1;
+             break;
+        }
+        case RCMD_SELL_CANCELL: {
+             send_message.cmd = RCMD_SELL_CANCELL;
+             offset = make_data_type_n(&send_message.data[0], (u32)*data[0]);
+             send_message.data_len = offset;
+             
+             should_send_data = 1;
+             break;
+        }
+/*      default : {
+            break;
+        }
+*/        
+    }
+}
 
-typedef enum frame_state {
-    FRAME_WAIT,
-    FRAME_LEN,
-    FRAME_SEQ,
-    FRAME_CMD,
-    FRAME_ERROR_CODE,
-    FRAME_DATA, 
-    FRAME_STATUS,
-    FRAME_CRC,    
-    FRAME_END 
-};
 
-u08 RegistratorFrameGet (u08 c) 
+u08 registrator_frame_get (u08 c) 
 {
     static frame_state cur_state;
     static u32 crc_cnt;
@@ -187,19 +225,19 @@ u08 RegistratorFrameGet (u08 c)
         case FRAME_LEN: {
              i = 0;
              crc_cnt = c;
-             receive_message.len = (0x20 <= c) ? (c - 0x20) : 0;            
+             receive_message.len = CONVERT_TO_DIGIT(c);            
              cur_state = (receive_message.len == 0) ? FRAME_WAIT : FRAME_SEQ;
              break;
         }
         case FRAME_SEQ: {
              crc_cnt += c;
-             receive_message.seq = (0x20 <= c && c <= 0x7F) ? (c - 0x20) : 0; 
+             receive_message.seq = (SEQ_VALUE_IS_CORRECT(c) != 0) ? CONVERT_TO_DIGIT(c) : 0; 
              cur_state = (receive_message.seq == 0) ? FRAME_WAIT : FRAME_CMD;
              break;
         }
         case FRAME_CMD: {
              crc_cnt += c;
-             receive_message.cmd = (0x20 <= c) ? c : 0;
+             receive_message.cmd = CONVERT_TO_DIGIT(c);
              cur_state = ()
              break;
         }
@@ -276,7 +314,8 @@ u08 RegistratorFrameGet (u08 c)
     return ret;
 }  
 
-void RegistratorFrameSend (void)
+
+void registrator_frame_send (void)
 {
     u08 c;
     
@@ -284,8 +323,8 @@ void RegistratorFrameSend (void)
     
     c = RDATA_SOH;
     sendnstr(c, 1);    
-    sendnstr(send_message.len + 0x20, 1);
-    sendnstr(send_message.seq + 0x20, 1);
+    sendnstr(CONVERT_FOR_SEND(send_message.len), 1);
+    sendnstr(CONVERT_FOR_SEND(send_message.seq), 1);
     sendnstr(send_message.cmd, 1);    
     sendnstr(send_message.pwd, R_PWD_LEN);
     c = RDATA_SEPARATOR;
@@ -302,7 +341,58 @@ void RegistratorFrameSend (void)
     sendnstr(c, 1);
 }
         
+            
+u08 increase_seq (u08 cur)
+{
+    return (cur++ < SEQ_VALUE_MAX) ? cur : 0;  
+}     
+ 
+
+u08 make_data_type_n (u08 *to, u32 d)
+{
+    ltoa(d, to, 10);
+    return strlen(to);
+}
+
+u08 make_data_type_m (u08 *to, u32 d)
+{
+    ltoa(d, to, 10);
+    set_point(to, 2);
+    return strlen(to);
+}
+
+u08 make_data_type_q (u08 *to, u32 d)
+{
+    u08 len = 0;
     
+    ltoa(d, to, 10);
+    
+    len = strlen(to);
+    to[len++] = '0';
+    to[len] = '\0';    
+    set_point(to, 3);
+    len++;
+    
+    return len;
+}
+
+void set_point (char *s, u08 pos)
+{
+    u08 i;
+    
+    i = 0;
+    while (*s != '\0') {
+        s++;
+        i++;
+    }
+    
+    if (i >= pos)
+        while (pos-- > 0)
+            *(s+1) = *s--;
+    
+    *s = '.';    
+} 
+ 
 void makecrc (u08 * crc) 
 {
     u08 i;
@@ -324,9 +414,23 @@ void makecrc (u08 * crc)
     }
 }
 
-extern void (* putbyte)(u08);
 void sendnstr (u08 *s, u08 len)
 {
     while (len-- > 0)
         (* putbyte)(*s++);
 }
+
+/*
+u08 is_should_send_flag (void)
+{
+    u08 ret = should_send_flag;
+    should_send_flag = 0;
+    return ret; 
+}
+
+void set_should_send_flag (void)
+{
+    while (should_send_flag)
+        should_send_flag = 1;
+}
+*/

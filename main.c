@@ -353,7 +353,7 @@ void vTask2( void *pvParameters )
 				}
 				else {
 				    if (uxQueueMessagesWaiting(xEventsQueue) < 8) {            /*Check queue for know when with GPRS whots happened */
-				        u08 tmp_event = 6;                                     /*and we don't wont to owerflow the queue            */
+				        u08 tmp_event = 6;                                     /*and we don't wont to overflow the queue            */
                         xQueueSend(xEventsQueue, &tmp_event, 0);
 					}
 				}
@@ -1235,40 +1235,6 @@ void vTask5( void *pvParameters )
 			uartSendBuffer(0, "15", 2);
 #endif
 
-/*
-				 if (xQueueReceive(xEventsQueue, &num_event, 200 / portTICK_RATE_MS) == pdPASS) {
-                     if (FlDayOrNight == SMS_FLAG_DAY) { 
-				         if ((num_event == 2) || (num_event == 7)) {
-	    			     //    ModemSendCom(SEND_SMS, 1);
-				         //    ModemSendPfoneNum();
-                         
-						 //    if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
-						 //          itoa4(*vodomat_number, mashines_namber);
-	                     //          mashines_namber[4] = '-';
-	                     //          mashines_namber[5] = 0;
-                         //          ModemSendData((char *)mashines_namber, 1);
-                         //        ModemSendCom((char*)pgm_read_word(&(SMS_TEXT[num_event])), 5000);
-                         //    } 
-					     }
-				     }
-				     else if (FlDayOrNight == SMS_FLAG_NIGHT)  {
-			             if ((num_event == 2) || (num_event == 3)) {
-    				         ModemSendCom(SEND_SMS, 1);
-				             ModemSendPfoneNum();
-
-				             if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
-
-                                 itoa4(*vodomat_number, mashines_namber);
-	                             mashines_namber[4] = '-';
-	                             mashines_namber[5] = 0;
-                                 ModemSendData((char *)mashines_namber, 1);
-                                 ModemSendCom((char*)pgm_read_word(&(SMS_TEXT[num_event])), 5000);
-                             }
-				         }
-			         }	     
-                     num_event = 0;
-				 }
-*/
 				 vTaskDelay(3000 / portTICK_RATE_MS);
 				 CARRENT_STATE = STATE_NET_STATUS;
 				 
@@ -1448,19 +1414,20 @@ void custom_at_handler(u08 *pData)
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-void  DecodeForLCD (u16 led_maney, u16 led_water) {
+void DecodeForLCD (u16 led_maney, u16 led_water) {
 
 	LcdDatta[0] = (u08)( led_maney / 1000);
 	LcdDatta[1] = (u08)((led_maney / 100) % 10);
 	LcdDatta[2] = (u08)((led_maney % 100) / 10);
 	LcdDatta[3] = (u08)((led_maney % 100) % 10);
+
 	LcdDatta[4] = (u08)( led_water / 1000);
 	LcdDatta[5] = (u08)((led_water / 100) % 10);
 	LcdDatta[6] = (u08)((led_water % 100) / 10);
 	LcdDatta[7] = (u08)((led_water % 100) % 10);
 }
 
-void  NoWtrForLCD (void) {
+void NoWtrForLCD (void) {
 
 	LcdDatta[0] = 10;
 	LcdDatta[1] = 10;
@@ -1480,15 +1447,11 @@ void Uart0_Resiv (u08 udrdata) {
 	BUF_UART_RX[rx] = udrdata;
 
 	if	(rx == BUF_UART_RX[0] && 0x07 >= BUF_UART_RX[0]) {
-//	    BUF_UART_RX[rx + 1] = 0;
+
 		rx = (MAX_RX_SIZE_BUFF - 3);
 		static portBASE_TYPE xHigherPriorityTaskWoken;
-//        xHigherPriorityTaskWoken = pdFALSE;
+
 		xSemaphoreGiveFromISR(xUart_RX_Semaphore, &xHigherPriorityTaskWoken);
-//	    if (xHigherPriorityTaskWoken == pdTRUE) {
-   
-//             taskYIELD();
-//        }
 
 	}
 
@@ -1505,11 +1468,11 @@ void Global_Time_Deluy (unsigned int time_val) {
 }
 
 
-void vApplicationStackOverflowHook (xTaskHandle *pxTask, signed portCHAR *pcTaskName) {
-	 PORTA &= ~(1 << 4);
+//void vApplicationStackOverflowHook (xTaskHandle *pxTask, signed portCHAR *pcTaskName) {
+//	 PORTA &= ~(1 << 4);
 
 //     uartSendBuffer(0, &pcTaskName[0], 6);
-}
+//}
 
 //vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName ) {
 

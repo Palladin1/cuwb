@@ -656,27 +656,3 @@ inline u08 bcdtoi2(u08 binval) {
        
 return (temp + binval);
 }
-
-
-/*
-void itoa(u32 binval, u08 *asc)
-{
-
-    u32 step[]={1000000000,100000000,10000000,1000000,100000,10000,1000,100,10,1};
-    u32 temp,val;
-    u08 i,atemp;
-    val=binval;
-    for (i=0; i<10; i++)
-    {
-        temp=step[i];
-        atemp='0';
-        while(val >= temp)
-        {
-            atemp++;
-            val-=temp;
-        }
-        asc[i]=atemp;
-    }
-    asc[11] = 0;
-}
-*/
