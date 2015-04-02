@@ -45,6 +45,8 @@ typedef enum REGISTRATOR_STATUS {
             ERROR_CONNECTION,
             OK_CONNECTION
         };
+  
+void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
 void RegistratorProcessing (u08 *registrator_receive_buf, u08 time_correcting);

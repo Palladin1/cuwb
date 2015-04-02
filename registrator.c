@@ -1,6 +1,7 @@
 #include  "registrator.h"
 #include  <stdlib.h>
 
+#include "fifo_buffer.h"
 
 #define  R_PWD_LEN            6 
 #define  R_ERR_CODE_LEN       4
@@ -65,6 +66,13 @@ static u32 timer_var;
 
 static u08 should_send_data;
 
+static FIFO_BUFFER RegistratorRXBuffer;
+static ReceiveBuffer[RECEIVE_BUF_MAX];
+
+
+void RegistratorCharPut (unsigned char c) {
+    FifoBufPut(&RegistratorRXBuffer, c);    
+}
 
 void RegistratorInit (void)
 {
@@ -81,10 +89,12 @@ void RegistratorInit (void)
     for (i = 0; i < R_PWD_LEN; i++) {
        send_message.pwd[i] = '0';
     }
+    
+    FifoBufInit(&RegistratorRXBuffer, ReceiveBuffer, sizeof ReceiveBuffer / sizeof(ReceiveBuffer[0]);
 } 
 
 
-void RegistratorProcessing (u08 *registrator_receive_buf, u08 time_correcting)
+void RegistratorProcessing (u08 time_correcting)
 {
     u08 ans;
     static enum processing_state { 
@@ -108,10 +118,9 @@ void RegistratorProcessing (u08 *registrator_receive_buf, u08 time_correcting)
         case P_ANSWER: {
              ans = 0;
              
-             if (registrator_receive_buf != NULL) {
-                 while (*registrator_receive_buf != '\0') {
-                     ans = registrator_frame_get(*registrator_receive_buf++);
-                 }
+             while (FifoBufDataCnt(&RegistratorRXBuffer);) {
+                 ans = registrator_frame_get(FifoBufGet(&RegistratorRXBuffer));
+              
              }
              
              if (ans == RANSVER_SYN) {
@@ -419,6 +428,7 @@ void sendnstr (u08 *s, u08 len)
     while (len-- > 0)
         (* putbyte)(*s++);
 }
+
 
 /*
 u08 is_should_send_flag (void)
