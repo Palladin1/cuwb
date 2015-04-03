@@ -192,9 +192,70 @@ void custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
-
+extern void putbyte(u08 c) {
+    char byte_send;
+	byte_send = c;
+}
 int main( void )
 {
+#include  <registrator.h>
+
+
+u08 StrData[] = "\17 \0x70000;\4\255\255\255\255\255\255\56666\3"; 
+
+        
+RegistratorInit();
+
+u08 pr = 1;
+u08 ds = 0;
+u08 dp = 0;
+u08 st = 0;
+while (pr) {
+
+    if (ds) {
+	    int i;
+        for (i = 0; i < 20; i++)
+		    RegistratorCharPut(StrData[i]);  
+	}
+
+    if (dp) {
+	    u32 *dta[3];
+		u32 d1 = 0; // 0 number of tovar
+		u32 d2 = 500; // 5.00 UAH
+		u32 d3 = 800; // 8.00 LITR
+		dta[0] =  &d1;
+        dta[1] =  &d2;
+		dta[2] =  &d3;		 
+	    RegistratorDataSet(RCMD_SELL_START, dta);
+	}
+
+    RegistratorProcessing(0);
+	
+	if(st) {
+	    int ts = 0;
+		ts = RegistratorStatusGet();
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 xSygnalQueue  = xQueueCreate(5, sizeof(unsigned int *));

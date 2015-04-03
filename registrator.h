@@ -4,18 +4,18 @@
 #define  R_TIMEOUT_WAIT    200
 //#define  R_TIMEOUT_WAIT_CHACK    1000
 
-#define  RCMD_SELL_START     7Ch
-#define  RCMD_SELL_END       7Dh
-#define  RCMD_SELL_CANCELL   6Bh     
+#define  RCMD_SELL_START     0x7C
+#define  RCMD_SELL_END       0x7D
+#define  RCMD_SELL_CANCELL   0x6B     
 
-#define  RANSVER_NAK    15h
-#define  RANSVER_SYN    16h
-#define  RANSVER_AK     14h
+#define  RANSVER_NAK    0x15
+#define  RANSVER_SYN    0x16
+#define  RANSVER_AK     0x14
 
-#define  RDATA_SOH    01h
-#define  RDATA_EOT    04h
-#define  RDATA_ENQ    05h
-#define  RDATA_ETX    03h
+#define  RDATA_SOH    0x01
+#define  RDATA_EOT    0x04
+#define  RDATA_ENQ    0x05
+#define  RDATA_ETX    0x03
 #define  RDATA_SEPARATOR    ';'
 
 #define  SEQ_VALUE_LOWER            0x20
@@ -40,18 +40,18 @@ typedef unsigned long u32;
 typedef signed long s32;
 #endif
 
-typedef enum REGISTRATOR_STATUS {
+typedef enum _REGISTRATOR_STATUS {
             WAIT_CONNECTION,    
             ERROR_CONNECTION,
             OK_CONNECTION
-        };
+        } REGISTRATOR_STATUS;
   
 void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
-void RegistratorProcessing (u08 *registrator_receive_buf, u08 time_correcting);
+void RegistratorProcessing (u08 time_correcting);
 void RegistratorDataSet (u08 cmd, void * data[]);
 REGISTRATOR_STATUS RegistratorStatusGet (void);
-extern void (* putbyte)(u08);
+extern void putbyte(u08 );
 
 #endif  //REGISTRATOR_H
