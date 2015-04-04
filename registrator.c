@@ -1,5 +1,6 @@
 #include  "registrator.h"
 #include  <stdlib.h>
+#include  <string.h>
 
 #include "fifo_buffer.h"
  
@@ -20,8 +21,8 @@ typedef enum FRAME_STATE {
     FRAME_ERROR_CODE,
     FRAME_DATA, 
     FRAME_STATUS,
-    FRAME_CRC,    
-    FRAME_END 
+    FRAME_CRC    
+    //FRAME_END 
 } frame_state;
 
 struct registrator_send_message {
@@ -53,7 +54,7 @@ u08 increase_seq (u08 cur);
 u08 make_data_type_n (u08 *to, u32 d);
 u08 make_data_type_m (u08 *to, u32 d);
 u08 make_data_type_q (u08 *to, u32 d);
-void set_point (u08 *s, u08 pos);
+u08 set_point (u08 *s, u08 pos, u08 len_cur);
 
 void makecrc (u08 * crc);
 
@@ -109,7 +110,7 @@ void RegistratorProcessing (u08 time_correcting)
         case P_IDDLE: {
              if (should_send_data == 1) {
 			     should_send_data = 0;
-			     state = P_IDDLE;
+			     state = P_REQUEST;
                  registrator_status = WAIT_CONNECTION;    
 			 }
              break;
@@ -123,9 +124,8 @@ void RegistratorProcessing (u08 time_correcting)
         case P_ANSWER: {
              ans = 0;
              
-             while (FifoBufDataCnt(&RegistratorRXBuffer)) {
+             while (ans == 0 && FifoBufDataCnt(&RegistratorRXBuffer)) {
                  ans = registrator_frame_get(FifoBufGet(&RegistratorRXBuffer));
-              
              }
              
              if (ans == RANSVER_SYN) {
@@ -141,7 +141,7 @@ void RegistratorProcessing (u08 time_correcting)
                  send_message.seq = increase_seq(send_message.seq);
                  registrator_status = OK_CONNECTION;
                  
-                 (should_send_data == 1) ? should_send_data = 0 : 0;
+//                 (should_send_data == 1) ? should_send_data = 0 : 0;
                  state = P_IDDLE;                     
              }
              else if (timer_var == R_TIMEOUT_WAIT) {
@@ -220,15 +220,16 @@ u08 registrator_frame_get (u08 c)
     switch (c) {
         case RDATA_SOH: {
              cur_state = FRAME_LEN;
-             break;
+			 return 0;
+             //break;
         }
         case RANSVER_NAK: {
-             ret = RANSVER_NAK;
-             break;
+             return RANSVER_NAK;
+            // break;
         }
         case RANSVER_SYN: {
-             ret = RANSVER_SYN;
-             break;
+             return RANSVER_SYN;
+            // break;
         }
     }
 
@@ -246,12 +247,12 @@ u08 registrator_frame_get (u08 c)
         case FRAME_SEQ: {
              crc_cnt += c;
              receive_message.seq = (SEQ_VALUE_IS_CORRECT(c) != 0) ? CONVERT_TO_DIGIT(c) : 0; 
-             cur_state = (receive_message.seq == 0) ? FRAME_WAIT : FRAME_CMD;
+             cur_state = (receive_message.seq < 0) ? FRAME_WAIT : FRAME_CMD;
              break;
         }
         case FRAME_CMD: {
              crc_cnt += c;
-             receive_message.cmd = CONVERT_TO_DIGIT(c);
+             receive_message.cmd = c;
              cur_state = (receive_message.cmd != send_message.cmd) ? FRAME_WAIT : FRAME_ERROR_CODE;
              break;
         }
@@ -278,7 +279,7 @@ u08 registrator_frame_get (u08 c)
                  cur_state = FRAME_STATUS;
              }
              else if (i < R_RECEIV_DATA_LEN) {
-                 receive_message.status[i] = c;
+                 receive_message.data[i] = c;
                  i++;
              }
              else {
@@ -304,18 +305,22 @@ u08 registrator_frame_get (u08 c)
         }  
         case FRAME_CRC: {
              if (c == RDATA_ETX) {
-                 i = 0;
-                 
-               u08 temp_crc[R_CRC_LEN+1];
-			   memset(temp_crc, receive_message.bcc, R_CRC_LEN);
-               temp_crc[R_CRC_LEN] = '\0';
-               u16 z;
-			   z =atoi(temp_crc);
 
+ //                i = 0;
 
-        //!!!         if (atoi(receive_message.bcc) == (u16)(crc_cnt & 0x0000FFFF)) {
-		         if (z == (u16)(crc_cnt & 0x0000FFFF)) {
-                     ret = RANSVER_NAK;
+                 u08 temp_crc[R_CRC_LEN];
+
+			     
+                 //makecrc
+				 i = R_CRC_LEN;
+				 crc_cnt &= 0x0000FFFF;
+                 while (i-- > 0) {
+                     temp_crc[i] = crc_cnt % 16 + '0';
+                     crc_cnt /= 16;
+                 }
+        
+		         if (strncmp((char *) temp_crc, (char *) receive_message.bcc, R_CRC_LEN) == 0) {
+                     ret = RANSVER_AK;
                  }
                  cur_state = FRAME_WAIT;
              }
@@ -339,28 +344,30 @@ u08 registrator_frame_get (u08 c)
 
 void registrator_frame_send (void)
 {
-    u08 c;
+    u08 buf[4];
     
     send_message.len = 1 + 1 + 1 + R_PWD_LEN + send_message.data_len + 1;
+	send_message.len = CONVERT_FOR_SEND(send_message.len);
     
-    c = RDATA_SOH;
-    sendnstr(c, 1);    
-    sendnstr(CONVERT_FOR_SEND(send_message.len), 1);
-    sendnstr(CONVERT_FOR_SEND(send_message.seq), 1);
-    sendnstr(send_message.cmd, 1);    
-    sendnstr(send_message.pwd, R_PWD_LEN);
-    c = RDATA_SEPARATOR;
-    sendnstr(c, 1);
-    sendnstr(send_message.data, send_message.data_len);
-    c = RDATA_ENQ;
-    sendnstr(c, 1);
+    buf[0] = RDATA_SOH;
+    buf[1] = send_message.len;
+    buf[2] = CONVERT_FOR_SEND(send_message.seq);
+    buf[3] = send_message.cmd;
+	sendnstr(buf, 4);    
+	
+	sendnstr(send_message.pwd, R_PWD_LEN);
+    buf[0] = RDATA_SEPARATOR;
+    sendnstr(buf, 1);
     sendnstr(send_message.data, send_message.data_len);
     
+	buf[0] = RDATA_ENQ;
+    sendnstr(buf, 1);
+        
     makecrc(send_message.bcc);
     sendnstr(send_message.bcc, R_CRC_LEN);
     
-    c = RDATA_ENQ;
-    sendnstr(c, 1);
+    buf[0] = RDATA_ENQ;
+    sendnstr(buf, 1);
 }
         
             
@@ -372,54 +379,54 @@ u08 increase_seq (u08 cur)
 
 u08 make_data_type_n (u08 *to, u32 d)
 {
-    ltoa(d, to, 10);
-    return strlen(to);
+    ltoa(d, (char *)to, 10);
+    return strlen((char *)to);
 }
 
 u08 make_data_type_m (u08 *to, u32 d)
 {
-    ltoa(d, to, 10);
-    set_point(to, 2);
-    return strlen(to);
+    u08 len;
+
+    ltoa(d, (char *)to, 10);
+	len = strlen((char *)to);
+    len = set_point(to, 2, len);
+
+    return len;
 }
 
 u08 make_data_type_q (u08 *to, u32 d)
 {
-    u08 len = 0;
-    
-    ltoa(d, to, 10);
-    
-    len = strlen(to);
-    to[len++] = '0';
-    to[len] = '\0';    
-    set_point(to, 3);
-    len++;
-    
+    u08 len;
+
+    ltoa(d, (char *)to, 10);
+    len = strlen((char *)to);
+    len = set_point(to, 3, len);
+        
     return len;
 }
 
-void set_point (u08 *s, u08 pos)
+u08 set_point (u08 *s, u08 pos, u08 len_cur)
 {
-    u08 i;
+    int len;
+
+	if ((pos = len_cur - pos) <= 0)
+	    return 0;
+
+    len = len_cur + pos;
+    for ( ; len_cur > pos; len_cur--) {
+        s[len_cur] = s[len_cur-1];
+	}
     
-    i = 0;
-    while (*s != '\0') {
-        s++;
-        i++;
-    }
-    
-    if (i >= pos)
-        while (pos-- > 0)
-            *(s+1) = *s--;
-    
-    *s = '.';    
+    s[pos] = '.';
+
+	return len;
 } 
  
 void makecrc (u08 * crc) 
 {
     u08 i;
     u32 crc_temp = 0;
-    crc_temp = RDATA_SOH + RDATA_SEPARATOR + RDATA_ENQ + RDATA_ETX;
+    crc_temp = RDATA_SEPARATOR + RDATA_ENQ;
     
     for (i = 0; i < R_PWD_LEN; i++)
         crc_temp += send_message.pwd[i];
@@ -431,8 +438,8 @@ void makecrc (u08 * crc)
 
     i = R_CRC_LEN;
     while (i-- > 0) {
-        send_message.bcc[i] = crc_temp % 10 + '0';
-        crc_temp /= 10;
+        send_message.bcc[i] = crc_temp % 16 + '0';
+        crc_temp /= 16;
     }
 }
 

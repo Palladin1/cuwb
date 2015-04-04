@@ -199,41 +199,64 @@ extern void putbyte(u08 c) {
 int main( void )
 {
 #include  <registrator.h>
+//              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
+u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
 
+StrData[1] = 0x20 + strlen((char *)StrData) - 6;
+StrData[3] = RCMD_SELL_END;
+u08 datalen = strlen(StrData); 
+// makecrc
+    u08 i;
+    u32 crc_temp = 0;
+    
+    for (i = 1; i < datalen - 5; i++)
+        crc_temp += StrData[i];
+        
+    crc_temp &= 0x0000FFFF;
 
-u08 StrData[] = "\17 \0x70000;\4\255\255\255\255\255\255\56666\3"; 
+    for ( i =0; i < 4; i++) {
+        StrData[(datalen - 2) - i] = crc_temp % 16 + '0';
+        crc_temp /= 16;
+    }
 
         
 RegistratorInit();
 
 u08 pr = 1;
-u08 ds = 0;
-u08 dp = 0;
-u08 st = 0;
-while (pr) {
-
-    if (ds) {
-	    int i;
-        for (i = 0; i < 20; i++)
-		    RegistratorCharPut(StrData[i]);  
-	}
+u08 ds = 1;
+u08 dp = 1;
+u08 st = 1;
 
     if (dp) {
 	    u32 *dta[3];
 		u32 d1 = 0; // 0 number of tovar
 		u32 d2 = 500; // 5.00 UAH
-		u32 d3 = 800; // 8.00 LITR
+		u32 d3 = (800 * 10); // 8.00 LITR
 		dta[0] =  &d1;
         dta[1] =  &d2;
 		dta[2] =  &d3;		 
-	    RegistratorDataSet(RCMD_SELL_START, dta);
+	    RegistratorDataSet(RCMD_SELL_END, (void **) dta);
 	}
+
+
+    if (ds) {
+	    int i;
+        for (i = 0; i < strlen((char *)StrData); i++)
+		    RegistratorCharPut(StrData[i]);  
+	}
+
+
+while (pr) {
+
 
     RegistratorProcessing(0);
 	
 	if(st) {
 	    int ts = 0;
 		ts = RegistratorStatusGet();
+
+		if (ts == OK_CONNECTION)
+		    pr = 0; 
 	}
 
 
@@ -1389,10 +1412,8 @@ void vTask7 (void *pvParameters)
 
 void custom_at_handler(u08 *pData)
 {
-    //AT_Response response = INVAT;
     
     if (strncmp((char *)pData, "Call Ready", 10) == 0) {
-	    //CARRENT_STATE = STATE_MODEM_INIT;
 		CARRENT_STATE = STATE_GPRS_CONNECT;
     }
 	else if (strncmp((char *)pData, ">", 1) == 0) {
@@ -1422,7 +1443,6 @@ void custom_at_handler(u08 *pData)
 	}
 	else if (strncmp((char *)pData, "ALREADY CONNECT", 15) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
-		//CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 	}
 	else if (strncmp((char *)pData, "CLOSE OK", 8) == 0) {
         CARRENT_STATE = STATE_SMS_PREPARE;
@@ -1438,7 +1458,6 @@ void custom_at_handler(u08 *pData)
         xQueueSend(xEventsQueue, &tmp_event, 0);
 	}
 	else if (strncmp((char *)pData, "CLOSED", 6) == 0) {
-        //CARRENT_STATE = STATE_GPRS_CONNECT;
 		CARRENT_STATE = STATE_SMS_PREPARE;
 	}
 	else if (strncmp((char *)pData, "+CSQ:", 5) == 0) {
@@ -1450,11 +1469,9 @@ void custom_at_handler(u08 *pData)
 		    CARRENT_STATE = STATE_NET_QUALITY_LOW;
 		}
 		else {
-//		    CARRENT_STATE = STATE_GPRS_DEACTIVATE; // change 23.09.2012
 		    CARRENT_STATE = STATE_GPRS_CONNECT;    //
 		}     
     }
-
 	else if (strncmp((char *)pData, "Price=", 6) == 0) {
 
         u08 *p;
