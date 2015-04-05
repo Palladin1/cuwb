@@ -21,9 +21,9 @@ void FifoBufInit (FIFO_BUFFER *buffer, unsigned char *start, unsigned short size
 
 unsigned char FifoBufDataCnt (FIFO_BUFFER *buffer);
 
-signed int FifoBufGet (FIFO_BUFFER *buffer);
+unsigned char FifoBufGet (FIFO_BUFFER *buffer);
 
-signed int FifoBufPut (FIFO_BUFFER *buffer, unsigned char c);
+unsigned char FifoBufPut (FIFO_BUFFER *buffer, unsigned char c);
 
 void FifoBufFlush (FIFO_BUFFER *buffer);
 

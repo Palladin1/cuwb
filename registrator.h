@@ -52,6 +52,6 @@ void RegistratorInit (void);
 void RegistratorProcessing (u08 time_correcting);
 void RegistratorDataSet (u08 cmd, void * data[]);
 REGISTRATOR_STATUS RegistratorStatusGet (void);
-extern void putbyte(u08 );
+extern void RegistratorCharSend (u08 c);
 
 #endif  //REGISTRATOR_H

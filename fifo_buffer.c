@@ -41,7 +41,7 @@ void FifoBufFlush (FIFO_BUFFER * bufer) {
 }
 
 //чтение буфера
-signed int FifoBufGet (FIFO_BUFFER *bufer) {
+unsigned char FifoBufGet (FIFO_BUFFER *bufer) {
 
     unsigned char c;
 	CRITICAL_SECTION_START;
@@ -59,12 +59,12 @@ signed int FifoBufGet (FIFO_BUFFER *bufer) {
     }
     CRITICAL_SECTION_END;
 
-    return (-1);
+    return (0);
 }
 
 
 //Запись в буфер
-signed int FifoBufPut (FIFO_BUFFER *bufer, unsigned char c) {
+unsigned char FifoBufPut (FIFO_BUFFER *bufer, unsigned char c) {
 
 //    CRITICAL_SECTION_START;   
 	if (bufer->datacnt < bufer->size) {                               //если в буфере еще есть место                     
@@ -78,9 +78,9 @@ signed int FifoBufPut (FIFO_BUFFER *bufer, unsigned char c) {
 
     	bufer->datacnt++;                                               //увеличить счетчик принятых символов
 //	    CRITICAL_SECTION_END;
-        return (0); 
+        return c; 
 	}
     
 //    CRITICAL_SECTION_END;
-    return (-1);
+    return (0);
 } 

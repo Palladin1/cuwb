@@ -446,7 +446,7 @@ void makecrc (u08 * crc)
 void sendnstr (u08 *s, u08 len)
 {
     while (len-- > 0)
-        putbyte(*s++);
+        RegistratorCharSend(*s++);
 }
 
 

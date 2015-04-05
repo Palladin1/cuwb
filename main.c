@@ -192,7 +192,7 @@ void custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
-extern void putbyte(u08 c) {
+extern void RegistratorCharSend(u08 c) {
     char byte_send;
 	byte_send = c;
 }
@@ -541,7 +541,7 @@ void vTask4( void *pvParameters )
         Fl_SellEnable = 1;	     
 	     
         if (xQueueReceive(xSygnalQueue, &get_key_skan, 0) == pdPASS) {
-		    
+		    /*
 			Sygnal_Get_CoinGet   = (get_key_skan & (1 << 0));
 			Sygnal_Get_BillGet   = ((get_key_skan & (1 << 1)) >> 1);
 			Sygnal_Get_NoWater   = ((get_key_skan & (1 << 2)) >> 2);
@@ -552,6 +552,17 @@ void vTask4( void *pvParameters )
 		    Sygnal_Get_Stop      = ((get_key_skan & (1 << 7)) >> 7);
 		    Sygnal_Get_Reset     = ((get_key_skan & (1 << 8)) >> 8);
 		    Sygnal_Get_NoWrkBill = ((get_key_skan & (1 << 9)) >> 9);
+            */
+            Sygnal_Get_CoinGet   = (get_key_skan & 1);
+			Sygnal_Get_BillGet   = ((get_key_skan >> 1) & 1);
+			Sygnal_Get_NoWater   = ((get_key_skan >> 1) & 1);
+            Sygnal_Get_NoPower1  = ((get_key_skan >> 1) & 1);
+			Sygnal_Get_NoPower2  = ((get_key_skan >> 1) & 1);
+			Sygnal_Get_DoorOpn   = ((get_key_skan >> 1) & 1);
+		    Sygnal_Get_Start     = ((get_key_skan >> 1) & 1);
+		    Sygnal_Get_Stop      = ((get_key_skan >> 1) & 1);
+		    Sygnal_Get_Reset     = ((get_key_skan >> 1) & 1);
+		    Sygnal_Get_NoWrkBill = ((get_key_skan >> 1) & 1);
 		}
 
 		if (Sygnal_Get_NoPower1 || Sygnal_Get_NoPower2) {
@@ -572,7 +583,7 @@ void vTask4( void *pvParameters )
 			
     	if (Sygnal_Get_NoWater && (!Fl_SellStop)) {
  
-    		Fl_SellEnable = 0;                                        //Clear selling flag
+    		Fl_SellEnable = 0;                                        
             Fl_State_Water = REPORT_FLAG_ERR;
 
             if(!Fl_ErrWater) {
@@ -1493,7 +1504,11 @@ void custom_at_handler(u08 *pData)
 
 
 void DecodeForLCD (u16 led_maney, u16 led_water) {
-
+/*
+    itoa(led_maney & 9999, &LcdDatta[0], 10);
+	
+	itoa(led_water & 9999, &LcdDatta[4], 10);
+*/
 	LcdDatta[0] = (u08)( led_maney / 1000);
 	LcdDatta[1] = (u08)((led_maney / 100) % 10);
 	LcdDatta[2] = (u08)((led_maney % 100) / 10);
@@ -1503,10 +1518,15 @@ void DecodeForLCD (u16 led_maney, u16 led_water) {
 	LcdDatta[5] = (u08)((led_water / 100) % 10);
 	LcdDatta[6] = (u08)((led_water % 100) / 10);
 	LcdDatta[7] = (u08)((led_water % 100) % 10);
+	
 }
+
 
 void NoWtrForLCD (void) {
 
+    /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
+    memnset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdData[0]));
+/*
 	LcdDatta[0] = 10;
 	LcdDatta[1] = 10;
 	LcdDatta[2] = 10;
@@ -1515,29 +1535,33 @@ void NoWtrForLCD (void) {
 	LcdDatta[5] = 10;
 	LcdDatta[6] = 10;
 	LcdDatta[7] = 10;
+*/
 }
 
 
-// UART0 Receiver interrupt service routine
+/* UART0 Receiver interrupt service routine */
 void Uart0_Resiv (u08 udrdata) {
 //	uart1SendByte(udrdata);
-///*		
-	BUF_UART_RX[rx] = udrdata;
 
-	if	(rx == BUF_UART_RX[0] && 0x07 >= BUF_UART_RX[0]) {
-
-		rx = (MAX_RX_SIZE_BUFF - 3);
-		static portBASE_TYPE xHigherPriorityTaskWoken;
-
-		xSemaphoreGiveFromISR(xUart_RX_Semaphore, &xHigherPriorityTaskWoken);
-
+    if (IsRegistratorConnect) {
+        RegistratorCharPut(udrdata); 
 	}
+	else {
+    ///*		
+	    BUF_UART_RX[rx] = udrdata;
 
-	rx++;
-	if (rx == (MAX_RX_SIZE_BUFF - 2)) {
-	   rx = 0;
-	}
-//*/
+	    if (rx == BUF_UART_RX[0] && 0x07 >= BUF_UART_RX[0]) {
+		    rx = (MAX_RX_SIZE_BUFF - 3);
+		    static portBASE_TYPE xHigherPriorityTaskWoken;
+		    xSemaphoreGiveFromISR(xUart_RX_Semaphore, &xHigherPriorityTaskWoken);
+	    }
+
+	    rx++;
+	    if (rx == (MAX_RX_SIZE_BUFF - 2)) {
+	        rx = 0;
+	    }
+    //*/
+    }
 }	
 
 void Global_Time_Deluy (unsigned int time_val) {
