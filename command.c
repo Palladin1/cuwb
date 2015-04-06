@@ -262,8 +262,25 @@ u16 KeySkan(u16 key_kode) {
 		key_kode &= ~(1 << 9);
 	    CntNoWrkBill = 0;
 	}
+	
+//=================================
 
-return key_kode;
+	if (BTN_REGISTRATOR_PRESENT) {
+	    if (CntRegPresent == 20) {
+			key_kode |= (1 << 10);
+			CntRegPresent = 30;
+		}    
+        else if (CntRegPresent < 20) {
+		    CntRegPresent++;
+        }
+	}
+	else {
+		key_kode &= ~(1 << 10);
+	    CntRegPresent = 0;
+	}
+
+return key_kode;	
+
 }
 
 //=====================================================================
@@ -281,7 +298,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		DS1337WriteDatta((get_cmd_buff+2));
 		
 		get_cmd_buff[0] = 1;
-		uartSendBuffer(0, &get_cmd_buff[0], 2);
+		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 	
 	void RAEAD_FROM_RTC (void) {
@@ -293,7 +310,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		get_cmd_buff[6] = get_cmd_buff[7];
 		get_cmd_buff[7] = get_cmd_buff[8];		
 
-		uartSendBuffer(0, &get_cmd_buff[0], 8);
+		uartSendBuf(0, &get_cmd_buff[0], 8);
 	}
 
 	void READ_EXT_EEPROM (void) {
@@ -323,7 +340,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 			    start_memAddr_for_read += 11;
 			    get_cmd_buff[0] = 12;
 			    
-			    uartSendBuffer(0, &get_cmd_buff[0], 13);
+			    uartSendBuf(0, &get_cmd_buff[0], 13);
 //		        _delay_ms(20);
                 Global_Time_Deluy(20);
     	    }
@@ -337,14 +354,14 @@ void GetCmd (unsigned char *get_cmd_buff) {
 			start_memAddr_for_read += 11;
 			get_cmd_buff[0] = 12;
 			
-			uartSendBuffer(0, &get_cmd_buff[0], 13);
+			uartSendBuf(0, &get_cmd_buff[0], 13);
 //		    _delay_ms(20);
             Global_Time_Deluy(20);
     	}
 
 
 		get_cmd_buff[0] = 1;
-		uartSendBuffer(0, &get_cmd_buff[0], 2);
+		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 	
 	void ERASE_EXT_EEPROM (void)	{	
@@ -357,7 +374,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, *ext_eepr_cur_adr);
 
 		get_cmd_buff[0] = 1;
-		uartSendBuffer(0, &get_cmd_buff[0], 2);
+		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 
 	void WRITE_INT_EEPROM (void) {
@@ -393,7 +410,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		}
 ///////////////////////////////////////////////////////////////
 		get_cmd_buff[0] = 1;
-		uartSendBuffer(0, &get_cmd_buff[0], 2);
+		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 
 	void READ_INT_EEPROM (void) {
@@ -404,7 +421,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		portEXIT_CRITICAL();
 		get_cmd_buff[0] = 5;
 				
-		uartSendBuffer(0, &get_cmd_buff[0], 6);
+		uartSendBuf(0, &get_cmd_buff[0], 6);
 	}
 
 	void WRITE_PULSE_COUNT (void) {
@@ -413,7 +430,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		CountPulse = CountPulse + get_cmd_buff[3];
 			
 		get_cmd_buff[0] = 1;
-		uartSendBuffer(0, &get_cmd_buff[0], 2);
+		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 
 	void READ_PULSE_FAULT_COUNT (void) {
@@ -421,7 +438,7 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		get_cmd_buff[2] = CountPulseFault;
 
 		get_cmd_buff[0] = 2;
-		uartSendBuffer(0, &get_cmd_buff[0], 3);
+		uartSendBuf(0, &get_cmd_buff[0], 3);
 	}	
 
 
@@ -507,7 +524,7 @@ inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
 
 	    u08 cnt_buf = 0;
 
-        itoa4(*vodomat_number, &report_buff[cnt_buf]); 
+        itoan(*vodomat_number, &report_buff[cnt_buf], 4); 
 
 	    DS1337ReadDatta(&report_buff[cnt_buf+4]);                              //Read data from RTC  
 	
@@ -519,17 +536,17 @@ inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
 		hextoa2(report_buff[4+cnt_buf],  &report_buff[4+cnt_buf]);                    //
 
         if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
-            itoa6(CollectoinCountManey, &report_buff[16+cnt_buf]);
+            itoan(CollectoinCountManey, &report_buff[16+cnt_buf], 6);
 		    CollectoinCountManey = 0;
             IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
 		}
 		else {
-		    itoa6(*day_maney_cnt, &report_buff[16+cnt_buf]);
+		    itoan(*day_maney_cnt, &report_buff[16+cnt_buf], 6);
 		}
         
-		itoa6(*amount_water, &report_buff[22+cnt_buf]);
+		itoan(*amount_water, &report_buff[22+cnt_buf], 6);
 	    
-		itoa4(*cost_litre_coef, &report_buff[28+cnt_buf]);
+		itoan(*cost_litre_coef, &report_buff[28+cnt_buf], 4);
 
 /*
 ************************************************************ 
@@ -548,20 +565,22 @@ inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
 *       End flags sets 
 ************************************************************
 */
-	    itoa2(EventNamber, &report_buff[36+cnt_buf]);
+	    itoan(EventNamber, &report_buff[36+cnt_buf], 2);
 //		report_buff[38+cnt_buf] = 0x1A;
 //		report_buff[39+cnt_buf] = '\0';
 }
 
 
-void itoa6(u32 binval, u08 *asc) {
+void itoan (u32 binval, u08 *asc, u08 size) {
 
     u32 step[]={100000,10000,1000,100,10,1};
     u32 temp,val;
     u08 i,atemp;
+	
     val=binval;
+	size = (size > 6) ? 2 : size; 
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < size; i++) {
         temp=step[i];
         atemp='0';
        while(val >= temp)
@@ -570,45 +589,6 @@ void itoa6(u32 binval, u08 *asc) {
            val-=temp;
        }
        asc[i]=atemp;
-    }
-}
-
-
-void itoa4(u32 binval, u08 *asc) {
-
-    u32 step[] = {1000, 100, 10, 1};
-    u32 temp, val;
-    u08 i, atemp;
-
-    val = binval;
-    for (i = 0; i < 4; i++) {
-        temp = step[i];
-        atemp = '0';
-       while (val >= temp)
-       {
-           atemp++;
-           val -= temp;
-       }
-       asc[i] = atemp;
-    }
-}
-
-void itoa2(u08 binval, u08 *asc) {
-
-    u08 step[] = {10, 1};
-    u08 temp, val;
-    u08 i, atemp;
-
-    val = binval;
-    for (i = 0; i < 2; i++) {
-        temp = step[i];
-        atemp = '0';
-       while (val >= temp)
-       {
-           atemp++;
-           val -= temp;
-       }
-       asc[i] = atemp;
     }
 }
 
@@ -655,4 +635,11 @@ inline u08 bcdtoi2(u08 binval) {
     }
        
 return (temp + binval);
+}
+
+
+void uartSendBuf(u08 num, u08 *s , u08 len) {
+    
+	while (len-- > 0)
+	    uartSendByte(num, *s++);
 }

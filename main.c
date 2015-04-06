@@ -141,12 +141,13 @@ volatile u08 FlDayOrNight = SMS_FLAG_SEND_DISABLE;
 volatile u16 NewPrice = 0;
 
 
-xQueueHandle xSygnalQueue;
+xQueueHandle xRegisratorQueue;
 xQueueHandle xEventsQueue;
 
 xSemaphoreHandle xUart_RX_Semaphore;
 
 xSemaphoreHandle xI2CMutex;
+xSemaphoreHandle xExtSignalStatusSem 
 
 
 //u08 Trace_Buffer[300];
@@ -155,6 +156,15 @@ xSemaphoreHandle xI2CMutex;
 #if BUZER_TIME
 u08 buzer_flag = 0;
 #endif
+
+
+static u08 IsRegistratorConnect = 0;
+static struct RegistratorMsg {
+    u08 Cmd;
+    RegistratorDataFinalSale ProductInfo;
+} CUWB_RegistratorMsg;
+
+static u16 ExtSignalStatus = 0;
 
 /*
 *********************************************************************************************************
@@ -192,12 +202,10 @@ void custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
-extern void RegistratorCharSend(u08 c) {
-    char byte_send;
-	byte_send = c;
-}
 int main( void )
 {
+//NoWtrForLCD();
+
 #include  <registrator.h>
 //              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
 u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
@@ -270,28 +278,21 @@ while (pr) {
 
 
 
-
-
-
-
-
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-xSygnalQueue  = xQueueCreate(5, sizeof(unsigned int *));
-xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
+    xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg));
+    xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
-vSemaphoreCreateBinary(xUart_RX_Semaphore);
+    vSemaphoreCreateBinary(xUart_RX_Semaphore);
+	vSemaphoreCreateBinary(xExtSignalStatusSem);
+	
+    xI2CMutex = xSemaphoreCreateMutex();
 
-xI2CMutex = xSemaphoreCreateMutex();
+    InitPortsIO();
 
-InitPortsIO();
+    StopGetManey();
 
-
-StopGetManey();
+    RegistratorInit();
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
@@ -327,6 +328,7 @@ void vTask1( void *pvParameters )
     static u08 CountLcdInt;
 
     u16 temp_key = 0;
+	static 08 is_uart_set = 0;
 
     for( ;; )
     {
@@ -340,12 +342,32 @@ void vTask1( void *pvParameters )
 		    CountLcdInt = 0x00;
         }  
     
-        temp_key = KeySkan(temp_key);
-					
+        ExtSignalStatus = KeySkan(ExtSignalStatus);
+		
+		IsRegistratorConnect = temp_key & (1 << 10);
+        if (is_uart_set != 1 && IsRegistratorConnect == 1) {
+		    is_uart_set = 1;
+			Uart0Disable(void);
+		    Uart0Enable(RegistratorCharPut, 9600);
+		}
+		else if (is_uart_set != 2) {
+		    is_uart_set = 2;
+			Uart0Disable();
+		    Uart0Enable(Uart0_Resiv,  19200);
+		}
+	
+		/*
 		if (xQueueSend(xSygnalQueue, &temp_key, (2 / portTICK_RATE_MS)) == pdPASS) {
             
 			vTaskDelay(2 / portTICK_RATE_MS);
 		}
+		*/
+		if (ExtSignalStatus != temp_key) {
+		    temp_key = ExtSignalStatus;
+		    xSemaphoreGive(xExtSignalStatusSem, 0);
+		}
+		
+		vTaskDelay(2 / portTICK_RATE_MS);
     }
 
     vTaskDelete (NULL);
@@ -462,17 +484,32 @@ void vTask3( void *pvParameters )
 
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
+	static registrator_status_timer = 0;
+	static u32 registrator_data[3] = {0};
+	static u32 **registrator_data_ptr = registrator_data;
+	
 	for( ;; )
     {
+	
+	    RegistratorDataSet(RCMD_SELL_END, (void **) registrator_data_ptr);
+	
+		RegistratorStatusGet();
 
-        xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
-
-		memset(&rx_data_buff[0], 0x0, 20); 
-        memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], 20);
-		memset((char *)&BUF_UART_RX[0], 0x0, 20);
-xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-	    GetCmd(&rx_data_buff[0]);
-xSemaphoreGive(xI2CMutex); 
+        
+		//xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
+		if (SemaphoreTake(xUart_RX_Semaphore, 50 / portTICK_RATE_MS) == pdTRUE) { 
+		
+            memset(&rx_data_buff[0], 0x0, 20); 
+            memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], 20);
+		    memset((char *)&BUF_UART_RX[0], 0x0, 20);
+        
+		    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+	        GetCmd(&rx_data_buff[0]);
+            xSemaphoreGive(xI2CMutex); 
+		}
+		else {
+		    RegistratorProcessing(50);
+		}
 
 //        vTaskDelay(1000 / portTICK_RATE_MS);   
 //        vTaskDelay(500 / portTICK_RATE_MS);
@@ -531,6 +568,19 @@ void vTask4( void *pvParameters )
 //  vTaskDelay(200 / portTICK_RATE_MS);
 //  BUZZER_OFF;
 
+    CUWB_RegistratorMsg.Cmd = 0;
+	CUWB_RegistratorMsg.ProductInfo.Number = 0;
+    CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
+    CUWB_RegistratorMsg.ProductInfo.Prise = 0;
+	
+	xQueueSend(xRegistratorQueue, CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)
+	
+	while (RegistratorStatusGet() != OK_CONNECTION)
+	    ;
+	
+	xSemaphoreTake(xButtonPressed, 0);
+
+
     wdt_enable(WDTO_2S);
 
 	for( ;; )
@@ -540,7 +590,8 @@ void vTask4( void *pvParameters )
       
         Fl_SellEnable = 1;	     
 	     
-        if (xQueueReceive(xSygnalQueue, &get_key_skan, 0) == pdPASS) {
+		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
+        //if (xQueueReceive(xSygnalQueue, &get_key_skan, 0) == pdPASS) {
 		    /*
 			Sygnal_Get_CoinGet   = (get_key_skan & (1 << 0));
 			Sygnal_Get_BillGet   = ((get_key_skan & (1 << 1)) >> 1);
@@ -553,16 +604,16 @@ void vTask4( void *pvParameters )
 		    Sygnal_Get_Reset     = ((get_key_skan & (1 << 8)) >> 8);
 		    Sygnal_Get_NoWrkBill = ((get_key_skan & (1 << 9)) >> 9);
             */
-            Sygnal_Get_CoinGet   = (get_key_skan & 1);
-			Sygnal_Get_BillGet   = ((get_key_skan >> 1) & 1);
-			Sygnal_Get_NoWater   = ((get_key_skan >> 1) & 1);
-            Sygnal_Get_NoPower1  = ((get_key_skan >> 1) & 1);
-			Sygnal_Get_NoPower2  = ((get_key_skan >> 1) & 1);
-			Sygnal_Get_DoorOpn   = ((get_key_skan >> 1) & 1);
-		    Sygnal_Get_Start     = ((get_key_skan >> 1) & 1);
-		    Sygnal_Get_Stop      = ((get_key_skan >> 1) & 1);
-		    Sygnal_Get_Reset     = ((get_key_skan >> 1) & 1);
-		    Sygnal_Get_NoWrkBill = ((get_key_skan >> 1) & 1);
+            Sygnal_Get_CoinGet   = ExtSignalStatus & 1;
+			Sygnal_Get_BillGet   = ((ExtSignalStatus >> 1) & 1);
+			Sygnal_Get_NoWater   = ((ExtSignalStatus >> 2) & 1);
+            Sygnal_Get_NoPower1  = ((ExtSignalStatus >> 3) & 1);
+			Sygnal_Get_NoPower2  = ((ExtSignalStatus >> 4) & 1);
+			Sygnal_Get_DoorOpn   = ((ExtSignalStatus >> 5) & 1);
+		    Sygnal_Get_Start     = ((ExtSignalStatus >> 6) & 1);
+		    Sygnal_Get_Stop      = ((ExtSignalStatus >> 7) & 1);
+		    Sygnal_Get_Reset     = ((ExtSignalStatus >> 8) & 1);
+		    Sygnal_Get_NoWrkBill = ((ExtSignalStatus >> 9) & 1);
 		}
 
 		if (Sygnal_Get_NoPower1 || Sygnal_Get_NoPower2) {
@@ -1505,9 +1556,9 @@ void custom_at_handler(u08 *pData)
 
 void DecodeForLCD (u16 led_maney, u16 led_water) {
 /*
-    itoa(led_maney & 9999, &LcdDatta[0], 10);
+    itoa(led_maney & 0x1FFF, &LcdDatta[0], 10);
 	
-	itoa(led_water & 9999, &LcdDatta[4], 10);
+	itoa(led_water & 0x1FFF, &LcdDatta[4], 10);
 */
 	LcdDatta[0] = (u08)( led_maney / 1000);
 	LcdDatta[1] = (u08)((led_maney / 100) % 10);
@@ -1542,11 +1593,6 @@ void NoWtrForLCD (void) {
 /* UART0 Receiver interrupt service routine */
 void Uart0_Resiv (u08 udrdata) {
 //	uart1SendByte(udrdata);
-
-    if (IsRegistratorConnect) {
-        RegistratorCharPut(udrdata); 
-	}
-	else {
     ///*		
 	    BUF_UART_RX[rx] = udrdata;
 
@@ -1561,7 +1607,6 @@ void Uart0_Resiv (u08 udrdata) {
 	        rx = 0;
 	    }
     //*/
-    }
 }	
 
 void Global_Time_Deluy (unsigned int time_val) {
@@ -1569,6 +1614,10 @@ void Global_Time_Deluy (unsigned int time_val) {
     vTaskDelay(time_val / portTICK_RATE_MS);
 }
 
+
+extern void RgistratorSendStr (u08 *s, u08 len) {
+    uartSendBuf(0, s , len);
+}
 
 //void vApplicationStackOverflowHook (xTaskHandle *pxTask, signed portCHAR *pcTaskName) {
 //	 PORTA &= ~(1 << 4);

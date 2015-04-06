@@ -11,6 +11,7 @@ u08 CntStart;
 u08 CntStop;
 u08 CntReset;
 u08 CntNoWrkBill;
+u08 CntRegPresent;
 
 volatile u08 Fl_State_Water;
 volatile u08 Fl_State_Power;
@@ -33,9 +34,7 @@ extern void Global_Time_Deluy (unsigned int time_val);
 
 void SendError(u08 EventNamber);
 
-void itoa6(u32 binval, u08 *asc);
-void itoa4(u32 binval, u08 *asc);
-void itoa2(u08 binval, u08 *asc);
+void itoan (u32 binval, u08 *asc, u08 size);
 void hextoa2(u08 binval, u08 *asc);
 
 u16 GetRealTime(void);
@@ -47,5 +46,7 @@ void Create_Report_String (u08 *report_buff, u08 EventNamber);
 
 void Uart1Enable (void);
 void Uart1Disable (void);
+
+void uartSendBuf(u08 num, u08 *s , u08 len);
 
 #endif

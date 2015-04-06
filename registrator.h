@@ -40,6 +40,12 @@ typedef unsigned long u32;
 typedef signed long s32;
 #endif
 
+typedef struct RegistratorDataFinalSale {
+    u32 Number;
+    u32 Quantity;
+    u32 Prise;	
+};
+
 typedef enum _REGISTRATOR_STATUS {
             WAIT_CONNECTION,    
             ERROR_CONNECTION,
@@ -52,6 +58,6 @@ void RegistratorInit (void);
 void RegistratorProcessing (u08 time_correcting);
 void RegistratorDataSet (u08 cmd, void * data[]);
 REGISTRATOR_STATUS RegistratorStatusGet (void);
-extern void RegistratorCharSend (u08 c);
+extern void RgistratorSendStr (u08 *s, u08 len);
 
 #endif  //REGISTRATOR_H

@@ -8,6 +8,9 @@ extern void Uart0_Resiv (u08 udrdata);
 void Uart1Enable (void);
 void Uart1Disable (void);
 
+void Uart0Enable (void (*getbyte)(u08 c),  u16 baudrate);
+void Uart0Disable (void);
+
 //==================================
 
 
@@ -96,6 +99,9 @@ volatile u08 Fl_RxReciv;
 
 #define BUZZER_ON  PORTC |=  (1<<2)
 #define BUZZER_OFF PORTC &= ~(1<<2)
+
+
+#define  BTN_REGISTRATOR_PRESENT    (PINX & 0x00)	
 
 ////////////////////////////////////////////////////////////////////////////
 

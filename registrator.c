@@ -65,7 +65,6 @@ static struct registrator_send_message send_message;
 static struct registrator_receive_message receive_message;
 
 static REGISTRATOR_STATUS registrator_status;
-static u32 timer_var;
 
 static u08 should_send_data;
 
@@ -82,7 +81,6 @@ void RegistratorInit (void)
     u08 i;
     registrator_status = WAIT_CONNECTION;
     should_send_data = 0;
-    timer_var = 0;
     
     send_message.cmd = 0;
     send_message.seq = 0;
@@ -100,6 +98,7 @@ void RegistratorInit (void)
 void RegistratorProcessing (u08 time_correcting)
 {
     u08 ans;
+	static u32 timer_var;
     static enum processing_state { 
         P_IDDLE,
         P_REQUEST,
@@ -128,29 +127,37 @@ void RegistratorProcessing (u08 time_correcting)
                  ans = registrator_frame_get(FifoBufGet(&RegistratorRXBuffer));
              }
              
-             if (ans == RANSVER_SYN) {
-                 timer_var = 0;
-             }
-             else if (ans == RANSVER_NAK) {
-                 timer_var = 0;
-                 send_message.seq = increase_seq(send_message.seq);
-                 state = P_REQUEST;                     
-             }
-             else if (ans == RANSVER_AK) {
-                 timer_var = 0;
-                 send_message.seq = increase_seq(send_message.seq);
-                 registrator_status = OK_CONNECTION;
+			 switch (ans) {
+			     case RANSVER_SYN: {
+				      timer_var = 0;
+				      break;
+				 }
+				 case RANSVER_NAK: {
+				      timer_var = 0;
+                      send_message.seq = increase_seq(send_message.seq);
+                      state = P_REQUEST;                     
+                      break;				 
+				 }
+				 case RANSVER_AK: {
+                      timer_var = 0;
+                      send_message.seq = increase_seq(send_message.seq);
+                      registrator_status = OK_CONNECTION;
                  
-//                 (should_send_data == 1) ? should_send_data = 0 : 0;
-                 state = P_IDDLE;                     
-             }
-             else if (timer_var == R_TIMEOUT_WAIT) {
+//                    (should_send_data == 1) ? should_send_data = 0 : 0;
+                      state = P_IDDLE;                     				 
+				      break;
+			     }
+//				 default : {
+//                      break;
+//				 } 
+			 }
+			 
+			 if (timer_var >= R_TIMEOUT_WAIT) {
                  registrator_status = ERROR_CONNECTION;
                  state = P_REQUEST;    
              }
              
-             timer_var++;
-             break;
+             timer_var += time_correcting;
         }
 //      default : {
 //           break;
@@ -190,7 +197,6 @@ void RegistratorDataSet (u08 cmd, void * data[])
              send_message.data[offset] = '\0';
              send_message.data_len = offset;
              
-                
              should_send_data = 1;
              break;
         }
@@ -353,21 +359,21 @@ void registrator_frame_send (void)
     buf[1] = send_message.len;
     buf[2] = CONVERT_FOR_SEND(send_message.seq);
     buf[3] = send_message.cmd;
-	sendnstr(buf, 4);    
+	RgistratorSendStr(buf, 4);    
 	
-	sendnstr(send_message.pwd, R_PWD_LEN);
+	RgistratorSendStr(send_message.pwd, R_PWD_LEN);
     buf[0] = RDATA_SEPARATOR;
-    sendnstr(buf, 1);
-    sendnstr(send_message.data, send_message.data_len);
+    RgistratorSendStr(buf, 1);
+    RgistratorSendStr(send_message.data, send_message.data_len);
     
 	buf[0] = RDATA_ENQ;
-    sendnstr(buf, 1);
+    RgistratorSendStr(buf, 1);
         
     makecrc(send_message.bcc);
-    sendnstr(send_message.bcc, R_CRC_LEN);
+    RgistratorSendStr(send_message.bcc, R_CRC_LEN);
     
     buf[0] = RDATA_ENQ;
-    sendnstr(buf, 1);
+    RgistratorSendStr(buf, 1);
 }
         
             
@@ -441,12 +447,6 @@ void makecrc (u08 * crc)
         send_message.bcc[i] = crc_temp % 16 + '0';
         crc_temp /= 16;
     }
-}
-
-void sendnstr (u08 *s, u08 len)
-{
-    while (len-- > 0)
-        RegistratorCharSend(*s++);
 }
 
 

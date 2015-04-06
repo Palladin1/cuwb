@@ -113,16 +113,6 @@ PORTF =	0X00;	// PORTF |= (0<<PF7) |(0<<PF6) |(0<<PF5) |(0<<PF4) |(0<<PF3) |(0<<
 DDRG  =	0X07;	//	DDRG |= (0<<DDG4)|(0<<DDG3)|(1<<DDG2)|(1<<DDG1)|(1<<DDG0);
 PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 
-//=====================================
-
-
-	// initialize the UART 0
-//	uartInit();
-    uart0Init();
-	uartSetBaudRate(0, 19200);
-
-	uartSetRxHandler(0, Uart0_Resiv);
-
 //==================================================
     // initialize the I2C
 	i2cInit();
@@ -194,4 +184,15 @@ void Uart1Enable (void) {
 
 void Uart1Disable (void) {
     uart1DeInit();
+}
+
+/* The UART 0 initialization */
+void Uart0Enable (void (*getbyte)(u08 c),  u16 baudrate) {
+    uart0Init();
+	uartSetBaudRate(0, baudrate);
+	uartSetRxHandler(0, getbyte);
+}
+
+void Uart0Disable (void) {
+    uart0DeInit();
 }
