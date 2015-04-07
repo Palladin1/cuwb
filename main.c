@@ -161,7 +161,10 @@ u08 buzer_flag = 0;
 static u08 IsRegistratorConnect = 0;
 static struct RegistratorMsg {
     u08 Cmd;
-    RegistratorDataFinalSale ProductInfo;
+    union {
+	    RegistratorDataFinalSale  ProductInfo;
+		RegistratorDataCancelSale OperationNum;
+	} Data;
 } CUWB_RegistratorMsg;
 
 static u16 ExtSignalStatus = 0;
@@ -280,7 +283,7 @@ while (pr) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-    xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg));
+    xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg *));
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -488,16 +491,12 @@ void vTask3( void *pvParameters )
 	static u32 registrator_data[3] = {0};
 	static u32 **registrator_data_ptr = registrator_data;
 	
+	struct RegistratorMsg * SendRegistratorMsg;
+	
 	for( ;; )
     {
-	
-	    RegistratorDataSet(RCMD_SELL_END, (void **) registrator_data_ptr);
-	
-		RegistratorStatusGet();
-
-        
 		//xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
-		if (SemaphoreTake(xUart_RX_Semaphore, 50 / portTICK_RATE_MS) == pdTRUE) { 
+		if (SemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
 		
             memset(&rx_data_buff[0], 0x0, 20); 
             memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], 20);
@@ -508,11 +507,19 @@ void vTask3( void *pvParameters )
             xSemaphoreGive(xI2CMutex); 
 		}
 		else {
-		    RegistratorProcessing(50);
-		}
+		    if (RegistratorStatusGet() != WAIT_CONNECTION) {
+		        if (xQueueReceive(xRegistratorQueue, SendRegistratorMsg, 0) == pdTRUE) {
+				    if (SendRegistratorMsg != NULL) {
+				        *registrator_data_ptr = &SendRegistratorMsg->Data;
+                        RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) registrator_data_ptr);
+					}
+	            }
+			}
 
-//        vTaskDelay(1000 / portTICK_RATE_MS);   
-//        vTaskDelay(500 / portTICK_RATE_MS);
+			RegistratorProcessing(50);
+		}
+		
+        vTaskDelay(50 / portTICK_RATE_MS);   
 	}
 
     vTaskDelete (NULL);

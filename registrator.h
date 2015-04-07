@@ -18,6 +18,8 @@
 #define  RDATA_ETX    0x03
 #define  RDATA_SEPARATOR    ';'
 
+#define  ROPERATION_CANCEL_SELL    0ul
+
 #define  SEQ_VALUE_LOWER            0x20
 #define  SEQ_VALUE_UPPER            0x7F
 #define  SEQ_VALUE_MAX              (SEQ_VALUE_UPPER - SEQ_VALUE_LOWER)
@@ -40,17 +42,21 @@ typedef unsigned long u32;
 typedef signed long s32;
 #endif
 
-typedef struct RegistratorDataFinalSale {
+typedef struct RegistratorDataFinishSale {
     u32 Number;
     u32 Quantity;
     u32 Prise;	
+};
+
+typedef struct RegistratorDataCancelSale {
+    u32 Operation;
 };
 
 typedef enum _REGISTRATOR_STATUS {
             WAIT_CONNECTION,    
             ERROR_CONNECTION,
             OK_CONNECTION
-        } REGISTRATOR_STATUS;
+} REGISTRATOR_STATUS;
   
 void RegistratorCharPut (unsigned char c);  
         
