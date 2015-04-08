@@ -119,6 +119,31 @@ void uart1DeInit(void)
 /*
 * *
 */
+/*
+* add by Pall 08.04.2015 *
+*/
+void uart0DeInit(void)
+{
+	// initialize the buffers
+//	uart1InitBuffers();
+	// initialize user receive handlers
+//	UartRxFunc[1] = 0;
+	// enable RxD/TxD and interrupts
+	UCSR0B &=  ~(BV(RXCIE)|BV(TXCIE)|BV(RXEN)|BV(TXEN));
+	// set default baud rate
+//	uartSetBaudRate(1, UART1_DEFAULT_BAUD_RATE);
+	// initialize states
+//	uartReadyTx[1] = TRUE;
+//	uartBufferedTx[1] = FALSE;
+	// clear overflow count
+//	uartRxOverflow[1] = 0;
+	// enable interrupts
+//	sei();
+}
+/*
+* *
+*/
+
 
 void uart0InitBuffers(void)
 {

@@ -74,13 +74,13 @@
 // buffer memory allocation defines
 // buffer sizes
 #ifndef UART0_TX_BUFFER_SIZE
-#define UART0_TX_BUFFER_SIZE		0x0020	///< number of bytes for uart0 transmit buffer
+#define UART0_TX_BUFFER_SIZE		0x0001	///< number of bytes for uart0 transmit buffer
 #endif
 #ifndef UART0_RX_BUFFER_SIZE
 #define UART0_RX_BUFFER_SIZE		0x0001	///< number of bytes for uart0 receive buffer
 #endif
 #ifndef UART1_TX_BUFFER_SIZE
-#define UART1_TX_BUFFER_SIZE		0x0020	///< number of bytes for uart1 transmit buffer
+#define UART1_TX_BUFFER_SIZE		0x0001	///< number of bytes for uart1 transmit buffer
 #endif
 #ifndef UART1_RX_BUFFER_SIZE
 #define UART1_RX_BUFFER_SIZE		0x0001	///< number of bytes for uart1 receive buffer
@@ -212,6 +212,10 @@ void uartTransmitService(u08 nUart);
 void uartReceiveService(u08 nUart);
 
 void uart1DeInit(void); // add by Pall 03.10.2012
+
+void uart0DeInit(void); // add by Pall 08.04.2015
+
+
 
 #endif
 

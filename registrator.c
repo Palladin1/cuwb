@@ -64,7 +64,7 @@ void sendnstr (u08 *s, u08 len);
 static struct registrator_send_message send_message; 
 static struct registrator_receive_message receive_message;
 
-static REGISTRATOR_STATUS registrator_status;
+//static REGISTRATOR_STATUS registrator_status;
 
 static u08 should_send_data;
 
@@ -79,7 +79,7 @@ void RegistratorCharPut (unsigned char c) {
 void RegistratorInit (void)
 {
     u08 i;
-    registrator_status = WAIT_CONNECTION;
+//    registrator_status = WAIT_CONNECTION;
     should_send_data = 0;
     
     send_message.cmd = 0;
@@ -95,9 +95,10 @@ void RegistratorInit (void)
 } 
 
 
-void RegistratorProcessing (u08 time_correcting)
+REGISTRATOR_STATUS RegistratorProcessing (u08 period)
 {
     u08 ans;
+	static REGISTRATOR_STATUS registrator_status = NOT_DEFINED;
 	static u32 timer_var;
     static enum processing_state { 
         P_IDDLE,
@@ -157,7 +158,7 @@ void RegistratorProcessing (u08 time_correcting)
                  state = P_REQUEST;    
              }
              
-             timer_var += time_correcting;
+             timer_var += period;
         }
 //      default : {
 //           break;
@@ -165,13 +166,37 @@ void RegistratorProcessing (u08 time_correcting)
     }
 }
 
+/*
 REGISTRATOR_STATUS RegistratorStatusGet (void) 
 {
     return registrator_status;
 }
-            
+*/            
 
-void RegistratorDataSet (u08 cmd, void * data[]) 
+u08 RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype)
+{
+    switch (datatype) {
+        case ERROR_CODE: {
+		     received_data->dataptr = receive_message.error_code;
+			 received_data->len = R_CRC_LEN; 
+		     break;
+		}    
+        case DATA: {
+		     received_data->dataptr = receive_message.data;
+		     received_data->len = receive_message.data_len;
+		     break;
+		}
+        case STATUS: {
+		     received_data->dataptr = receive_message.status;
+		     received_data->len = R_STATUS_LEN;
+			 break;
+		}
+	}
+
+    return (0);		
+}
+			
+u08 RegistratorDataSet (u08 cmd, void * data[]) 
 {
     u08 offset;
     
@@ -213,6 +238,8 @@ void RegistratorDataSet (u08 cmd, void * data[])
         }
 */        
     }
+	
+	return (0);
 }
 
 

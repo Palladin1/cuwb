@@ -101,7 +101,7 @@ volatile u08 Fl_RxReciv;
 #define BUZZER_OFF PORTC &= ~(1<<2)
 
 
-#define  BTN_REGISTRATOR_PRESENT    (PINX & 0x00)	
+#define  BTN_REGISTRATOR_PRESENT    (PINB & 0x02)	
 
 ////////////////////////////////////////////////////////////////////////////
 

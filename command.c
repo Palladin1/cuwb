@@ -265,7 +265,7 @@ u16 KeySkan(u16 key_kode) {
 	
 //=================================
 
-	if (BTN_REGISTRATOR_PRESENT) {
+	if (!BTN_REGISTRATOR_PRESENT) {
 	    if (CntRegPresent == 20) {
 			key_kode |= (1 << 10);
 			CntRegPresent = 30;

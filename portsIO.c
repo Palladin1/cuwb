@@ -88,9 +88,11 @@ else {
 PORTA = 0X78;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(1<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
 }
 
-				//     	 |key door   | key rest|key stop |key strt |inh bill |escrow   |         |sts bill| 
-DDRB  =	0X0E;	//	DDRB |= (0<<DDB7)|(0<<DDB6)|(0<<DDB5)|(0<<DDB4)|(1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(0<<DDB0);
-PORTB =	0XF5;	// PORTB |= (1<<PB7) |(1<<PB6) |(1<<PB5) |(1<<PB4) |(0<<PB3) |(1<<PB2) |(0<<PB1) |(1<<PB0);
+				//     	 |key door   | key rest|key stop |key strt |inh bill |escrow   | registrator present |sts bill| 
+DDRB  =	0X0E;	//	DDRB |= (0<<DDB7)|(0<<DDB6)|(0<<DDB5)|(0<<DDB4)|(1<<DDB3)|(1<<DDB2)|(0<<DDB1)            |(0<<DDB0);
+PORTB =	0XF5;	// PORTB |= (1<<PB7) |(1<<PB6) |(1<<PB5) |(1<<PB4) |(0<<PB3) |(1<<PB2) |(1<<PB1)             |(1<<PB0);
+//DDRB  =	0X0E;	//	DDRB |= (0<<DDB7)|(0<<DDB6)|(0<<DDB5)|(0<<DDB4)|(1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(0<<DDB0);
+//PORTB =	0XF5;	// PORTB |= (1<<PB7) |(1<<PB6) |(1<<PB5) |(1<<PB4) |(0<<PB3) |(1<<PB2) |(0<<PB1) |(1<<PB0);
 
 				//     	    	 				    	 | reserv key        | buzzer  | 
 DDRC  =	0XE7;	//	DDRC |= (1<<DDC7)|(1<<DDC6)|(1<<DDC5)|(0<<DDC4)|(0<<DDC3)|(1<<DDC2)|(1<<DDC1)|(1<<DDC0);

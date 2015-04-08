@@ -1,6 +1,9 @@
 #ifndef  REGISTRATOR_H
 #define  REGISTRATOR_H
 
+#include  "avrlibtypes.h"
+
+
 #define  R_TIMEOUT_WAIT    200
 //#define  R_TIMEOUT_WAIT_CHACK    1000
 
@@ -29,6 +32,7 @@
 #define  CONVERT_FOR_SEND(d)       ((d) + NULL_IN_MESSAGE)  
 #define  CONVERT_TO_DIGIT(c)       ((c) >= NULL_IN_MESSAGE) ? (c) - NULL_IN_MESSAGE : 0  
 
+/*
 #ifndef u08
 typedef unsigned char u08;
 #endif
@@ -41,29 +45,43 @@ typedef unsigned long u32;
 #ifndef s32
 typedef signed long s32;
 #endif
+*/
 
-typedef struct RegistratorDataFinishSale {
+typedef struct {
     u32 Number;
     u32 Quantity;
     u32 Prise;	
-};
+} RegistratorDataFinishSale;
 
-typedef struct RegistratorDataCancelSale {
+typedef struct {
     u32 Operation;
-};
+} RegistratorDataCancelSale;
 
 typedef enum _REGISTRATOR_STATUS {
+            NOT_DEFINED,
             WAIT_CONNECTION,    
             ERROR_CONNECTION,
             OK_CONNECTION
 } REGISTRATOR_STATUS;
+
+typedef struct {
+    u08 *dataptr;
+	u08 len;
+} ReceivedData;
+
+typedef enum {
+    ERROR_CODE,    
+    DATA,
+    STATUS
+} RECEIVED_DATA_TYPE;
   
 void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
-void RegistratorProcessing (u08 time_correcting);
-void RegistratorDataSet (u08 cmd, void * data[]);
-REGISTRATOR_STATUS RegistratorStatusGet (void);
+REGISTRATOR_STATUS RegistratorProcessing (u08 period);
+u08  RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
+u08  RegistratorDataSet (u08 cmd, void * data[]);
+//REGISTRATOR_STATUS RegistratorStatusGet (void);
 extern void RgistratorSendStr (u08 *s, u08 len);
 
 #endif  //REGISTRATOR_H

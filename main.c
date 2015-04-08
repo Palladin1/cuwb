@@ -141,13 +141,13 @@ volatile u08 FlDayOrNight = SMS_FLAG_SEND_DISABLE;
 volatile u16 NewPrice = 0;
 
 
-xQueueHandle xRegisratorQueue;
+xQueueHandle xRegistratorQueue;
 xQueueHandle xEventsQueue;
 
 xSemaphoreHandle xUart_RX_Semaphore;
 
 xSemaphoreHandle xI2CMutex;
-xSemaphoreHandle xExtSignalStatusSem 
+xSemaphoreHandle xExtSignalStatusSem; 
 
 
 //u08 Trace_Buffer[300];
@@ -161,8 +161,8 @@ u08 buzer_flag = 0;
 static u08 IsRegistratorConnect = 0;
 static struct RegistratorMsg {
     u08 Cmd;
-    union {
-	    RegistratorDataFinalSale  ProductInfo;
+    union data{
+	    RegistratorDataFinishSale ProductInfo;
 		RegistratorDataCancelSale OperationNum;
 	} Data;
 } CUWB_RegistratorMsg;
@@ -208,10 +208,10 @@ void custom_at_handler(u08 *pData);
 int main( void )
 {
 //NoWtrForLCD();
-
+/*
 #include  <registrator.h>
 //              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
-u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
+//u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
 
 StrData[1] = 0x20 + strlen((char *)StrData) - 6;
 StrData[3] = RCMD_SELL_END;
@@ -273,7 +273,7 @@ while (pr) {
 
 }
 
-
+*/
 
 
 
@@ -331,7 +331,7 @@ void vTask1( void *pvParameters )
     static u08 CountLcdInt;
 
     u16 temp_key = 0;
-	static 08 is_uart_set = 0;
+	static u08 is_uart_set = 0;
 
     for( ;; )
     {
@@ -350,7 +350,7 @@ void vTask1( void *pvParameters )
 		IsRegistratorConnect = temp_key & (1 << 10);
         if (is_uart_set != 1 && IsRegistratorConnect == 1) {
 		    is_uart_set = 1;
-			Uart0Disable(void);
+			Uart0Disable();
 		    Uart0Enable(RegistratorCharPut, 9600);
 		}
 		else if (is_uart_set != 2) {
@@ -367,7 +367,7 @@ void vTask1( void *pvParameters )
 		*/
 		if (ExtSignalStatus != temp_key) {
 		    temp_key = ExtSignalStatus;
-		    xSemaphoreGive(xExtSignalStatusSem, 0);
+		    xSemaphoreGive(xExtSignalStatusSem);
 		}
 		
 		vTaskDelay(2 / portTICK_RATE_MS);
@@ -473,7 +473,6 @@ void vTask2( void *pvParameters )
 		    min_counter--;
 		}
 
-
 		vTaskDelay(100 / portTICK_RATE_MS);
     }
 
@@ -487,16 +486,18 @@ void vTask3( void *pvParameters )
 
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
-	static registrator_status_timer = 0;
+//	static u32 registrator_status_timer = 0;
 	static u32 registrator_data[3] = {0};
 	static u32 **registrator_data_ptr = registrator_data;
 	
 	struct RegistratorMsg * SendRegistratorMsg;
 	
+	static REGISTRATOR_STATUS conect_status_cur = NOT_DEFINED; 
+	
 	for( ;; )
     {
 		//xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
-		if (SemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
+		if (xSemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
 		
             memset(&rx_data_buff[0], 0x0, 20); 
             memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], 20);
@@ -507,7 +508,10 @@ void vTask3( void *pvParameters )
             xSemaphoreGive(xI2CMutex); 
 		}
 		else {
-		    if (RegistratorStatusGet() != WAIT_CONNECTION) {
+		
+		    conect_status_cur = RegistratorProcessing(50);
+		    
+			if (conect_status_cur == OK_CONNECTION) {
 		        if (xQueueReceive(xRegistratorQueue, SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
 				        *registrator_data_ptr = &SendRegistratorMsg->Data;
@@ -516,7 +520,12 @@ void vTask3( void *pvParameters )
 	            }
 			}
 
-			RegistratorProcessing(50);
+			/* for can starting connection after turn on */
+			if (conect_status_cur == NOT_DEFINED) {
+			    conect_status_cur = OK_CONNECTION;
+			}
+			
+
 		}
 		
         vTaskDelay(50 / portTICK_RATE_MS);   
@@ -529,7 +538,7 @@ void vTask3( void *pvParameters )
 void vTask4( void *pvParameters )
 {
     static u16 PumpTimeCoef ;
-	u16 get_key_skan = 0;
+//	u16 get_key_skan = 0;
 
     static u08 Fl_SellEnable   = 0;
     static u08 Fl_SellStart    = 0;
@@ -571,10 +580,7 @@ void vTask4( void *pvParameters )
     
     PumpTimeCoef = *pump_off_time_coef;
 
-//	BUZZER_ON;
-//  vTaskDelay(200 / portTICK_RATE_MS);
-//  BUZZER_OFF;
-
+/*
     CUWB_RegistratorMsg.Cmd = 0;
 	CUWB_RegistratorMsg.ProductInfo.Number = 0;
     CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
@@ -584,8 +590,8 @@ void vTask4( void *pvParameters )
 	
 	while (RegistratorStatusGet() != OK_CONNECTION)
 	    ;
-	
-	xSemaphoreTake(xButtonPressed, 0);
+*/	
+	xSemaphoreTake(xExtSignalStatusSem, 0);
 
 
     wdt_enable(WDTO_2S);
@@ -1255,7 +1261,7 @@ void vTask5( void *pvParameters )
 
 				 if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
 
-                     itoa4(*vodomat_number, mashines_namber);
+                     itoan(*vodomat_number, mashines_namber, 4);
 	                 mashines_namber[4] = '-';
 	                 mashines_namber[5] = 0;
 					 ModemSendData((char *)mashines_namber, 1);
@@ -1531,7 +1537,7 @@ void custom_at_handler(u08 *pData)
 	}
 	else if (strncmp((char *)pData, "+CSQ:", 5) == 0) {
         u08 *p;
-        p = (strstr((char *)pData, "+CSQ:") + 6);
+        p = (u08 *)(strstr((char *)pData, "+CSQ:") + 6);
 		*p = ((p[0] - 48) * 10) + (p[1] - 48);
 
         if (*p == 99 || *p < 8) { 
@@ -1545,7 +1551,7 @@ void custom_at_handler(u08 *pData)
 
         u08 *p;
         u16 price = 0;
-        p = (strstr((char *)pData, "Price=") + 6);
+        p = (u08 *)(strstr((char *)pData, "Price=") + 6);
   
 		price = ((p[0] - 48) * 1000) + ((p[1] - 48) * 100) + ((p[2] - 48) * 10) + (p[3] - 48);      
 
@@ -1583,8 +1589,8 @@ void DecodeForLCD (u16 led_maney, u16 led_water) {
 void NoWtrForLCD (void) {
 
     /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
-    memnset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdData[0]));
-/*
+/*    memnset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));
+*/
 	LcdDatta[0] = 10;
 	LcdDatta[1] = 10;
 	LcdDatta[2] = 10;
@@ -1593,7 +1599,7 @@ void NoWtrForLCD (void) {
 	LcdDatta[5] = 10;
 	LcdDatta[6] = 10;
 	LcdDatta[7] = 10;
-*/
+
 }
 
 
@@ -1605,7 +1611,8 @@ void Uart0_Resiv (u08 udrdata) {
 
 	    if (rx == BUF_UART_RX[0] && 0x07 >= BUF_UART_RX[0]) {
 		    rx = (MAX_RX_SIZE_BUFF - 3);
-		    static portBASE_TYPE xHigherPriorityTaskWoken;
+		    //static portBASE_TYPE xHigherPriorityTaskWoken;
+			static signed portBASE_TYPE xHigherPriorityTaskWoken;
 		    xSemaphoreGiveFromISR(xUart_RX_Semaphore, &xHigherPriorityTaskWoken);
 	    }
 
