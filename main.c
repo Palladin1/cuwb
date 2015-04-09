@@ -147,6 +147,7 @@ xQueueHandle xEventsQueue;
 xSemaphoreHandle xUart_RX_Semaphore;
 
 xSemaphoreHandle xI2CMutex;
+xSemaphoreHandle xRegistratorMutex;
 xSemaphoreHandle xExtSignalStatusSem; 
 
 
@@ -165,6 +166,11 @@ static struct RegistratorMsg {
 	    RegistratorDataFinishSale ProductInfo;
 		RegistratorDataCancelSale OperationNum;
 	} Data;
+	struct {
+	    u08 Busy            : 1;
+	    u08 ErConnectTimeout: 1;
+	    u08 ErSellNotPermit : 1;
+	} Flags;
 } CUWB_RegistratorMsg;
 
 static u16 ExtSignalStatus = 0;
@@ -290,6 +296,7 @@ while (pr) {
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
 	
     xI2CMutex = xSemaphoreCreateMutex();
+	xRegistratorMutex = xSemaphoreCreateMutex();
 
     InitPortsIO();
 
@@ -415,7 +422,7 @@ void vTask2( void *pvParameters )
  		if (NewPrice) {
 			*cost_litre_coef = NewPrice;
 			NewPrice = 0;
-			xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+			xSemaphoreTake(xI2CMutex, portMAX_DELAY);xRegistratorMutex
     	    IntEeprWordWrite (CostLitreCoefEEPROMAdr, *cost_litre_coef);
             xSemaphoreGive(xI2CMutex);
 		}
@@ -581,18 +588,29 @@ void vTask4( void *pvParameters )
     PumpTimeCoef = *pump_off_time_coef;
 
 /*
+
+            xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
+    	    
+            xSemaphoreGive(xRegistratorMutex);
+			
+			
     CUWB_RegistratorMsg.Cmd = 0;
 	CUWB_RegistratorMsg.ProductInfo.Number = 0;
     CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
     CUWB_RegistratorMsg.ProductInfo.Prise = 0;
 	
-	xQueueSend(xRegistratorQueue, CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)
+	CUWB_RegistratorMsg.Flags.Busy = 0;
+	CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
+	CUWB_RegistratorMsg.Flags.ErSellNotPermit = 0;
 	
-	while (RegistratorStatusGet() != OK_CONNECTION)
+	while (CUWB_RegistratorMsg.Flags.Busy)
 	    ;
+	
+	if (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
+	    xQueueSend(xRegistratorQueue, CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)
+	
 */	
 	xSemaphoreTake(xExtSignalStatusSem, 0);
-
 
     wdt_enable(WDTO_2S);
 
@@ -705,7 +723,12 @@ void vTask4( void *pvParameters )
 		if (!Fl_ManeyGet) {
 		    CountRManey = (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / CountPulse)) + 1) >> 1);
 		}
-
+		
+/*		
+if (Fl_ManeyGet)
+    xSemaphoreTake(xRegistratorMutex, 0);
+*/
+	
 	    if (Sygnal_Get_Start && !Sygnal_Get_Stop 
 		                     && Fl_SellEnable 
 							 && !Fl_SellStart
@@ -714,6 +737,8 @@ void vTask4( void *pvParameters )
 		    StopGetManey();
 		    Fl_ManeyGet = 0;
 			
+xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);		
+	
             if (ManeySave > 0) {
 
 			    *day_maney_cnt += ManeySave;
@@ -732,7 +757,12 @@ void vTask4( void *pvParameters )
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
                 xSemaphoreGive(xI2CMutex); 
-               
+/*
+	            CUWB_RegistratorMsg.ProductInfo.Number = 0;
+                CUWB_RegistratorMsg.ProductInfo.Quantity = WaterSave * 10;
+                CUWB_RegistratorMsg.ProductInfo.Prise = *cost_litre_coef;
+*/
+	
                 ManeySave = WaterSave = 0;
 		        
 		    }
@@ -857,9 +887,46 @@ void vTask4( void *pvParameters )
 			    SellingStop();
 		        Fl_SellStart = 0; 
 		        Fl_SellStop = 0; 
+				
+/*
+while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
+    ;
+	
+    CUWB_RegistratorMsg.OperationNum = RCMD_SELL_CANCELL;
+	CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+	
+	xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS);
+	xSemaphoreGive(xRegistratorMutex);
+	
+	
+	xSemaphoreGive(xRegistratorMutex);
+	
+//	while (CUWB_RegistratorMsg.Flags.Busy)
+//	    ;
+
+*/	
+					
             }
 	        else {
                 Fl_State_WtrCnt = REPORT_FLAG_OK;
+/*
+while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
+    ;
+	
+	CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
+		
+	CUWB_RegistratorMsg.Flags.Busy;
+	CUWB_RegistratorMsg.Flags.ErConnectTimeout;
+	CUWB_RegistratorMsg.Flags.ErSellNotPermit;
+	
+	xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS);
+	xSemaphoreGive(xRegistratorMutex);
+	
+	
+//	while (CUWB_RegistratorMsg.Flags.Busy)
+//	    ;
+
+*/
 	        }
  	    }
 	    else {
