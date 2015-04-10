@@ -97,7 +97,9 @@ PGM_P SMS_TEXT[] PROGMEM = {
 
 #define SMS_FLAG_DAY          0x01
 #define SMS_FLAG_NIGHT        0x00
-#define SMS_FLAG_SEND_DISABLE 0x02     
+#define SMS_FLAG_SEND_DISABLE 0x02   
+
+#define  TIME_SEND_REGUEST    500ul   // 1 second = 500 * 2ms - is task sleep    
 
 /*
 *********************************************************************************************************
@@ -147,8 +149,9 @@ xQueueHandle xEventsQueue;
 xSemaphoreHandle xUart_RX_Semaphore;
 
 xSemaphoreHandle xI2CMutex;
-xSemaphoreHandle xRegistratorMutex;
+xSemaphoreHandle xRegistratorAnswerSem;
 xSemaphoreHandle xExtSignalStatusSem; 
+xSemaphoreHandle xTimeSendRequestSem;
 
 
 //u08 Trace_Buffer[300];
@@ -167,9 +170,8 @@ static struct RegistratorMsg {
 		RegistratorDataCancelSale OperationNum;
 	} Data;
 	struct {
-	    u08 Busy            : 1;
+	    u08 IsDataToSend    : 1;
 	    u08 ErConnectTimeout: 1;
-	    u08 ErSellNotPermit : 1;
 	} Flags;
 } CUWB_RegistratorMsg;
 
@@ -294,9 +296,10 @@ while (pr) {
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
+	vSemaphoreCreateBinary(xRegistratorAnswerSem);
 	
     xI2CMutex = xSemaphoreCreateMutex();
-	xRegistratorMutex = xSemaphoreCreateMutex();
+//	xRegistratorMutex = xSemaphoreCreateMutex();
 
     InitPortsIO();
 
@@ -339,6 +342,8 @@ void vTask1( void *pvParameters )
 
     u16 temp_key = 0;
 	static u08 is_uart_set = 0;
+	
+	u16 TimeSendRequestCnt = 0;
 
     for( ;; )
     {
@@ -376,6 +381,13 @@ void vTask1( void *pvParameters )
 		    temp_key = ExtSignalStatus;
 		    xSemaphoreGive(xExtSignalStatusSem);
 		}
+		
+		TimeSendRequestCnt++
+		if (TimeSendRequestCnt == TIME_SEND_REGUEST) {
+		    TimeSendRequestCnt = 0;
+			xSemaphoreGive(xTimeSendRequestSem);
+		}
+		
 		
 		vTaskDelay(2 / portTICK_RATE_MS);
     }
@@ -516,21 +528,37 @@ void vTask3( void *pvParameters )
 		}
 		else {
 		
-		    conect_status_cur = RegistratorProcessing(50);
-		    
-			if (conect_status_cur == OK_CONNECTION) {
+//			if (conect_status_cur == OK_CONNECTION) {
 		        if (xQueueReceive(xRegistratorQueue, SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
 				        *registrator_data_ptr = &SendRegistratorMsg->Data;
                         RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) registrator_data_ptr);
 					}
 	            }
+//			}
+
+		    conect_status_cur = RegistratorProcessing(50);
+			
+			if (conect_status_cur == ERROR_CONNECTION && conect_status_cur == OK_CONNECTION ) {
+			    if (SendRegistratorMsg != NULL) {
+				        if (conect_status_cur == ERROR_CONNECTION) {
+						    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
+						}
+						else {
+						    SendRegistratorMsg->Flags.ErConnectTimeout = 0;
+						}
+				        
+                        SendRegistratorMsg = NULL;
+						
+						xSemaphoreGive(xRegistratorAnswerSem);
+				}
 			}
 
+			
 			/* for can starting connection after turn on */
-			if (conect_status_cur == NOT_DEFINED) {
-			    conect_status_cur = OK_CONNECTION;
-			}
+//			if (conect_status_cur == NOT_DEFINED) {
+//			    conect_status_cur = OK_CONNECTION;
+//			}
 			
 
 		}
@@ -557,7 +585,10 @@ void vTask4( void *pvParameters )
     static u08 Fl_ErrReset	   = 0;
     static u08 Fl_ErrMinWater  = 0;
 	static u08 Fl_ErrRsvBill   = 0;
+	
+	statuc u08 Fl_WtrCntrErr   = 0;
 
+	
     u08 Fl_Ev_NoWater     = 1;          //  the namber of sending by SMS event
     u08 Fl_Ev_NoPower     = 2;
     u08 Fl_Ev_TakeManey   = 3;
@@ -577,7 +608,7 @@ void vTask4( void *pvParameters )
     static u08 Sygnal_Get_BillGet;
     static u08 Sygnal_Get_CoinGet;
 
-    static u08 Fl_ManeyGet    = 0;
+    static u08 Fl_ManeyGet = 0;
 
     static u16 ManeySave = 0;
     static u16 WaterSave = 0;
@@ -587,29 +618,31 @@ void vTask4( void *pvParameters )
     
     PumpTimeCoef = *pump_off_time_coef;
 
-/*
+	
+	static u08 Fl_RegistratorErr = 1;
+	
+	enum {
+	    IDLE_STATE,
+		SEND_SELL_START,
+		SEND_SELL_END,
+		SEND_SELL_CANCEL,
+		FINISHED_SELL_START,
+		FINISHED_SELL_END,
+		FINISHED_SELL_CANCEL
+	} registrator_state;
+	
+	registrator_state = SEND_SELL_START;
+	
+			
+CUWB_RegistratorMsg.Cmd = 0;
+CUWB_RegistratorMsg.ProductInfo.Number = 0;
+CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
+CUWB_RegistratorMsg.ProductInfo.Prise = 0;
+//CUWB_RegistratorMsg.Flags.IsDataToSend = 0;	
 
-            xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
-    	    
-            xSemaphoreGive(xRegistratorMutex);
-			
-			
-    CUWB_RegistratorMsg.Cmd = 0;
-	CUWB_RegistratorMsg.ProductInfo.Number = 0;
-    CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
-    CUWB_RegistratorMsg.ProductInfo.Prise = 0;
-	
-	CUWB_RegistratorMsg.Flags.Busy = 0;
-	CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
-	CUWB_RegistratorMsg.Flags.ErSellNotPermit = 0;
-	
-	while (CUWB_RegistratorMsg.Flags.Busy)
-	    ;
-	
-	if (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
-	    xQueueSend(xRegistratorQueue, CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)
-	
-*/	
+CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
+
+   xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
 
     wdt_enable(WDTO_2S);
@@ -618,23 +651,103 @@ void vTask4( void *pvParameters )
     {
 //////////////////////////////////////////////////////////////////////////
         wdt_reset();
+		
+		
+///////////////////////////////////////////////////////////////////////////////////////		
+    switch (registrator_state) {
+	    case IDLE_STATE: {
+		     if (!Fl_ManeyGet && !Fl_SellStart && !Fl_SellStop && xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
+		        //registrator_state = SEND_SELL_START;
+				registrator_state = SEND_SELL_CANCEL;
+			 }
+		     break;
+		}
+		case SEND_SELL_START: {
+		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
+
+	         if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+	             registrator_state = WAIT_FINISHED; 
+			 }
+		     break;
+		}
+		case SEND_SELL_END: {
+             CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
+             
+			 if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)) {
+			     registrator_state = WAIT_FINISHED;
+			 }
+			 break;
+		}
+		case SEND_SELL_CANCEL: {
+	         CUWB_RegistratorMsg.OperationNum = RCMD_SELL_CANCELL;
+	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+	
+             if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+			     registrator_state = WAIT_FINISHED;
+			 }
+			 break;
+		}
+		case FINISHED_SELL_START: {
+		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
+	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+	                 Fl_RegistratorErr = 1;
+			     }
+				 else {
+				     ReceivedData err_code;
+				     RegistratorDataGet (&received_data, ERROR_CODE);
+					 u08 res = 0;
+					 while (err_code.len-- > 0) {
+					     res += *err_code.dataptr - 0x20;
+						 *err_code.dataptr++
+					 }
+					 
+					 if (res != 0)
+					     Fl_RegistratorErr = 1;
+					 else 	 
+					     Fl_RegistratorErr = 0;
+				 }
+				 
+				 registrator_state = IDLE_STATE;
+			 }
+		     break;
+		}
+		case FINISHED_SELL_CANCEL: {
+		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
+	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+	                 Fl_RegistratorErr = 1;
+			     }
+				 else {
+				 	 Fl_RegistratorErr = 0;
+				 }
+				 registrator_state = SEND_SELL_START;
+			 }
+		     break;
+		}
+		case FINISHED_SELL_END: {
+		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
+	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+	                 Fl_RegistratorErr = 1;
+			     }
+				 else {
+				     Fl_RegistratorErr = 0;
+				 }
+				 
+				 registrator_state = IDLE_STATE;
+			 }
+		     break;
+		}
+//		default : {
+//		     break;
+//		}
+	}
+	
+///////////////////////////////////////////////////////////////////////////////////////
       
         Fl_SellEnable = 1;	     
 	     
 		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
         //if (xQueueReceive(xSygnalQueue, &get_key_skan, 0) == pdPASS) {
-		    /*
-			Sygnal_Get_CoinGet   = (get_key_skan & (1 << 0));
-			Sygnal_Get_BillGet   = ((get_key_skan & (1 << 1)) >> 1);
-			Sygnal_Get_NoWater   = ((get_key_skan & (1 << 2)) >> 2);
-            Sygnal_Get_NoPower1  = ((get_key_skan & (1 << 3)) >> 3);
-			Sygnal_Get_NoPower2  = ((get_key_skan & (1 << 4)) >> 4);
-			Sygnal_Get_DoorOpn   = ((get_key_skan & (1 << 5)) >> 5);
-		    Sygnal_Get_Start     = ((get_key_skan & (1 << 6)) >> 6);
-		    Sygnal_Get_Stop      = ((get_key_skan & (1 << 7)) >> 7);
-		    Sygnal_Get_Reset     = ((get_key_skan & (1 << 8)) >> 8);
-		    Sygnal_Get_NoWrkBill = ((get_key_skan & (1 << 9)) >> 9);
-            */
+
             Sygnal_Get_CoinGet   = ExtSignalStatus & 1;
 			Sygnal_Get_BillGet   = ((ExtSignalStatus >> 1) & 1);
 			Sygnal_Get_NoWater   = ((ExtSignalStatus >> 2) & 1);
@@ -652,7 +765,7 @@ void vTask4( void *pvParameters )
 		    Fl_SellEnable = 0;
 		    Fl_State_Power = REPORT_FLAG_ERR;            
           
-            if(!Fl_ErrPower) {
+            if (!Fl_ErrPower) {
 		        Fl_ErrPower = 1;
 			    //Fl_Ev_NoPower = 1;
 				xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);
@@ -668,7 +781,7 @@ void vTask4( void *pvParameters )
     		Fl_SellEnable = 0;                                        
             Fl_State_Water = REPORT_FLAG_ERR;
 
-            if(!Fl_ErrWater) {
+            if (!Fl_ErrWater) {
 			    gFlLedStateWater = 1;
                 Fl_ErrWater = 1;
 		        //Fl_Ev_NoWater = 1;
@@ -681,11 +794,20 @@ void vTask4( void *pvParameters )
 		    Fl_State_Water = REPORT_FLAG_OK;
 	    }
 
-
-	    if ((CountRManey >= 1000) || (!Fl_SellEnable) 
+		 /* if water counter don't count, we can't sell the water */ 
+		if (Fl_WtrCntrErr) {  
+		    Fl_SellEnable = 0;
+		}
+		
+		if (Fl_RegistratorErr && !Fl_SellStop) {  
+		    Fl_SellEnable = 0;
+		}
+		
+		if ((CountRManey >= 1000) || (!Fl_SellEnable) 
 	                              || Fl_ErrReset 
-				    			  || Sygnal_Get_NoWater) {
-
+				    			  || Sygnal_Get_NoWater
+								  || Fl_WtrCntrErr
+								  || Fl_RegistratorErr) {
 		    StopGetManey();
 	    }
 	    else {
@@ -724,11 +846,7 @@ void vTask4( void *pvParameters )
 		    CountRManey = (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / CountPulse)) + 1) >> 1);
 		}
 		
-/*		
-if (Fl_ManeyGet)
-    xSemaphoreTake(xRegistratorMutex, 0);
-*/
-	
+
 	    if (Sygnal_Get_Start && !Sygnal_Get_Stop 
 		                     && Fl_SellEnable 
 							 && !Fl_SellStart
@@ -737,8 +855,6 @@ if (Fl_ManeyGet)
 		    StopGetManey();
 		    Fl_ManeyGet = 0;
 			
-xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);		
-	
             if (ManeySave > 0) {
 
 			    *day_maney_cnt += ManeySave;
@@ -756,15 +872,14 @@ xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
 			    }
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
-                xSemaphoreGive(xI2CMutex); 
-/*
+                xSemaphoreGive(xI2CMutex);
+
+				/* set data to transmit to registrator */
 	            CUWB_RegistratorMsg.ProductInfo.Number = 0;
                 CUWB_RegistratorMsg.ProductInfo.Quantity = WaterSave * 10;
                 CUWB_RegistratorMsg.ProductInfo.Prise = *cost_litre_coef;
-*/
-	
+
                 ManeySave = WaterSave = 0;
-		        
 		    }
 
             if (PumpTimeCoef <= (*pump_on_time_coef)) {
@@ -777,7 +892,6 @@ xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
 	        SellingStart();
 		    Fl_SellStop = 0;
 		    Fl_SellStart = 1;
-	
 	    }
 
     #if BUZER_TIME
@@ -875,7 +989,6 @@ xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
 	    }
 
         if (Fl_SellStart) {
-        
 	        if (WtrCntTimer == CHECK_COUNTER_PERIOD) {
 	            tmp_cnt_pulse = CountPulse;
 				WtrCntTimer--;
@@ -888,45 +1001,12 @@ xSemaphoreTake(xRegistratorMutex, portMAX_DELAY);
 		        Fl_SellStart = 0; 
 		        Fl_SellStop = 0; 
 				
-/*
-while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
-    ;
-	
-    CUWB_RegistratorMsg.OperationNum = RCMD_SELL_CANCELL;
-	CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
-	
-	xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS);
-	xSemaphoreGive(xRegistratorMutex);
-	
-	
-	xSemaphoreGive(xRegistratorMutex);
-	
-//	while (CUWB_RegistratorMsg.Flags.Busy)
-//	    ;
-
-*/	
-					
+				Fl_WtrCntrErr = 1;
+				registrator_state = RCMD_SELL_CANCEL;
             }
 	        else {
-                Fl_State_WtrCnt = REPORT_FLAG_OK;
-/*
-while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
-    ;
-	
-	CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
-		
-	CUWB_RegistratorMsg.Flags.Busy;
-	CUWB_RegistratorMsg.Flags.ErConnectTimeout;
-	CUWB_RegistratorMsg.Flags.ErSellNotPermit;
-	
-	xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS);
-	xSemaphoreGive(xRegistratorMutex);
-	
-	
-//	while (CUWB_RegistratorMsg.Flags.Busy)
-//	    ;
-
-*/
+			    Fl_State_WtrCnt = REPORT_FLAG_OK;
+				registrator_state = RCMD_SELL_END;
 	        }
  	    }
 	    else {
@@ -934,9 +1014,7 @@ while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
 		    tmp_cnt_pulse = 0;	
 	    }
 
-
 /////////// Get signal from axelerometr //////////////////////////////////////
-
 	    if (Sygnal_Get_Axellerometr) { 
 
 	        if (AxellCntTimer == ACCELEROMETR_PERIOD) {
@@ -952,7 +1030,7 @@ while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
 	    
 /////// the sygnall set when bill can't get maney ////////////////////////////
 
-        if (Sygnal_Get_NoWrkBill && (*board_version)) {            // If board version the ferst we
+        if (Sygnal_Get_NoWrkBill && (*board_version)) {            // If board version the first we
 
 	        if (!Fl_ErrRsvBill) {                                // can't get the right status 
 
@@ -962,7 +1040,7 @@ while (!CUWB_RegistratorMsg.Flags.ErConnectTimeout)
 				
 				Fl_ErrRsvBill = 1;
             }
-		}                                                          // of the bill reciver   
+		}                                                          // of the bill receiver   
         else {
 	        Fl_ErrRsvBill = 0;
 			Fl_State_RsvBill = REPORT_FLAG_OK;
