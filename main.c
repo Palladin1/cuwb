@@ -163,6 +163,7 @@ u08 buzer_flag = 0;
 
 
 static u08 IsRegistratorConnect = 0;
+
 static struct RegistratorMsg {
     u08 Cmd;
     union data{
@@ -174,6 +175,7 @@ static struct RegistratorMsg {
 	    u08 ErConnectTimeout: 1;
 	} Flags;
 } CUWB_RegistratorMsg;
+
 
 static u16 ExtSignalStatus = 0;
 
@@ -215,73 +217,14 @@ void custom_at_handler(u08 *pData);
 */
 int main( void )
 {
-//NoWtrForLCD();
-/*
-#include  <registrator.h>
+
+
 //              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
 //u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
 
-StrData[1] = 0x20 + strlen((char *)StrData) - 6;
-StrData[3] = RCMD_SELL_END;
-u08 datalen = strlen(StrData); 
-// makecrc
-    u08 i;
-    u32 crc_temp = 0;
-    
-    for (i = 1; i < datalen - 5; i++)
-        crc_temp += StrData[i];
-        
-    crc_temp &= 0x0000FFFF;
-
-    for ( i =0; i < 4; i++) {
-        StrData[(datalen - 2) - i] = crc_temp % 16 + '0';
-        crc_temp /= 16;
-    }
-
-        
-RegistratorInit();
-
-u08 pr = 1;
-u08 ds = 1;
-u08 dp = 1;
-u08 st = 1;
-
-    if (dp) {
-	    u32 *dta[3];
-		u32 d1 = 0; // 0 number of tovar
-		u32 d2 = 500; // 5.00 UAH
-		u32 d3 = (800 * 10); // 8.00 LITR
-		dta[0] =  &d1;
-        dta[1] =  &d2;
-		dta[2] =  &d3;		 
-	    RegistratorDataSet(RCMD_SELL_END, (void **) dta);
-	}
 
 
-    if (ds) {
-	    int i;
-        for (i = 0; i < strlen((char *)StrData); i++)
-		    RegistratorCharPut(StrData[i]);  
-	}
 
-
-while (pr) {
-
-
-    RegistratorProcessing(0);
-	
-	if(st) {
-	    int ts = 0;
-		ts = RegistratorStatusGet();
-
-		if (ts == OK_CONNECTION)
-		    pr = 0; 
-	}
-
-
-}
-
-*/
 
 
 
@@ -290,7 +233,6 @@ while (pr) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-
     xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg *));
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
@@ -307,6 +249,67 @@ while (pr) {
 
     RegistratorInit();
 
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+u08 a = 0;
+u08 b = 0;
+u08 c = 0;
+
+u32 *registrator_data_ptr = NULL;
+	
+struct RegistratorMsg *  SendRegistratorMsg;
+
+
+u08 conect_status_cur = 0;
+u08 registrator_state = 0;
+
+
+
+while (1) {
+
+//         if (a) {
+		        CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
+                CUWB_RegistratorMsg.Data.ProductInfo.Number = 5;
+                CUWB_RegistratorMsg.Data.ProductInfo.Quantity = 0.1*10;
+                CUWB_RegistratorMsg.Data.ProductInfo.Prise = 9;
+	
+             struct RegistratorMsg *ad = &CUWB_RegistratorMsg;
+
+
+             if (xQueueSend(xRegistratorQueue, &ad, portMAX_DELAY) == pdPASS) {
+			     registrator_state = 5;
+			 }
+//		 }
+
+ //        if (b) {  
+			 if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
+				    if (SendRegistratorMsg != NULL) {
+				        registrator_data_ptr = &SendRegistratorMsg->Data;
+                        RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) &registrator_data_ptr);
+
+					}
+	            }
+//		 }
+
+
+		 conect_status_cur = RegistratorProcessing(50);
+			
+			if (conect_status_cur == ERROR_CONNECTION && conect_status_cur == OK_CONNECTION ) {
+			    if (SendRegistratorMsg != NULL) {
+				        if (conect_status_cur == ERROR_CONNECTION) {
+						    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
+						}
+						else {
+						    SendRegistratorMsg->Flags.ErConnectTimeout = 0;
+						}
+				        
+                        SendRegistratorMsg = NULL;
+						
+						xSemaphoreGive(xRegistratorAnswerSem);
+				}
+			}
+}
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
 	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL); //60
@@ -382,7 +385,7 @@ void vTask1( void *pvParameters )
 		    xSemaphoreGive(xExtSignalStatusSem);
 		}
 		
-		TimeSendRequestCnt++
+		TimeSendRequestCnt++;
 		if (TimeSendRequestCnt == TIME_SEND_REGUEST) {
 		    TimeSendRequestCnt = 0;
 			xSemaphoreGive(xTimeSendRequestSem);
@@ -434,7 +437,7 @@ void vTask2( void *pvParameters )
  		if (NewPrice) {
 			*cost_litre_coef = NewPrice;
 			NewPrice = 0;
-			xSemaphoreTake(xI2CMutex, portMAX_DELAY);xRegistratorMutex
+			xSemaphoreTake(xI2CMutex, portMAX_DELAY);
     	    IntEeprWordWrite (CostLitreCoefEEPROMAdr, *cost_litre_coef);
             xSemaphoreGive(xI2CMutex);
 		}
@@ -505,11 +508,10 @@ void vTask3( void *pvParameters )
 
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
-//	static u32 registrator_status_timer = 0;
-	static u32 registrator_data[3] = {0};
-	static u32 **registrator_data_ptr = registrator_data;
+
+	static u32 *registrator_data_ptr;
 	
-	struct RegistratorMsg * SendRegistratorMsg;
+	static struct RegistratorMsg * SendRegistratorMsg;
 	
 	static REGISTRATOR_STATUS conect_status_cur = NOT_DEFINED; 
 	
@@ -529,9 +531,9 @@ void vTask3( void *pvParameters )
 		else {
 		
 //			if (conect_status_cur == OK_CONNECTION) {
-		        if (xQueueReceive(xRegistratorQueue, SendRegistratorMsg, 0) == pdTRUE) {
+		        if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
-				        *registrator_data_ptr = &SendRegistratorMsg->Data;
+				        registrator_data_ptr = &SendRegistratorMsg->Data;
                         RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) registrator_data_ptr);
 					}
 	            }
@@ -586,7 +588,7 @@ void vTask4( void *pvParameters )
     static u08 Fl_ErrMinWater  = 0;
 	static u08 Fl_ErrRsvBill   = 0;
 	
-	statuc u08 Fl_WtrCntrErr   = 0;
+	static u08 Fl_WtrCntrErr   = 0;
 
 	
     u08 Fl_Ev_NoWater     = 1;          //  the namber of sending by SMS event
@@ -632,12 +634,13 @@ void vTask4( void *pvParameters )
 	} registrator_state;
 	
 	registrator_state = SEND_SELL_START;
-	
+
+	static struct RegistratorMsg *pCUWB_RegistratorMsg = &pCUWB_RegistratorMsg;
 			
 CUWB_RegistratorMsg.Cmd = 0;
-CUWB_RegistratorMsg.ProductInfo.Number = 0;
-CUWB_RegistratorMsg.ProductInfo.Quantity = 0;
-CUWB_RegistratorMsg.ProductInfo.Prise = 0;
+CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
+CUWB_RegistratorMsg.Data.ProductInfo.Quantity = 0;
+CUWB_RegistratorMsg.Data.ProductInfo.Prise = 0;
 //CUWB_RegistratorMsg.Flags.IsDataToSend = 0;	
 
 CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
@@ -665,25 +668,25 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 		case SEND_SELL_START: {
 		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
 
-	         if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
-	             registrator_state = WAIT_FINISHED; 
+	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+	             registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
 		}
 		case SEND_SELL_END: {
              CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
              
-			 if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS)) {
-			     registrator_state = WAIT_FINISHED;
+			 if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+			     registrator_state = FINISHED_SELL_END;
 			 }
 			 break;
 		}
 		case SEND_SELL_CANCEL: {
-	         CUWB_RegistratorMsg.OperationNum = RCMD_SELL_CANCELL;
+	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
 	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 	
-             if (xQueueSend(xRegistratorQueue, &CUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
-			     registrator_state = WAIT_FINISHED;
+             if (xQueueSend(xRegistratorQueue, pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+			     registrator_state = FINISHED_SELL_CANCEL;
 			 }
 			 break;
 		}
@@ -694,11 +697,11 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 			     }
 				 else {
 				     ReceivedData err_code;
-				     RegistratorDataGet (&received_data, ERROR_CODE);
+				     RegistratorDataGet(&err_code, ERROR_CODE);
 					 u08 res = 0;
 					 while (err_code.len-- > 0) {
 					     res += *err_code.dataptr - 0x20;
-						 *err_code.dataptr++
+						 err_code.dataptr++;
 					 }
 					 
 					 if (res != 0)
@@ -875,9 +878,9 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
                 xSemaphoreGive(xI2CMutex);
 
 				/* set data to transmit to registrator */
-	            CUWB_RegistratorMsg.ProductInfo.Number = 0;
-                CUWB_RegistratorMsg.ProductInfo.Quantity = WaterSave * 10;
-                CUWB_RegistratorMsg.ProductInfo.Prise = *cost_litre_coef;
+	            CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
+                CUWB_RegistratorMsg.Data.ProductInfo.Quantity = WaterSave * 10;
+                CUWB_RegistratorMsg.Data.ProductInfo.Prise = *cost_litre_coef;
 
                 ManeySave = WaterSave = 0;
 		    }
@@ -1002,10 +1005,10 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 		        Fl_SellStop = 0; 
 				
 				Fl_WtrCntrErr = 1;
-				registrator_state = RCMD_SELL_CANCEL;
+				registrator_state = SEND_SELL_CANCEL;
             }
 	        else {
-			    Fl_State_WtrCnt = REPORT_FLAG_OK;
+			    Fl_State_WtrCnt = SEND_SELL_END;
 				registrator_state = RCMD_SELL_END;
 	        }
  	    }

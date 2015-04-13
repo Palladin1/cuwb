@@ -196,7 +196,7 @@ u08 RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatyp
     return (0);		
 }
 			
-u08 RegistratorDataSet (u08 cmd, void * data[]) 
+u08 RegistratorDataSet (u08 cmd, void *data[]) 
 {
     u08 offset;
     
@@ -213,11 +213,12 @@ u08 RegistratorDataSet (u08 cmd, void * data[])
         }
         case RCMD_SELL_END: {
              send_message.cmd = RCMD_SELL_END;
-             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+			 u32 f = (*(u32**)data)[0];
+             offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
              send_message.data[offset++] = RDATA_SEPARATOR;
-             offset += make_data_type_m(&send_message.data[offset], *(u32 *)data[1]);
+             offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
              send_message.data[offset++] = RDATA_SEPARATOR;
-             offset += make_data_type_q(&send_message.data[offset], *(u32 *)data[2]);
+             offset += make_data_type_m(&send_message.data[offset], (*(u32**)data)[2]);
              send_message.data[offset++] = RDATA_SEPARATOR;
              send_message.data[offset] = '\0';
              send_message.data_len = offset;
@@ -422,7 +423,7 @@ u08 make_data_type_m (u08 *to, u32 d)
 
     ltoa(d, (char *)to, 10);
 	len = strlen((char *)to);
-    len = set_point(to, 2, len);
+	len = set_point(to, 2, len);
 
     return len;
 }
@@ -440,19 +441,32 @@ u08 make_data_type_q (u08 *to, u32 d)
 
 u08 set_point (u08 *s, u08 pos, u08 len_cur)
 {
-    int len;
+    u08 i;
 
-	if ((pos = len_cur - pos) <= 0)
-	    return 0;
+	if ((len_cur - pos) <= 0) {
+	    pos++;
+		for (i = 0; i <= pos; i++) {
+		    if (len_cur - i >= 0) 
+                s[pos - i] = s[len_cur - i];
+            else 
+               s[pos - i] = '0';
+		}
+		
+		len_cur = pos;
+		pos = 1;
+	}
+	else {
+	    pos = len_cur - pos;
+	}
 
-    len = len_cur + pos;
+    i = len_cur + 1;
     for ( ; len_cur > pos; len_cur--) {
         s[len_cur] = s[len_cur-1];
 	}
     
     s[pos] = '.';
 
-	return len;
+	return i;
 } 
  
 void makecrc (u08 * crc) 
