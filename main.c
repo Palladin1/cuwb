@@ -218,7 +218,6 @@ void custom_at_handler(u08 *pData);
 int main( void )
 {
 
-
 //              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
 //u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
 
@@ -1737,17 +1736,7 @@ void DecodeForLCD (u16 led_maney, u16 led_water) {
 void NoWtrForLCD (void) {
 
     /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
-/*    memnset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));
-*/
-	LcdDatta[0] = 10;
-	LcdDatta[1] = 10;
-	LcdDatta[2] = 10;
-	LcdDatta[3] = 10;
-	LcdDatta[4] = 10;
-	LcdDatta[5] = 10;
-	LcdDatta[6] = 10;
-	LcdDatta[7] = 10;
-
+    memset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));
 }
 
 
