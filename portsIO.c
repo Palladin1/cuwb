@@ -117,15 +117,15 @@ PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 
 //==================================================
     // initialize the I2C
-//	i2cInit();
+	i2cInit();
 
-//	DS1337Init();
+	DS1337Init();
 
 	// initialize the I2CEEPROM 24c512
-//	ADR_LAST_DATTA = i2ceepromInit((*ext_eepr_data_adr));
-//	if (ADR_LAST_DATTA == 0xFFFF) {
-//		ADR_LAST_DATTA = 0x0000;
-//    }
+	ADR_LAST_DATTA = i2ceepromInit((*ext_eepr_data_adr));
+	if (ADR_LAST_DATTA == 0xFFFF) {
+		ADR_LAST_DATTA = 0x0000;
+    }
 
 
 //==================================================

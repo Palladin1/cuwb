@@ -627,8 +627,9 @@ CUWB_RegistratorMsg.Data.ProductInfo.Prise = 0;
 
 CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 
-   xSemaphoreTake(xTimeSendRequestSem, 0);
+    xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
+	xSemaphoreTake(xRegistratorAnswerSem, 0);
 
 //    wdt_enable(WDTO_2S);
 
@@ -641,7 +642,7 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 ///////////////////////////////////////////////////////////////////////////////////////		
     switch (registrator_state) {
 	    case IDLE_STATE: {
-		     if (!Fl_ManeyGet && !Fl_SellStart && !Fl_SellStop && xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
+		     if (!Fl_ManeyGet && !Fl_SellStart && !Fl_SellStop && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)) {
 		        //registrator_state = SEND_SELL_START;
 				registrator_state = SEND_SELL_CANCEL;
 			 }
@@ -667,7 +668,7 @@ RgistratorSendStr ("hello", 5);
 	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
 	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 	
-             if (xQueueSend(xRegistratorQueue, pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+             if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
 			     registrator_state = FINISHED_SELL_CANCEL;
 			 }
 			 break;
@@ -731,7 +732,6 @@ RgistratorSendStr ("hello", 5);
         Fl_SellEnable = 1;	     
 	     
 		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
-        //if (xQueueReceive(xSygnalQueue, &get_key_skan, 0) == pdPASS) {
 
             Sygnal_Get_CoinGet   = ExtSignalStatus & 1;
 			Sygnal_Get_BillGet   = ((ExtSignalStatus >> 1) & 1);
