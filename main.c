@@ -220,17 +220,6 @@ int main( void )
 
 //              < SOH > <len> <seq> <cmd> <error code> <data>  <EOT> < status>  <ENQ>  <bcc>  <ETX>
 //u08 StrData[] = "\1"    "X"   " "   "C"   "0000;"       "0.65;" "\4"  "||||||"     "\5"   "0000" "\3"; 
-
-
-
-
-
-
-
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
     xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg *));
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
@@ -249,8 +238,11 @@ int main( void )
     RegistratorInit();
 
 
+Uart0Enable(RegistratorCharPut, 9600);
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
+/*
 u08 a = 0;
 u08 b = 0;
 u08 c = 0;
@@ -309,22 +301,23 @@ while (1) {
 				}
 			}
 }
+*/
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
 	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL); //60
 
-	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL); //50
+	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL); //40
 
     xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL); //60
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //130
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280, NULL, 1, NULL); //260
+    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280, NULL, 1, NULL); //280
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //290
+	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //80
  
     #if BUZER_TIME    
-	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);  //30
+	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);  //20
     #endif
 
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
@@ -362,23 +355,19 @@ void vTask1( void *pvParameters )
         ExtSignalStatus = KeySkan(ExtSignalStatus);
 		
 		IsRegistratorConnect = temp_key & (1 << 10);
-        if (is_uart_set != 1 && IsRegistratorConnect == 1) {
-		    is_uart_set = 1;
-			Uart0Disable();
-		    Uart0Enable(RegistratorCharPut, 9600);
-		}
-		else if (is_uart_set != 2) {
-		    is_uart_set = 2;
-			Uart0Disable();
-		    Uart0Enable(Uart0_Resiv,  19200);
-		}
+//        if (is_uart_set != 1 && IsRegistratorConnect == 1) {
+//          if (is_uart_set != 1) {
+//		    is_uart_set = 1;
+//			Uart0Disable();
+//		    Uart0Enable(RegistratorCharPut, 9600);
+//		}
+//		else if (is_uart_set != 2) {
+//		    is_uart_set = 2;
+//			Uart0Disable();
+//		    Uart0Enable(Uart0_Resiv,  19200);
+//		}
 	
-		/*
-		if (xQueueSend(xSygnalQueue, &temp_key, (2 / portTICK_RATE_MS)) == pdPASS) {
-            
-			vTaskDelay(2 / portTICK_RATE_MS);
-		}
-		*/
+
 		if (ExtSignalStatus != temp_key) {
 		    temp_key = ExtSignalStatus;
 		    xSemaphoreGive(xExtSignalStatusSem);
@@ -389,7 +378,6 @@ void vTask1( void *pvParameters )
 		    TimeSendRequestCnt = 0;
 			xSemaphoreGive(xTimeSendRequestSem);
 		}
-		
 		
 		vTaskDelay(2 / portTICK_RATE_MS);
     }
@@ -403,8 +391,8 @@ void vTask2( void *pvParameters )
 
     static u16 CountManey  = 0;
     static u16 CountWater  = 0;
-
 	static u16 min_counter = 600;
+
 	u16 DayOrNightTimer = MINUTES_IN_DAY;
 
     u16 interval_for_send = 0;
@@ -528,15 +516,14 @@ void vTask3( void *pvParameters )
             xSemaphoreGive(xI2CMutex); 
 		}
 		else {
-		
-//			if (conect_status_cur == OK_CONNECTION) {
+		    if (conect_status_cur == OK_CONNECTION && conect_status_cur == NOT_DEFINED) {
 		        if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
-				        registrator_data_ptr = &SendRegistratorMsg->Data;
-                        RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) registrator_data_ptr);
+				        registrator_data_ptr =(u32 *) &SendRegistratorMsg->Data;
+                        RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) &registrator_data_ptr);
 					}
 	            }
-//			}
+			}
 
 		    conect_status_cur = RegistratorProcessing(50);
 			
@@ -555,13 +542,10 @@ void vTask3( void *pvParameters )
 				}
 			}
 
-			
 			/* for can starting connection after turn on */
 //			if (conect_status_cur == NOT_DEFINED) {
 //			    conect_status_cur = OK_CONNECTION;
 //			}
-			
-
 		}
 		
         vTaskDelay(50 / portTICK_RATE_MS);   
@@ -589,7 +573,6 @@ void vTask4( void *pvParameters )
 	
 	static u08 Fl_WtrCntrErr   = 0;
 
-	
     u08 Fl_Ev_NoWater     = 1;          //  the namber of sending by SMS event
     u08 Fl_Ev_NoPower     = 2;
     u08 Fl_Ev_TakeManey   = 3;
@@ -634,7 +617,7 @@ void vTask4( void *pvParameters )
 	
 	registrator_state = SEND_SELL_START;
 
-	static struct RegistratorMsg *pCUWB_RegistratorMsg = &pCUWB_RegistratorMsg;
+	static struct RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
 			
 CUWB_RegistratorMsg.Cmd = 0;
 CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
@@ -647,12 +630,12 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
    xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
 
-    wdt_enable(WDTO_2S);
+//    wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
 //////////////////////////////////////////////////////////////////////////
-        wdt_reset();
+ //       wdt_reset();
 		
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
@@ -666,14 +649,14 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
 		}
 		case SEND_SELL_START: {
 		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
-
+RgistratorSendStr ("hello", 5);
 	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
 	             registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
 		}
 		case SEND_SELL_END: {
-             CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
+             pCUWB_RegistratorMsg->Cmd = RCMD_SELL_END;
              
 			 if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
 			     registrator_state = FINISHED_SELL_END;
@@ -1767,7 +1750,11 @@ void Global_Time_Deluy (unsigned int time_val) {
 
 
 extern void RgistratorSendStr (u08 *s, u08 len) {
-    uartSendBuf(0, s , len);
+//    uartSendBuf(0, s , len);
+	while (len-- > 0) {
+	    uartSendByte(0, *s);
+		s++;
+	}
 }
 
 //void vApplicationStackOverflowHook (xTaskHandle *pxTask, signed portCHAR *pcTaskName) {

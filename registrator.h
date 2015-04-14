@@ -4,8 +4,8 @@
 #include  "avrlibtypes.h"
 
 
-#define  R_TIMEOUT_WAIT    200
-//#define  R_TIMEOUT_WAIT_CHACK    1000
+#define  R_TIMEOUT_WAIT    500
+
 
 #define  RCMD_SELL_START     0x7C
 #define  RCMD_SELL_END       0x7D
