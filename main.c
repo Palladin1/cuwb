@@ -99,7 +99,7 @@ PGM_P SMS_TEXT[] PROGMEM = {
 #define SMS_FLAG_NIGHT        0x00
 #define SMS_FLAG_SEND_DISABLE 0x02   
 
-#define  TIME_SEND_REGUEST    500ul   // 1 second = 500 * 2ms - is task sleep    
+#define  TIME_SEND_REGUEST    50ul   // 1 second = 10 * 100ms - is task sleep    
 
 /*
 *********************************************************************************************************
@@ -227,9 +227,11 @@ int main( void )
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
 	vSemaphoreCreateBinary(xRegistratorAnswerSem);
+    vSemaphoreCreateBinary(xTimeSendRequestSem);
 	
+
     xI2CMutex = xSemaphoreCreateMutex();
-//	xRegistratorMutex = xSemaphoreCreateMutex();
+
 
     InitPortsIO();
 
@@ -286,7 +288,7 @@ while (1) {
 
 		 conect_status_cur = RegistratorProcessing(50);
 			
-			if (conect_status_cur == ERROR_CONNECTION && conect_status_cur == OK_CONNECTION ) {
+			if (conect_status_cur == ERROR_CONNECTION || conect_status_cur == OK_CONNECTION ) {
 			    if (SendRegistratorMsg != NULL) {
 				        if (conect_status_cur == ERROR_CONNECTION) {
 						    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
@@ -306,18 +308,18 @@ while (1) {
 
 	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL); //60
 
-	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL); //40
+	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 50, NULL, 1, NULL); //40
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL); //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //60
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //70
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280, NULL, 1, NULL); //280
+    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 290, NULL, 1, NULL); //280
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //80
+	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //80
  
     #if BUZER_TIME    
-	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);  //20
+	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 30, NULL, 1, NULL);  //20
     #endif
 
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
@@ -338,7 +340,6 @@ void vTask1( void *pvParameters )
     u16 temp_key = 0;
 	static u08 is_uart_set = 0;
 	
-	u16 TimeSendRequestCnt = 0;
 
     for( ;; )
     {
@@ -372,13 +373,7 @@ void vTask1( void *pvParameters )
 		    temp_key = ExtSignalStatus;
 		    xSemaphoreGive(xExtSignalStatusSem);
 		}
-		
-		TimeSendRequestCnt++;
-		if (TimeSendRequestCnt == TIME_SEND_REGUEST) {
-		    TimeSendRequestCnt = 0;
-			xSemaphoreGive(xTimeSendRequestSem);
-		}
-		
+
 		vTaskDelay(2 / portTICK_RATE_MS);
     }
 
@@ -396,6 +391,8 @@ void vTask2( void *pvParameters )
 	u16 DayOrNightTimer = MINUTES_IN_DAY;
 
     u16 interval_for_send = 0;
+
+	u16 TimeSendRequestCnt = 0;
 
 	for( ;; )
     {
@@ -418,7 +415,7 @@ void vTask2( void *pvParameters )
 		    NoWtrForLCD();
         else
 		    DecodeForLCD(CountManey, CountWater);
-            //DecodeForLCD(DayCountManey, CountWater);
+
 
         /*Change price of water*/
  		if (NewPrice) {
@@ -482,6 +479,14 @@ void vTask2( void *pvParameters )
 		    min_counter--;
 		}
 
+
+		TimeSendRequestCnt++;
+		if (TimeSendRequestCnt == TIME_SEND_REGUEST) {
+		    TimeSendRequestCnt = 0;
+			xSemaphoreGive(xTimeSendRequestSem);
+		}
+
+
 		vTaskDelay(100 / portTICK_RATE_MS);
     }
 
@@ -491,20 +496,21 @@ void vTask2( void *pvParameters )
 
 void vTask3( void *pvParameters )
 {
-    u08 rx_data_buff[20];
+//    u08 rx_data_buff[20];
 
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
 
 	static u32 *registrator_data_ptr;
 	
-	static struct RegistratorMsg * SendRegistratorMsg;
+	static struct RegistratorMsg * SendRegistratorMsg = NULL;
 	
 	static REGISTRATOR_STATUS conect_status_cur = NOT_DEFINED; 
 	
 	for( ;; )
     {
 		//xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
+/*
 		if (xSemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
 		
             memset(&rx_data_buff[0], 0x0, 20); 
@@ -516,7 +522,7 @@ void vTask3( void *pvParameters )
             xSemaphoreGive(xI2CMutex); 
 		}
 		else {
-		    if (conect_status_cur == OK_CONNECTION && conect_status_cur == NOT_DEFINED) {
+*/            if (conect_status_cur == OK_CONNECTION || conect_status_cur == NOT_DEFINED) {
 		        if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
 				        registrator_data_ptr =(u32 *) &SendRegistratorMsg->Data;
@@ -527,18 +533,23 @@ void vTask3( void *pvParameters )
 
 		    conect_status_cur = RegistratorProcessing(50);
 			
-			if (conect_status_cur == ERROR_CONNECTION && conect_status_cur == OK_CONNECTION ) {
+			if (conect_status_cur == ERROR_CONNECTION || conect_status_cur == OK_CONNECTION) {
+//CountPulse = 174;
 			    if (SendRegistratorMsg != NULL) {
-				        if (conect_status_cur == ERROR_CONNECTION) {
-						    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
-						}
-						else {
-						    SendRegistratorMsg->Flags.ErConnectTimeout = 0;
-						}
-				        
-                        SendRegistratorMsg = NULL;
+//CountPulse = 348;
+				    if (conect_status_cur == ERROR_CONNECTION) {
+					    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
+					}
+					else {
+					    SendRegistratorMsg->Flags.ErConnectTimeout = 0;
+					}
+
+                    SendRegistratorMsg = NULL;
 						
-						xSemaphoreGive(xRegistratorAnswerSem);
+					xSemaphoreGive(xRegistratorAnswerSem);
+				}
+				else {
+//CountPulse = 1566;				
 				}
 			}
 
@@ -546,8 +557,9 @@ void vTask3( void *pvParameters )
 //			if (conect_status_cur == NOT_DEFINED) {
 //			    conect_status_cur = OK_CONNECTION;
 //			}
-		}
-		
+//		}
+
+
         vTaskDelay(50 / portTICK_RATE_MS);   
 	}
 
@@ -643,15 +655,19 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 1;
     switch (registrator_state) {
 	    case IDLE_STATE: {
 		     if (!Fl_ManeyGet && !Fl_SellStart && !Fl_SellStop && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)) {
+			 //if ((xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)) {
+//RgistratorSendStr ("3", 1);
+CountPulse = 1740;
 		        //registrator_state = SEND_SELL_START;
 				registrator_state = SEND_SELL_CANCEL;
 			 }
 		     break;
 		}
 		case SEND_SELL_START: {
-		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
-RgistratorSendStr ("hello", 5);
+		     pCUWB_RegistratorMsg->Cmd = RCMD_SELL_START;
+
 	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, portMAX_DELAY) == pdPASS) {
+//RgistratorSendStr ("1", 1);
 	             registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
@@ -675,6 +691,7 @@ RgistratorSendStr ("hello", 5);
 		}
 		case FINISHED_SELL_START: {
 		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
+//RgistratorSendStr ("2", 1);
 	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
 	                 Fl_RegistratorErr = 1;
 			     }
@@ -691,6 +708,9 @@ RgistratorSendStr ("hello", 5);
 					     Fl_RegistratorErr = 1;
 					 else 	 
 					     Fl_RegistratorErr = 0;
+
+CountPulse = (Fl_RegistratorErr) ?  696 : 870;
+
 				 }
 				 
 				 registrator_state = IDLE_STATE;
@@ -1749,7 +1769,7 @@ void Global_Time_Deluy (unsigned int time_val) {
 }
 
 
-extern void RgistratorSendStr (u08 *s, u08 len) {
+extern void RegistratorSendStr (u08 *s, u08 len) {
 //    uartSendBuf(0, s , len);
 	while (len-- > 0) {
 	    uartSendByte(0, *s);

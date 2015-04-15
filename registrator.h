@@ -4,7 +4,7 @@
 #include  "avrlibtypes.h"
 
 
-#define  R_TIMEOUT_WAIT    500
+#define  R_TIMEOUT_WAIT    2000
 
 
 #define  RCMD_SELL_START     0x7C
@@ -82,6 +82,6 @@ REGISTRATOR_STATUS RegistratorProcessing (u08 period);
 u08  RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
 u08  RegistratorDataSet (u08 cmd, void * data[]);
 //REGISTRATOR_STATUS RegistratorStatusGet (void);
-extern void RgistratorSendStr (u08 *s, u08 len);
+extern void RegistratorSendStr (u08 *s, u08 len);
 
 #endif  //REGISTRATOR_H
