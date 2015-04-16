@@ -427,7 +427,6 @@ void vTask3( void *pvParameters )
 	
 	for( ;; )
     {
-		//xSemaphoreTake(xUart_RX_Semaphore, portMAX_DELAY);
 
 		if (xSemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
 		
@@ -467,10 +466,7 @@ void vTask3( void *pvParameters )
 						
 					xSemaphoreGive(xRegistratorAnswerSem);
 				}
-				else {
-				}
 			}
-
 		}
 
 
@@ -549,13 +545,13 @@ void vTask4( void *pvParameters )
 
 	static struct RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
 			
-CUWB_RegistratorMsg.Cmd = 0;
-CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
-CUWB_RegistratorMsg.Data.ProductInfo.Quantity = 0;
-CUWB_RegistratorMsg.Data.ProductInfo.Prise = 0;
-//CUWB_RegistratorMsg.Flags.IsDataToSend = 0;	
+    CUWB_RegistratorMsg.Cmd = 0;
+    CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
+    CUWB_RegistratorMsg.Data.ProductInfo.Quantity = 0;
+    CUWB_RegistratorMsg.Data.ProductInfo.Prise = 0;
 
-CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
+    CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
+
 
     xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
@@ -581,30 +577,29 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
     switch (registrator_state) {
 	    case IDLE_STATE: {
 
-    if (!IsRegistratorConnect != registrator_connect_prev) {
-	    registrator_connect_prev = IsRegistratorConnect;
-	    if (!IsRegistratorConnect) {
-  		    Uart0Disable();
- 		    Uart0Enable(RegistratorCharPut, 9600);
-//		registrator_state = SEND_SELL_START;
-        }
-		else {
-		    Uart0Disable();
-		    Uart0Enable(Uart0_Resiv,  19200);
-	    }
-  	}
-	else if (Fl_Send_Sell_End == 1) {
-        registrator_state = SEND_SELL_END;
-	}
-	else  if (!Fl_ManeyGet && !Fl_SellStart && !Fl_SellStop && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
-			                                                   && !CUWB_RegistratorMsg.Flags.ErConnectTimeout
-															   && !IsRegistratorConnect) {
-//RgistratorSendStr ("3", 1);
-//CountPulse = 1740;
-		        //registrator_state = SEND_SELL_START;
+             if (!IsRegistratorConnect != registrator_connect_prev) {
+	             registrator_connect_prev = IsRegistratorConnect;
+	             
+				 if (!IsRegistratorConnect) {
+  		             Uart0Disable();
+ 		             Uart0Enable(RegistratorCharPut, 9600);
+                 }
+		         else {
+		             Uart0Disable();
+		             Uart0Enable(Uart0_Resiv,  19200);
+	             }
+  	         }    
+	         else if (Fl_Send_Sell_End == 1) {
+                 registrator_state = SEND_SELL_END;
+	         }
+	         else  if (!Fl_ManeyGet && !Fl_SellStart 
+			                        && !Fl_SellStop 
+			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
+			                        && !CUWB_RegistratorMsg.Flags.ErConnectTimeout
+									&& !IsRegistratorConnect) {
+
 				registrator_state = SEND_SELL_CANCEL;
 			 }
-
 
 		     break;
 		}
@@ -612,7 +607,6 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
 		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
 
 	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
-//RgistratorSendStr ("1", 1);
 	             registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
@@ -640,7 +634,6 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
 		}
 		case FINISHED_SELL_START: {
 		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
-//RgistratorSendStr ("2", 1);
 	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
 	                 Fl_RegistratorErr = 1;
 			     }
@@ -653,13 +646,12 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
 						 err_code.dataptr++;
 					 }
 					 
-					 if (res != 0)
+					 if (res != 0) {
 					     Fl_RegistratorErr = 1;
-					 else 	 
+					 }
+					 else {
 					     Fl_RegistratorErr = 0;
-
-//CountPulse = (Fl_RegistratorErr) ?  696 : 870;
-
+					 }
 				 }
 				 
 				 registrator_state = IDLE_STATE;
@@ -842,7 +834,7 @@ CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
 
-IntEeprDwordWrite(RegistratorWaterEEPROMAdr, WaterSave);
+                IntEeprDwordWrite(RegistratorWaterEEPROMAdr, WaterSave);
                 xSemaphoreGive(xI2CMutex);
 
 				/* set data to transmit to registrator */
@@ -975,7 +967,7 @@ IntEeprDwordWrite(RegistratorWaterEEPROMAdr, WaterSave);
 	        else {
 			    Fl_State_WtrCnt = REPORT_FLAG_OK;
 
-                if (WtrCntTimer == 0)
+                if (WtrCntTimer == 0 && RegistratorSaveWater > 0)
                     Fl_Send_Sell_End = 1;
 	        }
  	    }
