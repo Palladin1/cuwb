@@ -22,6 +22,7 @@ u16 ADR_LAST_DATTA;
 u16	EEPROM_DATA[54];
 
 volatile u32 CollectoinCountManey;
+volatile u32 RegistratorSaveWater;
 
 #define  MAX_RX_SIZE_BUFF 20
 volatile u08 BUF_UART_RX[MAX_RX_SIZE_BUFF];
@@ -172,6 +173,8 @@ unsigned int		*lock_param;
 #define             ScriptNameEEPROMAdr 			0xb0
 #define             PasswordEEPROMAdr 	    		0xc0
 #define             CollectionManeyEEPROMAdr 		0xca
+
+#define             RegistratorWaterEEPROMAdr 		0xce
 
 #define             LockParamEEPROMAdr              0xffc 
 #define             SoftVersionEEPROMAdr            0xffe

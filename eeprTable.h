@@ -104,6 +104,9 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(CollectionManeyEEPROMAdr)]   =	0x0000,                                 //
 		                                    0x0000,                                 //
 
+	[R_ADR(RegistratorWaterEEPROMAdr)]  =	0x0000,                                 //
+		                                    0x0000,                                 //
+   											
 
    [R_ADR(LockParamEEPROMAdr)]          =   0x0100,
    [R_ADR(SoftVersionEEPROMAdr)]        =   0x3332,

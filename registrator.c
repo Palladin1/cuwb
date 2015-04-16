@@ -354,14 +354,7 @@ u08 registrator_frame_get (u08 c)
                      temp_crc[i] = crc_cnt % 16 + '0';
                      crc_cnt /= 16;
                  }
-				//makecrc(temp_crc, (u16)crc_cnt);
-//////////////////////////////////
-        u08 z = 0; 
-        while (z < 4) {    
-            send_message.pwd[z] = temp_crc[z];
-			z++;
-		}
-///////////////////////////////////
+
 		         if (strncmp((char *) temp_crc, (char *) receive_message.bcc, R_CRC_LEN) == 0) {
                      ret = RANSVER_AK;
                  }
