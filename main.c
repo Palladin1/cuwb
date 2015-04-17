@@ -528,6 +528,7 @@ void vTask4( void *pvParameters )
 	static u08 Fl_RegistratorErr = 1;
 	static u08 registrator_connect_prev;
 	static u08 Fl_Send_Sell_End = 0;
+	static u08 Fl_Get_New_Data = 0;
 	
 	enum {
 	    IDLE_STATE,
@@ -636,6 +637,7 @@ void vTask4( void *pvParameters )
 		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
 	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
 	                 Fl_RegistratorErr = 1;
+					 registrator_state = SEND_SELL_START;
 			     }
 				 else {
 				     ReceivedData err_code;
@@ -648,13 +650,13 @@ void vTask4( void *pvParameters )
 					 
 					 if (res != 0) {
 					     Fl_RegistratorErr = 1;
+				    	 registrator_state = SEND_SELL_START;
 					 }
 					 else {
 					     Fl_RegistratorErr = 0;
+						 registrator_state = IDLE_STATE;
 					 }
 				 }
-				 
-				 registrator_state = IDLE_STATE;
 			 }
 		     break;
 		}
@@ -839,6 +841,7 @@ void vTask4( void *pvParameters )
 
 				/* set data to transmit to registrator */
 				RegistratorSaveWater = WaterSave;
+				Fl_Get_New_Data = 1;
 
                 ManeySave = WaterSave = 0;
 		    }
@@ -967,8 +970,10 @@ void vTask4( void *pvParameters )
 	        else {
 			    Fl_State_WtrCnt = REPORT_FLAG_OK;
 
-                if (WtrCntTimer == 0 && RegistratorSaveWater > 0)
+                if (WtrCntTimer == 0 && Fl_Get_New_Data) {
+				    Fl_Get_New_Data = 0;
                     Fl_Send_Sell_End = 1;
+				}
 	        }
  	    }
 	    else {
