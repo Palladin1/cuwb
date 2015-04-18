@@ -448,8 +448,8 @@ void vTask3( void *pvParameters )
 	            }
 			}
 
-            if (!IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
-			//  if (IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
+            //if (!IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
+			  if (IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
 		        conect_status_cur = RegistratorProcessing(50);
 			}
 			
@@ -579,12 +579,12 @@ void vTask4( void *pvParameters )
     switch (registrator_state) {
 	    case IDLE_STATE: {
 
-             if (!IsRegistratorConnect != registrator_connect_prev) {
-			 //if (IsRegistratorConnect != registrator_connect_prev) {
+             //if (!IsRegistratorConnect != registrator_connect_prev) {
+			 if (IsRegistratorConnect != registrator_connect_prev) {
 	             registrator_connect_prev = IsRegistratorConnect;
 	             
-				 if (!IsRegistratorConnect) {
-			//	 if (IsRegistratorConnect) {
+			//	 if (!IsRegistratorConnect) {
+				 if (IsRegistratorConnect) {
   		             Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
                  }
@@ -600,8 +600,8 @@ void vTask4( void *pvParameters )
 			                        && !Fl_SellStop 
 			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
 			                        && !CUWB_RegistratorMsg.Flags.ErConnectTimeout
-									&& !IsRegistratorConnect) {
-			//						&& IsRegistratorConnect) {
+			//						&& !IsRegistratorConnect) {
+									&& IsRegistratorConnect) {
 
 				registrator_state = SEND_SELL_CANCEL;
 			 }
@@ -630,7 +630,7 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_CANCEL: {
 	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
-	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+	         //CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 	
              if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
 			     registrator_state = FINISHED_SELL_CANCEL;
@@ -648,7 +648,7 @@ void vTask4( void *pvParameters )
 				     RegistratorDataGet(&err_code, ERROR_CODE);
 					 u08 res = 0;
 					 while (err_code.len-- > 0) {
-					     res += *err_code.dataptr - 0x20;
+					     res += *err_code.dataptr - 0x30;
 						 err_code.dataptr++;
 					 }
 					 

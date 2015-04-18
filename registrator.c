@@ -230,9 +230,12 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
         }
         case RCMD_SELL_CANCELL: {
              send_message.cmd = RCMD_SELL_CANCELL;
-             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
-             send_message.data_len = offset;
+//             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+//             send_message.data_len = offset;
              
+send_message.data[0] = '\0';
+send_message.data_len = 0;
+
              should_send_data = 1;
              break;
         }
