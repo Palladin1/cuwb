@@ -449,6 +449,7 @@ void vTask3( void *pvParameters )
 			}
 
             if (!IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
+			//  if (IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
 		        conect_status_cur = RegistratorProcessing(50);
 			}
 			
@@ -579,9 +580,11 @@ void vTask4( void *pvParameters )
 	    case IDLE_STATE: {
 
              if (!IsRegistratorConnect != registrator_connect_prev) {
+			 //if (IsRegistratorConnect != registrator_connect_prev) {
 	             registrator_connect_prev = IsRegistratorConnect;
 	             
 				 if (!IsRegistratorConnect) {
+			//	 if (IsRegistratorConnect) {
   		             Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
                  }
@@ -598,6 +601,7 @@ void vTask4( void *pvParameters )
 			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
 			                        && !CUWB_RegistratorMsg.Flags.ErConnectTimeout
 									&& !IsRegistratorConnect) {
+			//						&& IsRegistratorConnect) {
 
 				registrator_state = SEND_SELL_CANCEL;
 			 }
@@ -682,7 +686,11 @@ void vTask4( void *pvParameters )
 			     }
 				 else {
 				     Fl_Send_Sell_End = 0;
-				     Fl_RegistratorErr = 0;
+					 Fl_RegistratorErr = 0;
+
+                     RegistratorSaveWater = 0;
+					 if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
+				         IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
 
 					 registrator_state = SEND_SELL_START;
 				 }
@@ -694,6 +702,11 @@ void vTask4( void *pvParameters )
 
 	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
                  Fl_Send_Sell_End = 0;
+				 
+				 RegistratorSaveWater = 0;
+				 if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
+				     IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+
 	             registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
@@ -766,11 +779,17 @@ void vTask4( void *pvParameters )
 		    Fl_SellEnable = 0;
 		}
 */		
+
+		if (Fl_Send_Sell_End && !Fl_RegistratorErr) {  
+		    Fl_SellEnable = 0;
+		}
+
 		if ((CountRManey >= 1000) || (!Fl_SellEnable) 
 	                              || Fl_ErrReset 
 				    			  || Sygnal_Get_NoWater
 								  || Fl_WtrCntrErr
-								  || Fl_RegistratorErr) {
+								  || Fl_RegistratorErr
+								  || (Fl_SellStop && Fl_Send_Sell_End)) {
 		    StopGetManey();
 	    }
 	    else {
@@ -823,6 +842,9 @@ void vTask4( void *pvParameters )
 			    *day_maney_cnt += ManeySave;
 				WaterSave = (u16)((((((u32)ManeySave) * 200) / (*cost_litre_coef)) + 1) >> 1);
 
+				/* set data to transmit to registrator */
+				RegistratorSaveWater += WaterSave;
+
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 		        SaveEvent(ManeySave, WaterSave, 1);
 			    IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
@@ -836,11 +858,10 @@ void vTask4( void *pvParameters )
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
 
-                IntEeprDwordWrite(RegistratorWaterEEPROMAdr, WaterSave);
+                IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+
                 xSemaphoreGive(xI2CMutex);
 
-				/* set data to transmit to registrator */
-				RegistratorSaveWater = WaterSave;
 				Fl_Get_New_Data = 1;
 
                 ManeySave = WaterSave = 0;
@@ -865,9 +886,14 @@ void vTask4( void *pvParameters )
 
 	    if (Sygnal_Get_Stop && !(Sygnal_Get_Start) && Fl_SellStart) {
 
-	            SellingStop();
-		        Fl_SellStart = 0;
-		        Fl_SellStop  = 1;
+	        SellingStop();
+		    Fl_SellStart = 0;
+		    Fl_SellStop  = 1;
+
+			if (Fl_Get_New_Data) {
+			    Fl_Get_New_Data = 0;
+                Fl_Send_Sell_End = 1;
+			}
 	    }	
 
 	    if ((CountPulse <= PumpTimeCoef) && (Fl_SellStart || Fl_SellStop)) {
@@ -879,6 +905,11 @@ void vTask4( void *pvParameters )
 		    CountRManey = 0;	
 
 		    PumpTimeCoef = *pump_off_time_coef;
+
+			if (Fl_Get_New_Data) {
+			    Fl_Get_New_Data = 0;
+                Fl_Send_Sell_End = 1;
+			}
     	}
 	
 	    if (Sygnal_Get_Reset) {
@@ -964,16 +995,17 @@ void vTask4( void *pvParameters )
 			    SellingStop();
 		        Fl_SellStart = 0; 
 		        Fl_SellStop = 0; 
+
+                if (Fl_Get_New_Data) {
+                    RegistratorSaveWater = 0; 
+                    if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
+				        IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+				}
 				
 				Fl_WtrCntrErr = 1;
             } 
 	        else {
 			    Fl_State_WtrCnt = REPORT_FLAG_OK;
-
-                if (WtrCntTimer == 0 && Fl_Get_New_Data) {
-				    Fl_Get_New_Data = 0;
-                    Fl_Send_Sell_End = 1;
-				}
 	        }
  	    }
 	    else {
