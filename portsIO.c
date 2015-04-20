@@ -84,7 +84,7 @@ void InitPortsIO (void) {
 
 				//                   | valve3    valve2     valve1 |  pump   |  namber of indikator       |
 DDRA  = 0XFF;	//	DDRA |= (1<<DDA7)|(1<<DDA6)|(1<<DDA5)|(1<<DDA4)|(1<<DDA3)|(1<<DDA2)|(1<<DDA1)|(1<<DDA0);
-if(*board_version == 1) {
+if (IS_BOARD_VERSION_NEW) {
 PORTA = 0X70;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(0<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
 }
 else {

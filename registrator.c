@@ -208,7 +208,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
     switch (cmd) {
         case RCMD_SELL_START: {
              send_message.cmd = RCMD_SELL_START;
-             send_message.data[0] = '\0';
+//             send_message.data[0] = '\0';
 			 send_message.data_len = 0;
                 
              should_send_data = 1;
@@ -217,12 +217,12 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
         case RCMD_SELL_END: {
              send_message.cmd = RCMD_SELL_END;
              offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-             send_message.data[offset++] = RDATA_SEPARATOR;
+//             send_message.data[offset++] = RDATA_SEPARATOR;
              offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
-             send_message.data[offset++] = RDATA_SEPARATOR;
+//             send_message.data[offset++] = RDATA_SEPARATOR;
              offset += make_data_type_m(&send_message.data[offset], (*(u32**)data)[2]);
-             send_message.data[offset++] = RDATA_SEPARATOR;
-             send_message.data[offset] = '\0';
+//             send_message.data[offset++] = RDATA_SEPARATOR;
+//             send_message.data[offset] = '\0';
              send_message.data_len = offset;
              
              should_send_data = 1;
@@ -230,11 +230,9 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
         }
         case RCMD_SELL_CANCELL: {
              send_message.cmd = RCMD_SELL_CANCELL;
-//             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
-//             send_message.data_len = offset;
-             
-send_message.data[0] = '\0';
-send_message.data_len = 0;
+             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+//             send_message.data[offset++] = RDATA_SEPARATOR;
+             send_message.data_len = offset;
 
              should_send_data = 1;
              break;
@@ -431,8 +429,15 @@ u08 increase_seq (u08 cur)
 
 u08 make_data_type_n (u08 *to, u32 d)
 {
+    u08 len;
+
     ltoa(d, (char *)to, 10);
-    return strlen((char *)to);
+	len = strlen((char *)to);
+
+	to[len] = RDATA_SEPARATOR;
+	len++;
+
+    return len;
 }
 
 u08 make_data_type_m (u08 *to, u32 d)
@@ -442,8 +447,11 @@ u08 make_data_type_m (u08 *to, u32 d)
     ltoa(d, (char *)to, 10);
 	len = strlen((char *)to);
 	len = set_point(to, 2, len);
-
-    return len;
+    
+	to[len] = RDATA_SEPARATOR;
+	len++;
+    
+	return len;
 }
 
 u08 make_data_type_q (u08 *to, u32 d)
@@ -453,8 +461,11 @@ u08 make_data_type_q (u08 *to, u32 d)
     ltoa(d, (char *)to, 10);
     len = strlen((char *)to);
     len = set_point(to, 3, len);
-        
-    return len;
+    
+	to[len] = RDATA_SEPARATOR;
+	len++;
+    
+	return len;
 }
 
 u08 set_point (u08 *s, u08 pos, u08 len_cur)

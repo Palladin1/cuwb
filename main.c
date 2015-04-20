@@ -438,7 +438,7 @@ void vTask3( void *pvParameters )
 	        GetCmd(&rx_data_buff[0]);
             xSemaphoreGive(xI2CMutex); 
 		}
-		else {
+		else if (!IS_SERVICE_MODE) {
             if (conect_status_cur == OK_CONNECTION || conect_status_cur == NOT_DEFINED) {
 		        if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
 				    if (SendRegistratorMsg != NULL) {
@@ -539,12 +539,13 @@ void vTask4( void *pvParameters )
 		FINISHED_SELL_START,
 		FINISHED_SELL_END,
 		FINISHED_SELL_CANCEL,
-		SEND_SELL_END_WAIT
+		SEND_SELL_END_WAIT,
+		SERVICE_MODE
 	} registrator_state;
 	
-	registrator_state = SEND_SELL_START;
+	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_START: SERVICE_MODE;
 //	registrator_state = IDLE_STATE;
-
+	
 	static struct RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
 			
     CUWB_RegistratorMsg.Cmd = 0;
@@ -577,6 +578,12 @@ void vTask4( void *pvParameters )
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
     switch (registrator_state) {
+	    case SERVICE_MODE: {
+//		     if (!IS_SERVICE_MODE)
+//			     registrator_state = SEND_SELL_START;
+
+			 break;
+		}
 	    case IDLE_STATE: {
 
              //if (!IsRegistratorConnect != registrator_connect_prev) {
@@ -630,7 +637,7 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_CANCEL: {
 	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
-	         //CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 	
              if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
 			     registrator_state = FINISHED_SELL_CANCEL;
@@ -707,7 +714,8 @@ void vTask4( void *pvParameters )
 				 if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
 				     IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
 
-	             registrator_state = FINISHED_SELL_START; 
+	             //registrator_state = FINISHED_SELL_START; 
+				 registrator_state = FINISHED_SELL_END;
 			 }
 		     break;
 		}
@@ -858,13 +866,14 @@ void vTask4( void *pvParameters )
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
 
-                IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+                if (!IS_SERVICE_MODE) {
+				    IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+					Fl_Get_New_Data = 1;
+				}
 
                 xSemaphoreGive(xI2CMutex);
 
-				Fl_Get_New_Data = 1;
-
-                ManeySave = WaterSave = 0;
+				ManeySave = WaterSave = 0;
 		    }
 
             if (PumpTimeCoef <= (*pump_on_time_coef)) {

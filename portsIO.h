@@ -102,7 +102,13 @@ volatile u08 Fl_RxReciv;
 #define BUZZER_OFF PORTC &= ~(1<<2)
 
 
-#define  BTN_REGISTRATOR_PRESENT    (PINB & 0x02)	
+#define  BTN_REGISTRATOR_PRESENT    (PINB & 0x02)
+
+#define  BOARD_VERSION_MASK    0x0001	
+#define  SERVICE_MODE_MASK     0x0100
+
+#define  IS_BOARD_VERSION_NEW    (*board_version & BOARD_VERSION_MASK)
+#define  IS_SERVICE_MODE         (*board_version & SERVICE_MODE_MASK)
 
 ////////////////////////////////////////////////////////////////////////////
 
