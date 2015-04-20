@@ -245,7 +245,7 @@ int main( void )
 
     xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //60
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //70
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
 
     xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 290, NULL, 1, NULL); //280
     
@@ -581,7 +581,7 @@ void vTask4( void *pvParameters )
 	    case SERVICE_MODE: {
 //		     if (!IS_SERVICE_MODE)
 //			     registrator_state = SEND_SELL_START;
-
+//
 			 break;
 		}
 	    case IDLE_STATE: {
@@ -637,8 +637,10 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_CANCEL: {
 	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
-	         CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
-	
+	         //CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+			 //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
+             CUWB_RegistratorMsg.Data.OperationNum.Operation = uxTaskGetStackHighWaterMark(NULL);
+
              if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
 			     registrator_state = FINISHED_SELL_CANCEL;
 			 }
@@ -1638,6 +1640,23 @@ void vTask7 (void *pvParameters)
 
 /////////////////////////////////////////////////////////////////////////////////////
 
+u16 atoin (u08 *s, u08 n)
+{ 
+    u16 ret;
+
+	ret = 0;
+    while (n--) {
+    
+	    if (*s < '0' && '9' < *s)
+	        return 0;
+
+	    ret = ret * 10 + *s - '0'; 
+	}
+
+	return ret;
+}
+
+
 void custom_at_handler(u08 *pData)
 {
     
@@ -1691,13 +1710,16 @@ void custom_at_handler(u08 *pData)
 	else if (strncmp((char *)pData, "+CSQ:", 5) == 0) {
         u08 *p;
         p = (u08 *)(strstr((char *)pData, "+CSQ:") + 6);
-		*p = ((p[0] - 48) * 10) + (p[1] - 48);
 
-        if (*p == 99 || *p < 8) { 
-		    CARRENT_STATE = STATE_NET_QUALITY_LOW;
-		}
-		else {
-		    CARRENT_STATE = STATE_GPRS_CONNECT;    //
+		if (p != NULL) {
+		    *p = (u08) atoin(p, 2);
+
+            if (*p == 99 || *p < 8) { 
+		        CARRENT_STATE = STATE_NET_QUALITY_LOW;
+		    }
+		    else {
+		        CARRENT_STATE = STATE_GPRS_CONNECT;    //
+		    }
 		}     
     }
 	else if (strncmp((char *)pData, "Price=", 6) == 0) {
@@ -1706,13 +1728,13 @@ void custom_at_handler(u08 *pData)
         u16 price = 0;
         p = (u08 *)(strstr((char *)pData, "Price=") + 6);
   
-		price = ((p[0] - 48) * 1000) + ((p[1] - 48) * 100) + ((p[2] - 48) * 10) + (p[3] - 48);      
+        if (p != NULL) {
+		    price = atoin(p, 4);
 
-		if (*cost_litre_coef != price && 500 >= price) {
-
-		   NewPrice =  price;
-		}
-                  
+		    if (*cost_litre_coef != price && 500 >= price) {
+		        NewPrice = price;
+		    }
+        }
     }
 
 	
@@ -1792,3 +1814,5 @@ extern void RegistratorSendStr (u08 *s, u08 len) {
 //}
 
 //vTaskStartTrace(Trace_Buffer, 38);
+
+//unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );

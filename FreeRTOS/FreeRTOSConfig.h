@@ -77,7 +77,7 @@
 #define configMINIMAL_STACK_SIZE	( ( unsigned short ) 100 )
 #define configTOTAL_HEAP_SIZE		( (size_t ) ( 2100) ) //2050
 #define configMAX_TASK_NAME_LEN		( 6 )
-#define configUSE_TRACE_FACILITY	1
+#define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		1
 #define configIDLE_SHOULD_YIELD		1
 #define configQUEUE_REGISTRY_SIZE	0
@@ -92,13 +92,14 @@
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */
 
-#define INCLUDE_vTaskPrioritySet		0
-#define INCLUDE_uxTaskPriorityGet		0
-#define INCLUDE_vTaskDelete				1
-#define INCLUDE_vTaskCleanUpResources	0
-#define INCLUDE_vTaskSuspend			1
-#define INCLUDE_vTaskDelayUntil			1
-#define INCLUDE_vTaskDelay				1
+#define  INCLUDE_uxTaskGetStackHighWaterMark    1
+#define  INCLUDE_vTaskPrioritySet		        0
+#define  INCLUDE_uxTaskPriorityGet		        0
+#define  INCLUDE_vTaskDelete				    1
+#define  INCLUDE_vTaskCleanUpResources	        0
+#define  INCLUDE_vTaskSuspend			        1
+#define  INCLUDE_vTaskDelayUntil			    1
+#define  INCLUDE_vTaskDelay				        1
 
 
 #endif /* FREERTOS_CONFIG_H */
