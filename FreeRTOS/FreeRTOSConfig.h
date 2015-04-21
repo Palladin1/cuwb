@@ -70,7 +70,7 @@
 
 #define configUSE_PREEMPTION		1
 #define configUSE_IDLE_HOOK			0
-#define configUSE_TICK_HOOK			0
+#define configUSE_TICK_HOOK			1
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 7372800 )
 #define configTICK_RATE_HZ			( ( portTickType ) 1000 )
 #define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 4 )
@@ -92,7 +92,7 @@
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */
 
-#define  INCLUDE_uxTaskGetStackHighWaterMark    1
+#define  INCLUDE_uxTaskGetStackHighWaterMark    0
 #define  INCLUDE_vTaskPrioritySet		        0
 #define  INCLUDE_uxTaskPriorityGet		        0
 #define  INCLUDE_vTaskDelete				    1

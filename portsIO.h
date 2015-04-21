@@ -106,9 +106,11 @@ volatile u08 Fl_RxReciv;
 
 #define  BOARD_VERSION_MASK    0x0001	
 #define  SERVICE_MODE_MASK     0x0100
+#define  WATER_COUNTER_MASK    0x0010
 
-#define  IS_BOARD_VERSION_NEW    (*board_version & BOARD_VERSION_MASK)
-#define  IS_SERVICE_MODE         (*board_version & SERVICE_MODE_MASK)
+#define  IS_BOARD_VERSION_NEW     (*board_version & BOARD_VERSION_MASK)
+#define  IS_SERVICE_MODE          (*board_version & SERVICE_MODE_MASK)
+#define  IS_COUNT_WATER_ONE_FRONT (*board_version & WATER_COUNTER_MASK)   
 
 ////////////////////////////////////////////////////////////////////////////
 

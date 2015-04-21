@@ -151,7 +151,12 @@ void Count_Pulse_Water (void) {
 }
 
 	//! Configure external interrupt trigger
-    extintConfigure(EXTINT6, EXTINT_EDGE_ANY);
+	if (!IS_COUNT_WATER_ONE_FRONT) {
+        extintConfigure(EXTINT6, EXTINT_EDGE_ANY);
+	}
+	else {
+	    extintConfigure(EXTINT6, EXTINT_EDGE_FALLING);
+	}
 
 	//! Attach a user function to an external interrupt
 	extintAttach(EXTINT6, Count_Pulse_Water);

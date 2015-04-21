@@ -179,6 +179,12 @@ static struct RegistratorMsg {
 
 static u16 ExtSignalStatus = 0;
 
+
+#if CHECK_STACK
+#define TASK_NUMBER    7
+static u16 DebugBuff[TASK_NUMBER] = {0};
+#endif //CHECK_STACK
+
 /*
 *********************************************************************************************************
 *                                         FUNCTION PROTOTYPES
@@ -293,6 +299,11 @@ void vTask1( void *pvParameters )
 		}
 
 		vTaskDelay(2 / portTICK_RATE_MS);
+
+#if CHECK_STACK
+    DebugBuff[0] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
+
     }
 
     vTaskDelete (NULL);
@@ -406,6 +417,10 @@ void vTask2( void *pvParameters )
 
 
 		vTaskDelay(100 / portTICK_RATE_MS);
+
+#if CHECK_STACK
+    DebugBuff[1] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
     }
 
     vTaskDelete (NULL);
@@ -472,6 +487,11 @@ void vTask3( void *pvParameters )
 
 
         vTaskDelay(50 / portTICK_RATE_MS);   
+
+#if CHECK_STACK
+    DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
+
 	}
 
     vTaskDelete (NULL);
@@ -543,7 +563,8 @@ void vTask4( void *pvParameters )
 		SERVICE_MODE
 	} registrator_state;
 	
-	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_START: SERVICE_MODE;
+//	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_START: SERVICE_MODE;
+	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_CANCEL: SERVICE_MODE;
 //	registrator_state = IDLE_STATE;
 	
 	static struct RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
@@ -637,9 +658,18 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_CANCEL: {
 	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
-	         //CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+
+#if CHECK_STACK
 			 //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
-             CUWB_RegistratorMsg.Data.OperationNum.Operation = uxTaskGetStackHighWaterMark(NULL);
+             static u08 i = 0;
+             DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
+             CUWB_RegistratorMsg.Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
+             
+             if(i >= TASK_NUMBER)
+                 i = 0;
+#else
+             CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+#endif //CHECK_STACK
 
              if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
 			     registrator_state = FINISHED_SELL_CANCEL;
@@ -1558,6 +1588,11 @@ void vTask5( void *pvParameters )
 		}
 
 //        vTaskDelay(500 / portTICK_RATE_MS);
+
+#if CHECK_STACK
+    DebugBuff[4] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
+
 	}
 
     vTaskDelete (NULL);
@@ -1599,6 +1634,11 @@ void vTask6( void *pvParameters )
 		}
 
         vTaskDelay(10 / portTICK_RATE_MS);
+
+#if CHECK_STACK
+    DebugBuff[5] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
+
     }
 
     vTaskDelete (NULL);
@@ -1631,6 +1671,10 @@ void vTask7 (void *pvParameters)
 		else {
 		    vTaskDelay(2000 / portTICK_RATE_MS);
 		}
+
+#if CHECK_STACK
+    DebugBuff[6] = uxTaskGetStackHighWaterMark(NULL);
+#endif //CHECK_STACK
         
 	}
 

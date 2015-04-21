@@ -13,6 +13,7 @@
 
 #include "portmacro.h"
 
+static u08 PumpShouldTurnOn = 0;
 
 void SellingStart(void) {
 
@@ -21,25 +22,69 @@ void SellingStart(void) {
 	KLAPAN3_ON;
 
 /////////////////////////////
-	if (*board_version == 1) {
+/*
+	if (IS_BOARD_VERSION_NEW) {
 		
 		PUMP_ON;
 	}
 	else {
 	    PUMP_OFF;
 	}
+*/
+PumpShouldTurnOn = 1;
 /////////////////////////////
 }
+
+volatile static u08 is_pulse_state_high;
+volatile static u08 pump_work_now = 0;
+
+void vApplicationTickHook(void)
+{
+    if (PumpShouldTurnOn) {
+
+	    if (!pump_work_now) {
+		    pump_work_now = 1;
+		    is_pulse_state_high = (IS_BOARD_VERSION_NEW)  ? 1 : 0;
+		}
+
+	    //if (IS_BOARD_VERSION_NEW && is_pulse_state_high) {
+		if (is_pulse_state_high) {
+		    PUMP_ON;
+		}
+		else {
+		    PUMP_OFF;
+		}
+
+		is_pulse_state_high = (is_pulse_state_high) ? 0 : 1;
+	}
+	else {
+	    if (pump_work_now)
+	        pump_work_now = 0;
+
+        if (IS_BOARD_VERSION_NEW) {
+//		    is_pulse_state_high = 1;
+		    PUMP_OFF;
+	    }
+	    else {
+//            is_pulse_state_high = 0;
+	        PUMP_ON;
+	    }	
+	}    
+}
+
 
 void SellingStop(void) {
 
 /////////////////////////////
-    if (*board_version == 1) {
+/*
+    if (IS_BOARD_VERSION_NEW) {
 		PUMP_OFF;
 	}
 	else {
 	    PUMP_ON;
 	}
+*/
+PumpShouldTurnOn = 0;
 /////////////////////////////
 
 //	KLAPAN1_OFF;
