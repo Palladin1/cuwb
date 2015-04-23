@@ -249,7 +249,7 @@ int main( void )
 
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 50, NULL, 1, NULL); //40
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //60
 
 	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
 
