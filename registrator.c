@@ -201,7 +201,7 @@ u08 RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatyp
 		}
 	}
 
-    return (0);		
+    return (1);		
 }
 			
 u08 RegistratorDataSet (u08 cmd, void *data[]) 
@@ -209,7 +209,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
     u08 offset;
     
     if (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED || RegistratorStatusGet() != RR_CONNECTION_OK) {
-	    return (1);
+	    return (0);
 	}
     
     switch (cmd) {
@@ -250,7 +250,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 */        
     }
 	
-	return (0);
+	return (1);
 }
 
 

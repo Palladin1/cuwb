@@ -143,13 +143,11 @@ volatile u08 FlDayOrNight = SMS_FLAG_SEND_DISABLE;
 volatile u16 NewPrice = 0;
 
 
-xQueueHandle xRegistratorQueue;
 xQueueHandle xEventsQueue;
 
 xSemaphoreHandle xUart_RX_Semaphore;
 
 xSemaphoreHandle xI2CMutex;
-xSemaphoreHandle xRegistratorAnswerSem;
 xSemaphoreHandle xExtSignalStatusSem; 
 xSemaphoreHandle xTimeSendRequestSem;
 
@@ -224,12 +222,10 @@ void custom_at_handler(u08 *pData);
 int main( void )
 {
 
-    xRegistratorQueue  = xQueueCreate(1, sizeof(struct RegistratorMsg *));
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
-	vSemaphoreCreateBinary(xRegistratorAnswerSem);
     vSemaphoreCreateBinary(xTimeSendRequestSem);
 	
 
@@ -546,7 +542,6 @@ void vTask4( void *pvParameters )
 
     xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
-	xSemaphoreTake(xRegistratorAnswerSem, 0);
 
     IsRegistratorConnect = 0;
     registrator_connect_prev = 1;
@@ -598,54 +593,59 @@ void vTask4( void *pvParameters )
 			//						&& !IsRegistratorConnect) {
 									&& IsRegistratorConnect) {
 
-				registrator_state = SEND_SELL_CANCEL;
+			     registrator_state = SEND_SELL_CANCEL;
 			 }
 
 		     break;
 		}
 		case SEND_SELL_START: {
-		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
 
-	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
-	             registrator_state = FINISHED_SELL_START; 
+	         if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   && RegistratorDataSet(RCMD_SELL_START, NULL) ) {
+			     
+				 registrator_state = FINISHED_SELL_START; 
 			 }
 		     break;
 		}
 		case SEND_SELL_END: {
-             CUWB_RegistratorMsg.Cmd = RCMD_SELL_END;
 			 
-			 CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
-             CUWB_RegistratorMsg.Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-             CUWB_RegistratorMsg.Data.ProductInfo.Prise = *cost_litre_coef;
+			 pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
              
-			 if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
+			 if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   && RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
+
 			     registrator_state = FINISHED_SELL_END;
 			 }
 			 break;
 		}
 		case SEND_SELL_CANCEL: {
-	         CUWB_RegistratorMsg.Cmd = RCMD_SELL_CANCELL;
 
 #if CHECK_STACK
 			 //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
              static u08 i = 0;
              DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
-             CUWB_RegistratorMsg.Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
+             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
              
              if(i >= TASK_NUMBER)
                  i = 0;
 #else
-             CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif //CHECK_STACK
 
-             if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
+             if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   && RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+
 			     registrator_state = FINISHED_SELL_CANCEL;
 			 }
 			 break;
 		}
 		case FINISHED_SELL_START: {
-		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
-	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) { 
+	             
+			     if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
 	                 Fl_RegistratorErr = 1;
 					 registrator_state = SEND_SELL_START;
 			     }
@@ -671,21 +671,25 @@ void vTask4( void *pvParameters )
 		     break;
 		}
 		case FINISHED_SELL_CANCEL: {
-		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
-	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
+
+	             if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
 	                 Fl_RegistratorErr = 1;
 			     }
 				 else {
 				 	 Fl_RegistratorErr = 0;
 				 }
+
 				 registrator_state = SEND_SELL_START;
 			 }
 		     break;
 		}
 		case FINISHED_SELL_END: {
-		     if (xSemaphoreTake(xRegistratorAnswerSem, 0) == pdTRUE) { 
+		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) { 
 
-	             if (CUWB_RegistratorMsg.Flags.ErConnectTimeout) {
+	             if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
 	                 Fl_RegistratorErr = 1;
 
 					 registrator_state = SEND_SELL_END_WAIT;
@@ -706,7 +710,9 @@ void vTask4( void *pvParameters )
 		case SEND_SELL_END_WAIT: {
 		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
 
-	         if (xQueueSend(xRegistratorQueue, &pCUWB_RegistratorMsg, 0) == pdPASS) {
+	         if ( RegistratorStatusGet() == RR_CONNECTION_OK 
+			   && RegistratorDataSet(RCMD_SELL_START, NULL) ) {
+
                  Fl_Send_Sell_End = 0;
 				 
 				 RegistratorSaveWater = 0;
