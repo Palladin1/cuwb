@@ -48,7 +48,8 @@ struct registrator_receive_message {
 
 
 u08 registrator_frame_get (u08 c);
-void registrator_frame_send (void);     
+void registrator_frame_send (void);  
+void RegistratorStatusSet (REGISTRATOR_STATUS status_cur);   
        
 u08 increase_seq (u08 cur);
 u08 make_data_type_n (u08 *to, u32 d);
@@ -64,7 +65,7 @@ void sendnstr (u08 *s, u08 len);
 static struct registrator_send_message send_message; 
 static struct registrator_receive_message receive_message;
 
-//static REGISTRATOR_STATUS registrator_status;
+static REGISTRATOR_STATUS RegistratorConnectionStatus;
 
 static u08 should_send_data;
 
@@ -79,7 +80,7 @@ void RegistratorCharPut (unsigned char c) {
 void RegistratorInit (void)
 {
     u08 i;
-//    registrator_status = WAIT_CONNECTION;
+	RegistratorStatusSet (RR_CONNECTION_NOT_DEFINED);
     should_send_data = 0;
     
     send_message.cmd = 0;
@@ -95,10 +96,19 @@ void RegistratorInit (void)
 } 
 
 
-REGISTRATOR_STATUS RegistratorProcessing (u08 period)
+REGISTRATOR_STATUS RegistratorStatusGet (void)
+{
+    return RegistratorConnectionStatus;
+}
+
+void RegistratorStatusSet (REGISTRATOR_STATUS status_cur)
+{
+    RegistratorConnectionStatus = status_cur;
+}
+
+void RegistratorProcessing (u08 period)
 {
     u08 ans;
-	static REGISTRATOR_STATUS registrator_status = NOT_DEFINED;
 	static u32 timer_var;
     static enum processing_state { 
         P_IDDLE,
@@ -111,7 +121,8 @@ REGISTRATOR_STATUS RegistratorProcessing (u08 period)
              if (should_send_data == 1) {
 			     should_send_data = 0;
 			     state = P_REQUEST;
-                 registrator_status = WAIT_CONNECTION;    
+                
+				 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);   
 			 }
              break;
         }
@@ -142,7 +153,8 @@ REGISTRATOR_STATUS RegistratorProcessing (u08 period)
 				 case RANSVER_AK: {
                       timer_var = 0;
                       send_message.seq = increase_seq(send_message.seq);
-                      registrator_status = OK_CONNECTION;
+
+					  RegistratorStatusSet(RR_CONNECTION_OK);
                  
 //                    (should_send_data == 1) ? should_send_data = 0 : 0;
                       state = P_IDDLE;                     				 
@@ -154,8 +166,10 @@ REGISTRATOR_STATUS RegistratorProcessing (u08 period)
 			 }
 			 
 			 if (timer_var >= R_TIMEOUT_WAIT) {
-                 registrator_status = ERROR_CONNECTION;
-                 state = P_REQUEST;    
+               
+			     state = P_REQUEST;    
+
+				 RegistratorStatusSet(RR_CONNECTION_ERROR);
              }
              
              timer_var += period;
@@ -164,16 +178,8 @@ REGISTRATOR_STATUS RegistratorProcessing (u08 period)
 //           break;
 //      }
     }
-
-	return registrator_status;
 }
 
-/*
-REGISTRATOR_STATUS RegistratorStatusGet (void) 
-{
-    return registrator_status;
-}
-*/            
 
 u08 RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype)
 {
@@ -202,8 +208,9 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 {
     u08 offset;
     
-//    while (should_send_data)
-//        ;
+    if (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED || RegistratorStatusGet() != RR_CONNECTION_OK) {
+	    return (1);
+	}
     
     switch (cmd) {
         case RCMD_SELL_START: {

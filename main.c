@@ -249,7 +249,7 @@ int main( void )
 
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 50, NULL, 1, NULL); //40
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //60
 
 	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
 
@@ -434,12 +434,6 @@ void vTask3( void *pvParameters )
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
 
-	static u32 *registrator_data_ptr;
-	
-	static struct RegistratorMsg * SendRegistratorMsg = NULL;
-	
-	static REGISTRATOR_STATUS conect_status_cur = NOT_DEFINED; 
-	
 	for( ;; )
     {
 
@@ -454,35 +448,8 @@ void vTask3( void *pvParameters )
             xSemaphoreGive(xI2CMutex); 
 		}
 		else if (!IS_SERVICE_MODE) {
-            if (conect_status_cur == OK_CONNECTION || conect_status_cur == NOT_DEFINED) {
-		        if (xQueueReceive(xRegistratorQueue, &SendRegistratorMsg, 0) == pdTRUE) {
-				    if (SendRegistratorMsg != NULL) {
-				        registrator_data_ptr =(u32 *) &SendRegistratorMsg->Data;
-                        RegistratorDataSet(SendRegistratorMsg->Cmd, (void **) &registrator_data_ptr);
-					}
-	            }
-			}
-
-            //if (!IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
-			  if (IsRegistratorConnect || conect_status_cur != ERROR_CONNECTION) {
-		        conect_status_cur = RegistratorProcessing(50);
-			}
-			
-			
-			if (conect_status_cur == ERROR_CONNECTION || conect_status_cur == OK_CONNECTION) {
-			    if (SendRegistratorMsg != NULL) {
-				    if (conect_status_cur == ERROR_CONNECTION) {
-					    SendRegistratorMsg->Flags.ErConnectTimeout = 1;
-					}
-					else {
-					    SendRegistratorMsg->Flags.ErConnectTimeout = 0;
-					}
-
-                    SendRegistratorMsg = NULL;
-						
-					xSemaphoreGive(xRegistratorAnswerSem);
-				}
-			}
+           
+		    RegistratorProcessing(50);
 		}
 
 

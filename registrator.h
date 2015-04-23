@@ -58,10 +58,12 @@ typedef struct {
 } RegistratorDataCancelSale;
 
 typedef enum _REGISTRATOR_STATUS {
-            NOT_DEFINED,
-            WAIT_CONNECTION,    
-            ERROR_CONNECTION,
-            OK_CONNECTION
+   
+    RR_CONNECTION_NOT_DEFINED,
+	RR_CONNECTION_WAIT_ANSVER,
+	RR_CONNECTION_ERROR,
+	RR_CONNECTION_OK
+
 } REGISTRATOR_STATUS;
 
 typedef struct {
@@ -78,10 +80,10 @@ typedef enum {
 void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
-REGISTRATOR_STATUS RegistratorProcessing (u08 period);
+void RegistratorProcessing (u08 period);
 u08  RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
 u08  RegistratorDataSet (u08 cmd, void * data[]);
-//REGISTRATOR_STATUS RegistratorStatusGet (void);
+REGISTRATOR_STATUS RegistratorStatusGet (void);
 extern void RegistratorSendStr (u08 *s, u08 len);
 
 #endif  //REGISTRATOR_H
