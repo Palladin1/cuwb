@@ -121,8 +121,7 @@ void RegistratorProcessing (u08 period)
              if (should_send_data == 1) {
 			     should_send_data = 0;
 			     state = P_REQUEST;
-                
-				 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);   
+//				 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);   
 			 }
              break;
         }
@@ -215,33 +214,47 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
     switch (cmd) {
         case RCMD_SELL_START: {
              send_message.cmd = RCMD_SELL_START;
-//             send_message.data[0] = '\0';
 			 send_message.data_len = 0;
                 
              should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
         case RCMD_SELL_END: {
              send_message.cmd = RCMD_SELL_END;
-             offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-//             send_message.data[offset++] = RDATA_SEPARATOR;
-             offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
-//             send_message.data[offset++] = RDATA_SEPARATOR;
-             offset += make_data_type_m(&send_message.data[offset], (*(u32**)data)[2]);
-//             send_message.data[offset++] = RDATA_SEPARATOR;
-//             send_message.data[offset] = '\0';
-             send_message.data_len = offset;
+
+			 if (data != NULL) {
+                 offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
+                 offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
+                 offset += make_data_type_m(&send_message.data[offset], (*(u32**)data)[2]);
+
+                 send_message.data_len = offset;
+			 }
+			 else {
+			     send_message.data[0] = '\0';
+                 send_message.data_len = 0;
+			 }
              
              should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
         case RCMD_SELL_CANCELL: {
              send_message.cmd = RCMD_SELL_CANCELL;
-             offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
-//             send_message.data[offset++] = RDATA_SEPARATOR;
-             send_message.data_len = offset;
+             
+			 if (data != NULL) {
+			     offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+
+                 send_message.data_len = offset;
+			 }
+             else {
+			     send_message.data[0] = '\0';
+
+                 send_message.data_len = 0;
+			 }
 
              should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
 /*      default : {

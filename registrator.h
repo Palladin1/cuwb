@@ -76,7 +76,13 @@ typedef enum {
     DATA,
     STATUS
 } RECEIVED_DATA_TYPE;
-  
+
+/*
+enum {
+    
+} REGISTRATOR_ERROR
+*/  
+
 void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
