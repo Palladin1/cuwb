@@ -47,15 +47,6 @@ typedef signed long s32;
 #endif
 */
 
-typedef struct {
-    u32 Number;
-    u32 Quantity;
-    u32 Prise;	
-} RegistratorDataFinishSale;
-
-typedef struct {
-    u32 Operation;
-} RegistratorDataCancelSale;
 
 typedef enum _REGISTRATOR_STATUS {
    
@@ -69,7 +60,7 @@ typedef enum _REGISTRATOR_STATUS {
 typedef struct {
     u08 *dataptr;
 	u08 len;
-} ReceivedData;
+} RegistratorReceivedData;
 
 typedef enum {
     ERROR_CODE,    
@@ -77,19 +68,40 @@ typedef enum {
     STATUS
 } RECEIVED_DATA_TYPE;
 
-/*
-enum {
+
+typedef enum {
+    RR_ERR_NO              = ('0' + '0' + '0' + '0'),
+    RR_ERR_STATE_NOT_RIGHT = ('0' + '0' + '0' + 'B')
     
-} REGISTRATOR_ERROR
-*/  
+} REGISTRATOR_ERROR_CODE;
+ 
+
+struct RegistratorDataFinishSale {
+    u32 Number;
+    u32 Quantity;
+    u32 Prise;	
+};
+
+struct RegistratorDataCancelSale {
+    u32 Operation;
+};
+
+typedef struct RR_Msg {
+    union data {
+	    struct RegistratorDataFinishSale ProductInfo;
+		struct RegistratorDataCancelSale OperationNum;
+	} Data;
+} RegistratorMsg;
+
 
 void RegistratorCharPut (unsigned char c);  
         
 void RegistratorInit (void);
 void RegistratorProcessing (u08 period);
-u08  RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
+u08  RegistratorDataGet (RegistratorReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
 u08  RegistratorDataSet (u08 cmd, void * data[]);
 REGISTRATOR_STATUS RegistratorStatusGet (void);
 extern void RegistratorSendStr (u08 *s, u08 len);
+REGISTRATOR_ERROR_CODE RegistratorErrorCode (RegistratorReceivedData *rr_err);
 
 #endif  //REGISTRATOR_H

@@ -162,19 +162,6 @@ u08 buzer_flag = 0;
 
 static u08 IsRegistratorConnect = 0;
 
-static struct RegistratorMsg {
-    u08 Cmd;
-    union data{
-	    RegistratorDataFinishSale ProductInfo;
-		RegistratorDataCancelSale OperationNum;
-	} Data;
-	struct {
-	    u08 IsDataToSend    : 1;
-	    u08 ErConnectTimeout: 1;
-	} Flags;
-} CUWB_RegistratorMsg;
-
-
 static u16 ExtSignalStatus = 0;
 
 
@@ -443,7 +430,7 @@ void vTask3( void *pvParameters )
 	        GetCmd(&rx_data_buff[0]);
             xSemaphoreGive(xI2CMutex); 
 		}
-		else if (!IS_SERVICE_MODE) {
+		else if (!IS_SERVICE_MODE && IsRegistratorConnect) {
            
 		    RegistratorProcessing(50);
 		}
@@ -516,37 +503,33 @@ void vTask4( void *pvParameters )
 	
 	enum {
 	    IDLE_STATE,
+		WAIT_INIT,
 		SEND_SELL_START,
 		SEND_SELL_END,
 		SEND_SELL_CANCEL,
-		FINISHED_SELL_START,
-		FINISHED_SELL_END,
-		FINISHED_SELL_CANCEL,
-		SEND_SELL_END_WAIT,
 		SERVICE_MODE
 	} registrator_state;
-	
-//	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_START: SERVICE_MODE;
-	registrator_state = (!IS_SERVICE_MODE) ? SEND_SELL_CANCEL: SERVICE_MODE;
-//	registrator_state = IDLE_STATE;
-	
-	static struct RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
-			
-    CUWB_RegistratorMsg.Cmd = 0;
-    CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
-    CUWB_RegistratorMsg.Data.ProductInfo.Quantity = 0;
-    CUWB_RegistratorMsg.Data.ProductInfo.Prise = 0;
 
-    CUWB_RegistratorMsg.Flags.ErConnectTimeout = 0;
+	static u08 should_send_to_registrator = 1;
+	static RegistratorReceivedData err_data;
+	
+
+    registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: WAIT_INIT;
+
+	
+	static RegistratorMsg CUWB_RegistratorMsg;
+	static RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
+
+    pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
+    pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = 0;
+    pCUWB_RegistratorMsg->Data.ProductInfo.Prise = 0;
 
 
     xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
 
     IsRegistratorConnect = 0;
-    registrator_connect_prev = 1;
-	Uart0Enable(RegistratorCharPut, 9600);
-
+    
     if (RegistratorSaveWater > 0) {
 	    Fl_Send_Sell_End = 1;
 	}
@@ -561,19 +544,10 @@ void vTask4( void *pvParameters )
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
     switch (registrator_state) {
-	    case SERVICE_MODE: {
-//		     if (!IS_SERVICE_MODE)
-//			     registrator_state = SEND_SELL_START;
-//
-			 break;
-		}
-	    case IDLE_STATE: {
 
-             //if (!IsRegistratorConnect != registrator_connect_prev) {
-			 if (IsRegistratorConnect != registrator_connect_prev) {
-	             registrator_connect_prev = IsRegistratorConnect;
-	             
-			//	 if (!IsRegistratorConnect) {
+	    case WAIT_INIT: {
+		     if ( xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE ) {
+                 
 				 if (IsRegistratorConnect) {
   		             Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
@@ -582,15 +556,30 @@ void vTask4( void *pvParameters )
 		             Uart0Disable();
 		             Uart0Enable(Uart0_Resiv,  19200);
 	             }
+
+                 registrator_connect_prev = IsRegistratorConnect;
+				 registrator_state = IDLE_STATE;
+
+  	         }
+
+			 break;
+		}
+	    case SERVICE_MODE: {
+
+			 break;
+		}
+	    case IDLE_STATE: {
+
+             if (IsRegistratorConnect != registrator_connect_prev) {
+			     registrator_connect_prev = IsRegistratorConnect;
+	             registrator_state = WAIT_INIT;
   	         }    
-	         else if (Fl_Send_Sell_End == 1) {
+	         else if (Fl_Send_Sell_End == 1 && IsRegistratorConnect) {
                  registrator_state = SEND_SELL_END;
 	         }
 	         else  if (!Fl_ManeyGet && !Fl_SellStart 
 			                        && !Fl_SellStop 
 			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
-			                        && !CUWB_RegistratorMsg.Flags.ErConnectTimeout
-			//						&& !IsRegistratorConnect) {
 									&& IsRegistratorConnect) {
 
 			     registrator_state = SEND_SELL_CANCEL;
@@ -599,130 +588,152 @@ void vTask4( void *pvParameters )
 		     break;
 		}
 		case SEND_SELL_START: {
+		     if (should_send_to_registrator) {
+				      if ( RegistratorDataSet(RCMD_SELL_START, NULL) ) {
+			              should_send_to_registrator = 0; 
+			          }
+			 }
+			 else {
 
-	         if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   && RegistratorDataSet(RCMD_SELL_START, NULL) ) {
-			     
-				 registrator_state = FINISHED_SELL_START; 
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+				     }
+				     case RR_CONNECTION_OK: {
+				          					 
+					      RegistratorDataGet(&err_data, ERROR_CODE);
+
+					      switch ( RegistratorErrorCode(&err_data) ) {
+					  
+					          case RR_ERR_NO: {
+					               Fl_RegistratorErr = 0;
+						           registrator_state = IDLE_STATE;
+
+								   break;
+					          }
+					          case RR_ERR_STATE_NOT_RIGHT: {
+					               Fl_RegistratorErr = 0;
+						           registrator_state = SEND_SELL_CANCEL;
+
+								   break;
+					          }
+					          default: {
+					               Fl_RegistratorErr = 1;
+				    	           registrator_state = SEND_SELL_START;
+
+								   break;
+					          }
+					      }
+
+						  should_send_to_registrator = 1;
+						  break;
+					 }
+					 default:
+					      break;
+				 }
 			 }
 		     break;
 		}
 		case SEND_SELL_END: {
-			 
-			 pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
+		     
+			 if (should_send_to_registrator) {
+			     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
+                 pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
+                 pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
              
-			 if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   && RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
+			     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     			 }
+	    	 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+                          Fl_RegistratorErr = 1;
 
-			     registrator_state = FINISHED_SELL_END;
+						  break;
+                     }
+					 case RR_CONNECTION_OK: {
+                          RegistratorDataGet(&err_data, ERROR_CODE);
+
+					      switch ( RegistratorErrorCode(&err_data) ) {
+					  
+					          case RR_ERR_NO: {
+					               Fl_Send_Sell_End = 0;
+					               Fl_RegistratorErr = 0;
+
+						           RegistratorSaveWater = 0;
+					               if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
+				                       IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+
+					               registrator_state = SEND_SELL_START;
+
+								   break;
+					          }
+					          case RR_ERR_STATE_NOT_RIGHT: {
+					               Fl_RegistratorErr = 0;
+						           registrator_state = SEND_SELL_START;
+
+								   break;
+					          }
+					          default: {
+					               Fl_RegistratorErr = 1;
+				    	           registrator_state = SEND_SELL_START;
+
+								   break;
+					          }
+						  }
+
+                          should_send_to_registrator = 1;
+					      break;
+				     }
+					 default:
+					      break;
+				 }
 			 }
-			 break;
+		     break;
 		}
 		case SEND_SELL_CANCEL: {
-
+			 
+			 if (should_send_to_registrator) {
 #if CHECK_STACK
-			 //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
-             static u08 i = 0;
-             DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
-             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
+			     //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
+                 static u08 i = 0;
+                 DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
+                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
              
-             if(i >= TASK_NUMBER)
-                 i = 0;
+                 if(i >= TASK_NUMBER)
+                     i = 0;
 #else
-             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+              pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif //CHECK_STACK
 
-             if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   && RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
 
-			     registrator_state = FINISHED_SELL_CANCEL;
+                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     		     }
 			 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+			         }
+				     case RR_CONNECTION_OK: {
+				          Fl_RegistratorErr = 0;
+
+                          registrator_state = SEND_SELL_START;
+
+                          should_send_to_registrator = 1;
+					      break;
+					 }
+					 default:
+					      break;
+				 }
+			 }		   
 			 break;
-		}
-		case FINISHED_SELL_START: {
-		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) { 
-	             
-			     if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
-	                 Fl_RegistratorErr = 1;
-					 registrator_state = SEND_SELL_START;
-			     }
-				 else {
-				     ReceivedData err_code;
-				     RegistratorDataGet(&err_code, ERROR_CODE);
-					 u08 res = 0;
-					 while (err_code.len-- > 0) {
-					     res += *err_code.dataptr - 0x30;
-						 err_code.dataptr++;
-					 }
-					 
-					 if (res != 0) {
-					     Fl_RegistratorErr = 1;
-				    	 registrator_state = SEND_SELL_START;
-					 }
-					 else {
-					     Fl_RegistratorErr = 0;
-						 registrator_state = IDLE_STATE;
-					 }
-				 }
-			 }
-		     break;
-		}
-		case FINISHED_SELL_CANCEL: {
-		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
-
-	             if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
-	                 Fl_RegistratorErr = 1;
-			     }
-				 else {
-				 	 Fl_RegistratorErr = 0;
-				 }
-
-				 registrator_state = SEND_SELL_START;
-			 }
-		     break;
-		}
-		case FINISHED_SELL_END: {
-		     if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   || RegistratorStatusGet() == RR_CONNECTION_ERROR ) { 
-
-	             if ( RegistratorStatusGet() == RR_CONNECTION_ERROR ) {
-	                 Fl_RegistratorErr = 1;
-
-					 registrator_state = SEND_SELL_END_WAIT;
-			     }
-				 else {
-				     Fl_Send_Sell_End = 0;
-					 Fl_RegistratorErr = 0;
-
-                     RegistratorSaveWater = 0;
-					 if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
-				         IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
-
-					 registrator_state = SEND_SELL_START;
-				 }
-			 }
-		     break;
-		}
-		case SEND_SELL_END_WAIT: {
-		     CUWB_RegistratorMsg.Cmd = RCMD_SELL_START;
-
-	         if ( RegistratorStatusGet() == RR_CONNECTION_OK 
-			   && RegistratorDataSet(RCMD_SELL_START, NULL) ) {
-
-                 Fl_Send_Sell_End = 0;
-				 
-				 RegistratorSaveWater = 0;
-				 if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
-				     IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
-
-	             //registrator_state = FINISHED_SELL_START; 
-				 registrator_state = FINISHED_SELL_END;
-			 }
-		     break;
 		}
 //		default : {
 //		     break;

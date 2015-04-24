@@ -180,7 +180,7 @@ void RegistratorProcessing (u08 period)
 }
 
 
-u08 RegistratorDataGet (ReceivedData * received_data, RECEIVED_DATA_TYPE datatype)
+u08 RegistratorDataGet (RegistratorReceivedData * received_data, RECEIVED_DATA_TYPE datatype)
 {
     switch (datatype) {
         case ERROR_CODE: {
@@ -207,13 +207,15 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 {
     u08 offset;
     
-    if (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED || RegistratorStatusGet() != RR_CONNECTION_OK) {
+    if ( (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED) && (RegistratorStatusGet() != RR_CONNECTION_OK) ) {
 	    return (0);
 	}
+
+	send_message.cmd = cmd;
     
     switch (cmd) {
         case RCMD_SELL_START: {
-             send_message.cmd = RCMD_SELL_START;
+//             send_message.cmd = RCMD_SELL_START;
 			 send_message.data_len = 0;
                 
              should_send_data = 1;
@@ -221,7 +223,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
         case RCMD_SELL_END: {
-             send_message.cmd = RCMD_SELL_END;
+ //            send_message.cmd = RCMD_SELL_END;
 
 			 if (data != NULL) {
                  offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
@@ -240,7 +242,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
         case RCMD_SELL_CANCELL: {
-             send_message.cmd = RCMD_SELL_CANCELL;
+//             send_message.cmd = RCMD_SELL_CANCELL;
              
 			 if (data != NULL) {
 			     offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
@@ -266,6 +268,22 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 	return (1);
 }
 
+
+REGISTRATOR_ERROR_CODE RegistratorErrorCode (RegistratorReceivedData *rr_err)
+{
+/*
+    u08 i;
+	RR_ERROR_CODE code;
+    
+	code = 0;
+	for (i = 0; i < rr_err->len; i++) {
+	    code += rr_err->dataptr[i];
+	}
+    return  code;
+*/
+
+    return  (rr_err->dataptr[0] + rr_err->dataptr[1] + rr_err->dataptr[2] + rr_err->dataptr[3]);
+}
 
 u08 registrator_frame_get (u08 c) 
 {
