@@ -513,8 +513,8 @@ void vTask4( void *pvParameters )
 	static u08 should_send_to_registrator = 1;
 	static RegistratorReceivedData err_data;
 	
-
-    registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: WAIT_INIT;
+    registrator_state = WAIT_INIT;
+    //registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: WAIT_INIT;
 
 	
 	static RegistratorMsg CUWB_RegistratorMsg;
@@ -548,18 +548,19 @@ void vTask4( void *pvParameters )
 	    case WAIT_INIT: {
 		     if ( xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE ) {
                  
-				 if (IsRegistratorConnect) {
+				 if (IsRegistratorConnect && !IS_SERVICE_MODE) {
   		             Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
+
+					 registrator_state = SEND_SELL_START;
                  }
 		         else {
 		             Uart0Disable();
 		             Uart0Enable(Uart0_Resiv,  19200);
+
+					 registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: IDLE_STATE;
 	             }
-
                  registrator_connect_prev = IsRegistratorConnect;
-				 registrator_state = IDLE_STATE;
-
   	         }
 
 			 break;
