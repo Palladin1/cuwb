@@ -225,6 +225,11 @@ int main( void )
 
     RegistratorInit();
 
+#if MODEM_DBG
+Uart0Disable();
+Uart0Enable(Uart0_Resiv,  19200);
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
@@ -557,6 +562,7 @@ void vTask4( void *pvParameters )
 		         else {
 		             Uart0Disable();
 		             Uart0Enable(Uart0_Resiv,  19200);
+
 
 					 registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: IDLE_STATE;
 	             }
@@ -1154,12 +1160,15 @@ void vTask5( void *pvParameters )
 	memset(Dns_Name, 0x00, 30);
     strncpy((char *)&Dns_Name[0], (char *)&send_data_buff[1], *p_data_len);
     Dns_Name[*p_data_len] = '\n';
-	Dns_Name[*p_data_len+1] = 0; 	  
+	Dns_Name[*p_data_len+1] = 0; 
+	
 	
     vTaskDelay(5000 / portTICK_RATE_MS);
 
+
 	for( ;; )
     {
+
         switch (CARRENT_STATE) {
 
             case STATE_MODEM_IDLE: {
@@ -1169,7 +1178,8 @@ void vTask5( void *pvParameters )
 					    
 			case STATE_MODEM_ON: {
 #if MODEM_DBG
-			uartSendBuffer(0, "1", 1);
+	    uartSendByte(0, '1');
+		uartSendByte(0, '\n');
 #endif
                  if (ModemStatus() == 1) {
                      
@@ -1178,12 +1188,14 @@ void vTask5( void *pvParameters )
 				     
 					 if (ModemSendCom(AT, 500) == ACK_OK) {
 						 CARRENT_STATE = STATE_GPRS_DEACTIVATE;
+
 				     }
 				     else {
 				         CARRENT_STATE = STATE_MODEM_OFF;
 				     }
 				 }
                  else {
+
 			         PWRKEY_ON;
                      vTaskDelay(2000 / portTICK_RATE_MS);
 					 PWRKEY_OFF;
@@ -1201,7 +1213,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_MODEM_OFF: {
 #if MODEM_DBG
-			uartSendBuffer(0, "2", 1);
+			uartSendByte(0, '2');
+			uartSendByte(0, '\n');
 #endif
                  Uart1Disable();			     
                  vTaskDelay(100 / portTICK_RATE_MS);
@@ -1229,7 +1242,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_MODEM_FIRST_INIT: {
 #if MODEM_DBG
-			uartSendBuffer(0, "3", 1);
+			uartSendByte(0, '3');
+            uartSendByte(0, '\n');
 #endif
                  ModemSendCom(AT, 500);
 
@@ -1252,7 +1266,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_MODEM_INIT: {
 #if MODEM_DBG
-			uartSendBuffer(0, "4", 1);
+			uartSendByte(0, '4');
+            uartSendByte(0, '\n');
 #endif			 
 				 //Pfone book on sim 
 	             ModemSendCom(PFONE_BOOK, 500);
@@ -1274,7 +1289,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_GPRS_CONNECT: {
 #if MODEM_DBG
-			uartSendBuffer(0, "5", 1);
+			uartSendByte(0, '5');
+            uartSendByte(0, '\n');
 #endif
                  u08 data_len = 0; 
 				 ModemSendCom(SET_GPRS_FORMAT, 500);
@@ -1336,7 +1352,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_GPRS_CHECK: {
 #if MODEM_DBG
-			uartSendBuffer(0, "6", 1);
+			uartSendByte(0, '6');
+			uartSendByte(0, '\n');
 #endif
 				 GSM_Timer.State_Change = STATE_GPRS_OPEN;
 				 GSM_Timer.Interval = 1000; 
@@ -1351,7 +1368,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_GPRS_OPEN: {
 #if MODEM_DBG
-			uartSendBuffer(0, "7", 1);
+			uartSendByte(0, '7');
+			uartSendByte(0, '\n');
 #endif
 
 			//     vTaskDelay(10000 / portTICK_RATE_MS);
@@ -1374,7 +1392,8 @@ void vTask5( void *pvParameters )
 
             case STATE_GPRS_FAIL: {
 #if MODEM_DBG
-			uartSendBuffer(0, "8", 1);
+			uartSendByte(0, '8');
+			uartSendByte(0, '\n');
 #endif
 			   
                  err_conn_fail++; 
@@ -1402,7 +1421,8 @@ void vTask5( void *pvParameters )
 
             case STATE_SMS_PREPARE: {
 #if MODEM_DBG
-			uartSendBuffer(0, "9", 1);
+			uartSendByte(0, '9');
+			uartSendByte(0, '\n');
 #endif
                  CARRENT_STATE = STATE_GPRS_FORMED_BUFF; 
 
@@ -1421,7 +1441,9 @@ void vTask5( void *pvParameters )
 
             case STATE_SMS_SEND_DATA: {
 #if MODEM_DBG
-			uartSendBuffer(0, "10", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '0');
+			uartSendByte(0, '\n');
 #endif
 
     		     vTaskDelay(200 / portTICK_RATE_MS);
@@ -1447,7 +1469,9 @@ void vTask5( void *pvParameters )
 
 			case STATE_GPRS_SEND_DATA: {
 #if MODEM_DBG
-			uartSendBuffer(0, "11", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '1');
+			uartSendByte(0, '\n');
 #endif
 			     err_conn_cnt = 0;
 				 disconnect_count = 0;
@@ -1501,7 +1525,9 @@ void vTask5( void *pvParameters )
 
 			case STATE_GPRS_DISCONNECT: {
 #if MODEM_DBG
-			uartSendBuffer(0, "12", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '2');
+			uartSendByte(0, '\n');
 #endif
 //		           CARRENT_STATE = STATE_SOME_WAIT;
 //                 GSM_Timer.State_Change = STATE_SMS_PREPARE;
@@ -1513,7 +1539,9 @@ void vTask5( void *pvParameters )
 			
 			case STATE_GPRS_DEACTIVATE: {
 #if MODEM_DBG
-			uartSendBuffer(0, "13", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '3');
+			uartSendByte(0, '\n');
 #endif
 
                  if (disconnect_count >= 3) {
@@ -1549,7 +1577,9 @@ void vTask5( void *pvParameters )
 
 			case STATE_NET_STATUS: {
 #if MODEM_DBG
-			uartSendBuffer(0, "14", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '4');
+			uartSendByte(0, '\n');
 #endif
                  GSM_Timer.State_Change = STATE_MODEM_OFF;
 				 GSM_Timer.Interval = 100; 
@@ -1561,7 +1591,9 @@ void vTask5( void *pvParameters )
 
 			case STATE_NET_QUALITY_LOW: {
 #if MODEM_DBG
-			uartSendBuffer(0, "15", 2);
+			uartSendByte(0, '1');
+			uartSendByte(0, '5');
+			uartSendByte(0, '\n');
 #endif
 
 				 vTaskDelay(3000 / portTICK_RATE_MS);
@@ -1599,13 +1631,13 @@ void vTask6( void *pvParameters )
 
 	for( ;; )
     {
-
         if (GSM_RxBuf_Count_Get()) {
 	     
 		    com_buff[cnt] = GSM_RxBuf_Char_Get();
 
 #if MODEM_DBG
-			uartSendBuffer(0, &com_buff[cnt], 1);
+			uartSendByte(0, com_buff[cnt]);
+			uartSendByte(0, '\n');
 #endif
 		    if ((com_buff[cnt] == '\n') || (com_buff[cnt] == '>')) {
 		        cnt = 0; 
@@ -1695,9 +1727,9 @@ void custom_at_handler(u08 *pData)
 	else if (strncmp((char *)pData, ">", 1) == 0) {
         ModemAnsver = ACK_CAN_SEND;    
 	}
-//	else if (strncmp((char *)pData, "", 6) == 0) {
-//        ;
-//	}
+	else if (strncmp((char *)pData, "200 OK", 6) == 0) {
+        
+	}
 	else if (strncmp((char *)pData, "OK", 2) == 0) {
         ModemAnsver = ACK_OK;
 	}

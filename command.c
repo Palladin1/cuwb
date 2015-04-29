@@ -620,13 +620,15 @@ void itoan (u32 binval, u08 *asc, u08 size) {
 
     u32 step[]={100000,10000,1000,100,10,1};
     u32 temp,val;
-    u08 i,atemp;
+    u08 i,atemp, ofset;
 	
     val=binval;
 	size = (size > 6) ? 2 : size; 
 
+    ofset = 6 - size;
+
     for (i = 0; i < size; i++) {
-        temp=step[i];
+        temp=step[i+ofset];
         atemp='0';
        while(val >= temp)
        {
