@@ -101,11 +101,16 @@ PGM_P SMS_TEXT[] PROGMEM = {
 
 #define  TIME_SEND_REGUEST    50ul   // 1 second = 10 * 100ms - is task sleep    
 
+#define  BILL_STATUS_TIME_OUT    600u * 5            //600  * 100mS = 60S * 5        
+
 /*
 *********************************************************************************************************
 *                                            LOCAL VARIABLES
 *********************************************************************************************************
 */
+
+u16 BillStatusTimer = 0;
+
 typedef enum {
 	    
     STATE_NET_STATUS,
@@ -208,7 +213,6 @@ void custom_at_handler(u08 *pData);
 */
 int main( void )
 {
-
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -233,20 +237,20 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL); //60
+	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL);   //60
 
-	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 50, NULL, 1, NULL); //40
+	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL); //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL);   //60
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL); //70
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL);   //70
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 290, NULL, 1, NULL); //280
+    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280, NULL, 1, NULL); //280
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 90, NULL, 1, NULL); //80
+	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL);   //80
  
     #if BUZER_TIME    
-	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 30, NULL, 1, NULL);  //20
+	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);   //20
     #endif
 
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
@@ -348,6 +352,9 @@ void vTask2( void *pvParameters )
 	              WtrCntTimer--;
               }
         }
+
+		if (BillStatusTimer < BILL_STATUS_TIME_OUT)
+            BillStatusTimer++;
 
 		if (AxellCntTimer < ACCELEROMETR_PERIOD) {
               if (AxellCntTimer > 0) {
@@ -1061,7 +1068,7 @@ void vTask4( void *pvParameters )
 	    
 /////// the sygnall set when bill can't get maney ////////////////////////////
 
-        if (Sygnal_Get_NoWrkBill && (*board_version)) {            // If board version the first we
+        if (Sygnal_Get_NoWrkBill && *board_version && BillStatusTimer == BILL_STATUS_TIME_OUT) {            // If board version the first we
 
 	        if (!Fl_ErrRsvBill) {                                // can't get the right status 
 
@@ -1073,6 +1080,7 @@ void vTask4( void *pvParameters )
             }
 		}                                                          // of the bill receiver   
         else {
+		    BillStatusTimer = 0;
 	        Fl_ErrRsvBill = 0;
 			Fl_State_RsvBill = REPORT_FLAG_OK;
 	    }

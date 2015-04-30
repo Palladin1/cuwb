@@ -38,24 +38,52 @@ PumpShouldTurnOn = 1;
 volatile static u08 is_pulse_state_high;
 volatile static u08 pump_work_now = 0;
 
+volatile static u08 pump_puls_len_cnt;
+volatile static u08 pump_puls_chang_cnt;
+volatile static u08 pump_puls_len_cur;
+const static u08 PUMP_PULS_LEN_MAX = 4;
+const static u08 PUMP_PULS_CHANG_TIME = 1000 / 4;
+
+
 void vApplicationTickHook(void)
 {
     if (PumpShouldTurnOn) {
 
 	    if (!pump_work_now) {
 		    pump_work_now = 1;
-		    is_pulse_state_high = (IS_BOARD_VERSION_NEW)  ? 1 : 0;
+
+			pump_puls_chang_cnt = 0;
+    	    pump_puls_len_cnt = 0;
+			pump_puls_len_cur = 0;
 		}
 
-	    //if (IS_BOARD_VERSION_NEW && is_pulse_state_high) {
-		if (is_pulse_state_high) {
-		    PUMP_ON;
+        pump_puls_len_cnt++;
+		if (pump_puls_len_cnt ==4)
+		    pump_puls_len_cnt = 0;
+
+		if (pump_puls_len_cnt <= pump_puls_len_cur) {
+		     if (IS_BOARD_VERSION_NEW) {
+		         PUMP_ON;
+		     }
+		     else {
+		         PUMP_OFF;
+		     }
 		}
 		else {
-		    PUMP_OFF;
+		     if (IS_BOARD_VERSION_NEW) {
+		         PUMP_OFF;
+		     }
+		     else {
+			     PUMP_ON;
+		     }
 		}
 
-		is_pulse_state_high = (is_pulse_state_high) ? 0 : 1;
+		pump_puls_chang_cnt++;
+		if (pump_puls_chang_cnt >= PUMP_PULS_CHANG_TIME) {
+		    pump_puls_chang_cnt = 0;
+			pump_puls_len_cur++;
+		}
+//////////////////////////////////////////////////////////////////
 	}
 	else {
 	    if (pump_work_now)
