@@ -41,6 +41,8 @@ volatile u08 Fl_RxReciv;
 #define	set_the_rtc 			0x6b
 #define read_from_rtc			0x6a
 
+#define read_status 			0x7a
+
 //==================================
 #define BTN_START (PINB & 0x20)          
 #define BTN_STOP  (PINB & 0x10)			

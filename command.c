@@ -512,6 +512,10 @@ void GetCmd (unsigned char *get_cmd_buff) {
 
 		get_cmd_buff[0] = 2;
 		uartSendBuf(0, &get_cmd_buff[0], 3);
+	}
+	
+	void READ_STATUS (void) {
+	        
 	}	
 
 
@@ -541,8 +545,12 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		case read_pulse_fault_count:
 			READ_PULSE_FAULT_COUNT();
 			break;
-//		default: 
-//			break;
+        case read_status: {
+		     READ_STATUS();
+			 break;
+		} 
+		default: 
+			break;
 	}
 }
 

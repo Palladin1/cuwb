@@ -200,6 +200,8 @@ void Global_Time_Deluy (unsigned int time_val);
 //u08 ModemSendCom (u08 *buff, u32 deluy_time_ms);
 void custom_at_handler(u08 *pData);
 
+u16 atoin (u08 *s, u08 n);
+
 /*
 *********************************************************************************************************
 *                                                main()
@@ -211,8 +213,10 @@ void custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
+
 int main( void )
 {
+
     xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -1720,6 +1724,7 @@ u16 atoin (u08 *s, u08 n)
 	        return 0;
 
 	    ret = ret * 10 + *s - '0'; 
+		s++;
 	}
 
 	return ret;
