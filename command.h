@@ -13,6 +13,9 @@ u08 CntReset;
 u08 CntNoWrkBill;
 u08 CntRegPresent;
 
+u16 MoneyToReturn;
+u16 WaterToReturn;
+
 volatile u08 Fl_State_Water;
 volatile u08 Fl_State_Power;
 volatile u08 Fl_State_RsvBill;

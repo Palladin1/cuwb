@@ -76,6 +76,7 @@ const char  MESSAGE_ERR_BILL[] PROGMEM       = "OSHUBKA KYPYROPRIEMNIKA\32";
 
 
 PGM_P SMS_TEXT[] PROGMEM = {
+
     MESSAGE_EMPTY,
 	MESSAGE_NO_WATER,
     MESSAGE_NO_POWER,
@@ -84,6 +85,7 @@ PGM_P SMS_TEXT[] PROGMEM = {
     MESSAGE_LIM_WATER,
     MESSAGE_SEND_ANSVER,
     MESSAGE_ERR_BILL
+
 };
 
 
@@ -191,8 +193,12 @@ void vTask6( void *pvParameters );
 void vTask7( void *pvParameters );
 #endif
 
-void DecodeForLCD(u16 led_maney, u16 led_water);
-void NoWtrForLCD (void);
+static inline void DecodeForLCD (u16 led_maney, u16 led_water);
+static inline void NoWtrForLCD (void);
+
+static inline u16 MoneyToWater (u16 money_quantity);
+static inline u16 MoneyToPulse (u16 money_quantity); 
+static inline u16 PulseQuantityToMoney (u16 pulse_quantity);
 
 void Uart0_Resiv (u08 udrdata);
 void Global_Time_Deluy (unsigned int time_val);
@@ -217,7 +223,7 @@ u16 atoin (u08 *s, u08 n);
 int main( void )
 {
 
-    xEventsQueue = xQueueCreate(15, sizeof(unsigned char *));
+    xEventsQueue = xQueueCreate(16, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
@@ -326,14 +332,14 @@ void vTask2( void *pvParameters )
    		    CountManey = 0;
 	    }
 	    else {
-   		    CountManey = (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) *65536) / CountPulse)) + 1) >> 1);
+			CountManey = PulseQuantityToMoney(CountPulse);
 	    } 
 
 	    if (CountManey == 0) {
    		    CountWater = 0;
 	    }
 	    else {
-		    CountWater = (u16)((((((u32)CountManey) * 200) / (*cost_litre_coef)) + 1) >> 1);
+		    CountWater = MoneyToWater(CountManey);
 	    }
 
 		if (!CountManey && gFlLedStateWater)
@@ -526,6 +532,12 @@ void vTask4( void *pvParameters )
 		SERVICE_MODE
 	} registrator_state;
 
+	enum event_to_ext_eeprom {
+	    EV_SAVE_SELL_START = 1,
+		EV_SAVE_CASH_COLLECTION = 3,
+		EV_SAVE_NO_POWER
+	};
+
 	static u08 should_send_to_registrator = 1;
 	static RegistratorReceivedData err_data;
 	
@@ -546,11 +558,14 @@ void vTask4( void *pvParameters )
 
     IsRegistratorConnect = 0;
     
-    if (RegistratorSaveWater > 0) {
+    if (RegistratorSaveWater > 0) {     /* The RegistratorSaveWater takes it value by read internal eeprom while initialization of the microcontroller */
 	    Fl_Send_Sell_End = 1;
 	}
 
-//    wdt_enable(WDTO_2S);
+	MoneyToReturn = 0;
+	WaterToReturn = 0;
+
+// TODO:   wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
@@ -786,7 +801,88 @@ void vTask4( void *pvParameters )
             if (!Fl_ErrPower) {
 		        Fl_ErrPower = 1;
 			    //Fl_Ev_NoPower = 1;
-				xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);
+	
+                if (!IS_SERVICE_MODE) {
+
+                    if (Fl_SellStart || Fl_SellStop || Fl_ManeyGet) {
+
+						MoneyToReturn = PulseQuantityToMoney(CountPulse);
+				        WaterToReturn = MoneyToWater(MoneyToReturn);
+
+					    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+
+                        SaveEvent(MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);                     /* save data to external eeprom */ 
+
+			            xSemaphoreGive(xI2CMutex);
+							
+				        ManeySave = WaterSave = 0;
+
+					    if(Fl_ManeyGet) 
+					        Fl_ManeyGet = 0;
+
+				        CountPulse = 0; /* all flags sets that same method as the end of sell */
+                    }
+
+/*
+				    if (Fl_SellStart) { 
+					    ManeySave = PulseQuantityToMoney(CountPulse);
+				        WaterSave = MoneyToWater(ManeySave);
+					}
+					else if (Fl_SellStop) { 
+
+					    ManeySave = PulseQuantityToMoney(CountPulse);
+				        WaterSave = MoneyToWater(ManeySave);
+                    }
+                    else if (Fl_ManeyGet) {
+					
+                        if (ManeySave > 0) {
+/*
+			                *day_maney_cnt += ManeySave;
+				            WaterSave = MoneyToWater(ManeySave);
+*/				
+/*				            RegistratorSaveWater += WaterSave;                                     /* set data to transmit to registrator */
+/*
+                            if (*amount_water <= WaterSave) {                                      /* how many water left in the barrel */
+/*			                    *amount_water = 0;
+			                }
+			                else {
+		                        *amount_water -= WaterSave;
+			                }
+*/
+/*							
+//							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+
+//			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+
+//			                IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
+
+//                            IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+					        
+//                            xSemaphoreGive(xI2CMutex);
+							
+//							Fl_Send_Sell_End = 1;
+
+		                }
+					}
+*/
+/*
+				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+
+                    SaveEvent(ManeySave, WaterSave, EV_SAVE_NO_POWER);                     /* save data to external eeprom */ 
+
+/*			        xSemaphoreGive(xI2CMutex);
+							
+				    ManeySave = WaterSave = 0;
+
+					if(Fl_ManeyGet) 
+					    Fl_ManeyGet = 0;
+
+				    CountPulse = 0; /* all flags sets that same method as the end of sell */
+
+				}
+				
+				/*xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);*/
+				xQueueSendToFront(xEventsQueue, &Fl_Ev_NoPower, 0);
             }
 	    }
         else {
@@ -850,9 +946,8 @@ void vTask4( void *pvParameters )
 			Fl_ManeyGet = 1;
 	    	CountRManey += 25;
 		    ManeySave += 25;
-		    //*day_maney_cnt += 25;
-//		    CountPulse = (u16)((((((((u32)CountRManey) * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
-		    CountPulse = (u16)((((((((u32)CountRManey) << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
+
+			CountPulse = MoneyToPulse(CountRManey);
 	    }
 	
 	    if (Sygnal_Get_BillGet) {
@@ -861,13 +956,12 @@ void vTask4( void *pvParameters )
 		    Fl_ManeyGet = 1;
 		    CountRManey += 100;
 		    ManeySave += 100;
-		    //*day_maney_cnt += 100;
-//		    CountPulse = (u16)((((((((u32)CountRManey) * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
-			CountPulse = (u16)((((((((u32)CountRManey) << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
+
+			CountPulse = MoneyToPulse(CountRManey);
 	    }
 
 		if (!Fl_ManeyGet) {
-		    CountRManey = (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / CountPulse)) + 1) >> 1);
+            CountRManey = PulseQuantityToMoney(CountPulse);
 		}
 		
 
@@ -882,10 +976,9 @@ void vTask4( void *pvParameters )
             if (ManeySave > 0) {
 
 			    *day_maney_cnt += ManeySave;
-				WaterSave = (u16)((((((u32)ManeySave) * 200) / (*cost_litre_coef)) + 1) >> 1);
-
-				/* set data to transmit to registrator */
-				RegistratorSaveWater += WaterSave;
+				WaterSave = MoneyToWater(ManeySave);
+				
+				RegistratorSaveWater += WaterSave;                                      /* set data to transmit to registrator */
 
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 		        SaveEvent(ManeySave, WaterSave, 1);
@@ -927,8 +1020,8 @@ void vTask4( void *pvParameters )
    		    buzer_flag = 0;
 	#endif
 
-	    if (Sygnal_Get_Stop && !(Sygnal_Get_Start) && Fl_SellStart) {
-
+	    //if (Sygnal_Get_Stop && !(Sygnal_Get_Start) && Fl_SellStart) {
+          if (Sygnal_Get_Stop && (!(Sygnal_Get_Start) || Fl_SellStart)) {
 	        SellingStop();
 		    Fl_SellStart = 0;
 		    Fl_SellStop  = 1;
@@ -1816,7 +1909,8 @@ void custom_at_handler(u08 *pData)
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-void DecodeForLCD (u16 led_maney, u16 led_water) {
+static inline void DecodeForLCD (u16 led_maney, u16 led_water) 
+{
 /*
     itoa(led_maney & 0x1FFF, &LcdDatta[0], 10);
 	
@@ -1831,16 +1925,35 @@ void DecodeForLCD (u16 led_maney, u16 led_water) {
 	LcdDatta[5] = (u08)((led_water / 100) % 10);
 	LcdDatta[6] = (u08)((led_water % 100) / 10);
 	LcdDatta[7] = (u08)((led_water % 100) % 10);
-	
 }
 
 
-void NoWtrForLCD (void) {
-
-    /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
-    memset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));
+static inline void NoWtrForLCD (void)
+{
+    memset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));      /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
 }
 
+
+static inline u16 MoneyToWater (u16 money_quantity) 
+{
+    u32 money = 0;
+	money = money_quantity;
+	return (u16)((((money * 200) / (*cost_litre_coef)) + 1) >> 1);
+}
+
+
+static inline u16 MoneyToPulse (u16 money_quantity) 
+{
+    u32 money = 0;
+	money = money_quantity;
+//  CountPulse = (u16)((((((money * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
+	return (u16)((((((money << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
+}
+
+static inline u16 PulseQuantityToMoney (u16 pulse_quantity) 
+{
+    return (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) *65536) / pulse_quantity)) + 1) >> 1);
+}
 
 /* UART0 Receiver interrupt service routine */
 void Uart0_Resiv (u08 udrdata) {
@@ -1890,3 +2003,4 @@ extern void RegistratorSendStr (u08 *s, u08 len) {
 //vTaskStartTrace(Trace_Buffer, 38);
 
 //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
+
