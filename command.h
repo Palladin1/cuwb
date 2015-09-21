@@ -16,6 +16,8 @@ u08 CntRegPresent;
 u16 MoneyToReturn;
 u16 WaterToReturn;
 
+u08 IsDataToReturnSent;
+
 volatile u08 Fl_State_Water;
 volatile u08 Fl_State_Power;
 volatile u08 Fl_State_RsvBill;

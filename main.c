@@ -806,79 +806,60 @@ void vTask4( void *pvParameters )
 
                     if (Fl_SellStart || Fl_SellStop || Fl_ManeyGet) {
 
-						MoneyToReturn = PulseQuantityToMoney(CountPulse);
-				        WaterToReturn = MoneyToWater(MoneyToReturn);
+                        if (CountPulse > 0) {
+						    MoneyToReturn = PulseQuantityToMoney(CountPulse);
+				            WaterToReturn = MoneyToWater(MoneyToReturn);
 
-					    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+					        xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
-                        SaveEvent(MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);                     /* save data to external eeprom */ 
+                            SaveEvent(MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
 
-			            xSemaphoreGive(xI2CMutex);
-							
-				        ManeySave = WaterSave = 0;
+			                xSemaphoreGive(xI2CMutex);
 
-					    if(Fl_ManeyGet) 
-					        Fl_ManeyGet = 0;
+				            CountPulse = 0;                                                        /* all flags sets that same method as the end of sell */
+                        }
+						else if (IsDataToReturnSent == 1) {
+                            IsDataToReturnSent = 0;						    
 
-				        CountPulse = 0; /* all flags sets that same method as the end of sell */
-                    }
+						    MoneyToReturn = 0;
+						    WaterToReturn = 0;
+						}
 
-/*
-				    if (Fl_SellStart) { 
-					    ManeySave = PulseQuantityToMoney(CountPulse);
-				        WaterSave = MoneyToWater(ManeySave);
-					}
-					else if (Fl_SellStop) { 
+                        
 
-					    ManeySave = PulseQuantityToMoney(CountPulse);
-				        WaterSave = MoneyToWater(ManeySave);
-                    }
-                    else if (Fl_ManeyGet) {
+						if (Fl_ManeyGet && ManeySave > 0) {
 					
-                        if (ManeySave > 0) {
-/*
 			                *day_maney_cnt += ManeySave;
+
 				            WaterSave = MoneyToWater(ManeySave);
-*/				
-/*				            RegistratorSaveWater += WaterSave;                                     /* set data to transmit to registrator */
-/*
+
+				            RegistratorSaveWater += WaterSave;                                     /* set data to transmit to registrator */
+
                             if (*amount_water <= WaterSave) {                                      /* how many water left in the barrel */
-/*			                    *amount_water = 0;
+			                    *amount_water = 0;
 			                }
 			                else {
 		                        *amount_water -= WaterSave;
 			                }
-*/
-/*							
-//							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
-//			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
 
-//			                IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
+							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
-//                            IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+
+			                IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
+
+                            IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
 					        
-//                            xSemaphoreGive(xI2CMutex);
-							
-//							Fl_Send_Sell_End = 1;
+                            xSemaphoreGive(xI2CMutex);
+						
+							Fl_Send_Sell_End = 1;
+                            
+							ManeySave = WaterSave = 0;
 
+							Fl_ManeyGet = 0;
 		                }
-					}
-*/
-/*
-				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-
-                    SaveEvent(ManeySave, WaterSave, EV_SAVE_NO_POWER);                     /* save data to external eeprom */ 
-
-/*			        xSemaphoreGive(xI2CMutex);
-							
-				    ManeySave = WaterSave = 0;
-
-					if(Fl_ManeyGet) 
-					    Fl_ManeyGet = 0;
-
-				    CountPulse = 0; /* all flags sets that same method as the end of sell */
-
+		            }
 				}
 				
 				/*xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);*/

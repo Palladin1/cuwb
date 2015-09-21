@@ -555,6 +555,7 @@ inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
 
 		if (EventNamber == 2) {
 		    itoan((u32) WaterToReturn, &report_buff[22+cnt_buf], 6);
+			IsDataToReturnSent = 1;
 		}
 		else {
             itoan(*amount_water, &report_buff[22+cnt_buf], 6);
