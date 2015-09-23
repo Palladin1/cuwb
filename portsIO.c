@@ -133,22 +133,30 @@ PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 
 //==================================================
 
-void Count_Pulse_Water (void) {
+/*
+ **************************************************
+ * We can disconnect the water counter
+ * and work without it  
+ **************************************************
+*/
 
-	if (CountPulse != 0) {
-		CountPulse--;
-	}
+if (IS_COUNTER_WATER_ACTIVE) {
+    void Count_Pulse_Water (void) {
 
-	if (CountPulse == 0) {
-		if (CountPulseFault != 255) {
-			CountPulseFault++;
-		}
-	}
-	else {
-		CountPulseFault = 0;
-	}
+	    if (CountPulse != 0) {
+		    CountPulse--;
+	    }
+
+	    if (CountPulse == 0) {
+		    if (CountPulseFault != 255) {
+			    CountPulseFault++;
+		    }
+	    }
+	    else {
+		    CountPulseFault = 0;
+	    }
 	
-}
+    }
 
 	//! Configure external interrupt trigger
 	if (!IS_COUNT_WATER_ONE_FRONT) {
@@ -159,7 +167,10 @@ void Count_Pulse_Water (void) {
 	}
 
 	//! Attach a user function to an external interrupt
-	extintAttach(EXTINT6, Count_Pulse_Water);
+    extintAttach(EXTINT6, Count_Pulse_Water);
+
+}
+
 //==================================================
 
 void Warning_from_Axellerometr (void) {

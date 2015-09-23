@@ -13,11 +13,10 @@
 
 #include "portmacro.h"
 
-static u08 PumpShouldTurnOn = 0;
 
 void SellingStart(void) {
 
-	KLAPAN1_ON;
+//	KLAPAN1_ON;
 	KLAPAN2_ON;
 	KLAPAN3_ON;
 
@@ -29,48 +28,11 @@ void SellingStart(void) {
 	    PUMP_OFF;
 	}
 
-    PumpShouldTurnOn = 1;
-}
-
-
-/* 
-    One pulse equal 20 mS
-    and we have ebout 3 mlitre by one pulse
-*/
-enum {
-    PULS_EQUAL_TIME_CNT_DEFAULT = 20,
-    PULS_EQUAL_TIME_CNT_20MS = 20,
-    PULS_EQUAL_TIME_CNT_40MS = 40
-};
-
-volatile static u08 puls_time_cnt = PULS_EQUAL_TIME_CNT_DEFAULT;
-
-
-void vApplicationTickHook(void)
-{
-    if (IS_COUNTER_WATER_ACTIVE) {
-	    if ( PumpShouldTurnOn ) {
-    
-            if ( CountPulse > 0 ) {
-		        if ( puls_time_cnt > 0 ) {
-		            --puls_time_cnt;
-		        }
-		        else {
-			        --CountPulse;
-		            puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_20MS : PULS_EQUAL_TIME_CNT_40MS;
-		        }
-		    }  
-	    }
-	    else {
-	        puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_20MS : PULS_EQUAL_TIME_CNT_40MS;
-	    } 
-    }
 }
 
 
 void SellingStop(void) {
 
-    PumpShouldTurnOn = 0;
     if (IS_BOARD_VERSION_NEW) {
 		PUMP_OFF;
 	}
@@ -78,7 +40,7 @@ void SellingStop(void) {
 	    PUMP_ON;
 	}
 
-	KLAPAN1_OFF;
+//	KLAPAN1_OFF;
 	KLAPAN2_OFF;
 	KLAPAN3_OFF;
 	
