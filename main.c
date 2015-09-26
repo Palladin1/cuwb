@@ -908,7 +908,8 @@ void vTask4( void *pvParameters )
 				    			  || Sygnal_Get_NoWater
 								  || Fl_WtrCntrErr
 								  || Fl_RegistratorErr
-								  || (Fl_SellStop && Fl_Send_Sell_End)) {
+								  || (Fl_SellStop && Fl_Send_Sell_End)
+								  || !IsRegistratorConnect) {
 		    StopGetManey();
 	    }
 	    else {
@@ -1917,37 +1918,28 @@ static inline void NoWtrForLCD (void)
 
 static inline u16 MoneyToWater (u16 money_quantity) 
 {
-	u16 ret = 0;
+	if (*cost_litre_coef > 0)
+	    return (u16)(((((u32)money_quantity * 200) / (*cost_litre_coef)) + 1) >> 1);
 
-    if (*cost_litre_coef > 0) {
-	    ret = (u16)(((((u32)money_quantity * 200) / (*cost_litre_coef)) + 1) >> 1);
-    }
-
-	return ret;
+	return 0;
 }
 
 
 static inline u16 MoneyToPulse (u16 money_quantity) 
 {
-	u16 ret = 0;
-
-	if ((*cost_litre_coef  > 0) && (*pulse_litre_coef > 0)) {
+	if ((*cost_litre_coef  > 0) && (*pulse_litre_coef > 0))
 //  CountPulse = (u16)((((((money * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
-        ret = (u16)(((((((u32)money_quantity << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
-	}
+        return (u16)(((((((u32)money_quantity << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
 	    
-	return ret;
+	return 0;
 }
 
 static inline u16 PulseQuantityToMoney (u16 pulse_quantity) 
 {
-    u16 ret = 0;
-	
-	if ((*pulse_litre_coef > 0) && (pulse_quantity > 0)) {
-        ret = (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
-    }
+	if ((*pulse_litre_coef > 0) && (pulse_quantity > 0))
+        return (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
 
-	return ret;
+	return 0;
 }
 
 /* UART0 Receiver interrupt service routine */

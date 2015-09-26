@@ -140,7 +140,7 @@ PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
  **************************************************
 */
 
-if (IS_COUNTER_WATER_ACTIVE) {
+if (!IS_COUNTER_WATER_NOT_ACTIVE) {
     void Count_Pulse_Water (void) {
 
 	    if (CountPulse != 0) {

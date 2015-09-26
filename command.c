@@ -48,7 +48,7 @@ volatile static u08 puls_time_cnt = PULS_EQUAL_TIME_CNT_DEFAULT;
 
 void vApplicationTickHook(void)
 {
-    if (IS_COUNTER_WATER_ACTIVE) {
+    if (IS_COUNTER_WATER_NOT_ACTIVE) {
 	    if ( PumpShouldTurnOn ) {
     
             if ( CountPulse > 0 ) {
@@ -57,12 +57,12 @@ void vApplicationTickHook(void)
 		        }
 		        else {
 			        --CountPulse;
-		            puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_20MS : PULS_EQUAL_TIME_CNT_40MS;
+		            puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_40MS : PULS_EQUAL_TIME_CNT_20MS;
 		        }
 		    }  
 	    }
 	    else {
-	        puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_20MS : PULS_EQUAL_TIME_CNT_40MS;
+	        puls_time_cnt = (IS_COUNT_WATER_ONE_FRONT) ? PULS_EQUAL_TIME_CNT_40MS : PULS_EQUAL_TIME_CNT_20MS;
 	    } 
     }
 }
