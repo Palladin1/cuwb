@@ -101,7 +101,7 @@ PGM_P SMS_TEXT[] PROGMEM = {
 #define SMS_FLAG_NIGHT        0x00
 #define SMS_FLAG_SEND_DISABLE 0x02   
 
-#define  TIME_SEND_REGUEST    50ul   // 1 second = 10 * 100ms - is task sleep    
+#define  TIME_SEND_REGUEST    50ul   // 1 second = x * 100ms - is task sleep    
 
 #define  BILL_STATUS_TIME_OUT    600u * 5            //600  * 100mS = 60S * 5        
 
@@ -170,6 +170,8 @@ u08 buzer_flag = 0;
 static u08 IsRegistratorConnect = 0;
 
 static u16 ExtSignalStatus = 0;
+
+static u16 Tmr_For_Init_Rr = 600; /* need time in Sec = Tmr_For_Init_Rr * 100ms, 600 * 100 = 60 S  */
 
 
 #if CHECK_STACK
@@ -422,6 +424,11 @@ void vTask2( void *pvParameters )
 		}
 
 
+        if (Tmr_For_Init_Rr > 0) {
+		    --Tmr_For_Init_Rr;
+		}
+
+
 		vTaskDelay(100 / portTICK_RATE_MS);
 
 #if CHECK_STACK
@@ -486,6 +493,8 @@ void vTask4( void *pvParameters )
     static u08 Fl_ErrReset	   = 0;
     static u08 Fl_ErrMinWater  = 0;
 	static u08 Fl_ErrRsvBill   = 0;
+
+	static u08 Is_Registrator_Err_Gprs_Send = 0;
 	
 	static u08 Fl_WtrCntrErr   = 0;
 
@@ -496,6 +505,8 @@ void vTask4( void *pvParameters )
     u08 Fl_Ev_LimWater    = 5;
 //    u08 Fl_Ev_RequestData = 6;
     u08 Fl_Ev_ErrorBill   = 7;
+	u08 Fl_Ev_RegError    = 8;
+			
 
     static u08 Sygnal_Get_NoWater;
     static u08 Sygnal_Get_NoWrkBill;
@@ -523,6 +534,8 @@ void vTask4( void *pvParameters )
 	static u08 registrator_connect_prev;
 	static u08 Fl_Send_Sell_End = 0;
 	static u08 Fl_Get_New_Data = 0;
+
+	const static u08 is_service_mode = IS_SERVICE_MODE;
 	
 	enum {
 	    IDLE_STATE,
@@ -543,7 +556,7 @@ void vTask4( void *pvParameters )
 	static RegistratorReceivedData err_data;
 	
     registrator_state = WAIT_INIT;
-    //registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: WAIT_INIT;
+    //registrator_state = (is_service_mode) ? SERVICE_MODE: WAIT_INIT;
 
 	
 	static RegistratorMsg CUWB_RegistratorMsg;
@@ -566,12 +579,13 @@ void vTask4( void *pvParameters )
 	MoneyToReturn = 0;
 	WaterToReturn = 0;
 
-// TODO:   wdt_enable(WDTO_2S);
+// TODO:   
+    wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
 //////////////////////////////////////////////////////////////////////////
- //       wdt_reset();
+    wdt_reset();
 		
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
@@ -580,7 +594,7 @@ void vTask4( void *pvParameters )
 	    case WAIT_INIT: {
 		     if ( xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE ) {
                  
-				 if (IsRegistratorConnect && !IS_SERVICE_MODE) {
+				 if (IsRegistratorConnect && !is_service_mode) {
   		             Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
 
@@ -591,7 +605,7 @@ void vTask4( void *pvParameters )
 		             Uart0Enable(Uart0_Resiv,  19200);
 
 
-					 registrator_state = (IS_SERVICE_MODE) ? SERVICE_MODE: IDLE_STATE;
+					 registrator_state = (is_service_mode) ? SERVICE_MODE: IDLE_STATE;
 	             }
                  registrator_connect_prev = IsRegistratorConnect;
   	         }
@@ -803,9 +817,9 @@ void vTask4( void *pvParameters )
 		        Fl_ErrPower = 1;
 			    //Fl_Ev_NoPower = 1;
 	
-                if (!IS_SERVICE_MODE) {
+//                if (!is_service_mode) {
 
-                    if (Fl_SellStart || Fl_SellStop || Fl_ManeyGet) {
+                    if (Fl_SellStart || Fl_SellStop || Fl_ManeyGet || Fl_WtrCntrErr) {
 
                         if (CountPulse > 0) {
 						    MoneyToReturn = PulseQuantityToMoney(CountPulse);
@@ -849,18 +863,19 @@ void vTask4( void *pvParameters )
 
 			                IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
 
-                            IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
-					        
+                            if (!is_service_mode) {
+                                IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+								Fl_Get_New_Data = 1;
+                            }					        
+
                             xSemaphoreGive(xI2CMutex);
-						
-							Fl_Send_Sell_End = 1;
                             
 							ManeySave = WaterSave = 0;
 
 							Fl_ManeyGet = 0;
 		                }
 		            }
-				}
+//				}
 				
 				/*xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);*/
 				xQueueSendToFront(xEventsQueue, &Fl_Ev_NoPower, 0);
@@ -899,19 +914,36 @@ void vTask4( void *pvParameters )
 		}
 */		
 
+/*
 		if (Fl_Send_Sell_End && !Fl_RegistratorErr) {  
+		    Fl_SellEnable = 0;
+		}
+*/
+        if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
+		    if (!Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
+		        xQueueSend(xEventsQueue, &Fl_Ev_RegError, 0);
+			    Is_Registrator_Err_Gprs_Send = 1;
+			}
+		}
+		else if (Is_Registrator_Err_Gprs_Send) {
+			Is_Registrator_Err_Gprs_Send = 0;
+		}
+
+
+		if (!is_service_mode && Fl_Send_Sell_End && !Fl_RegistratorErr && !Fl_SellStop) {  
 		    Fl_SellEnable = 0;
 		}
 
 		if ((CountRManey >= 1000) || (!Fl_SellEnable) 
 	                              || Fl_ErrReset 
 				    			  || Sygnal_Get_NoWater
-								  || Fl_WtrCntrErr
-								  || Fl_RegistratorErr
-								  || (Fl_SellStop && Fl_Send_Sell_End)
-								  || !IsRegistratorConnect) {
+								  || Fl_WtrCntrErr) {
 		    StopGetManey();
 	    }
+		else if (!is_service_mode && (Fl_RegistratorErr || (Fl_SellStop && Fl_Send_Sell_End)
+								                        || !IsRegistratorConnect)) {
+		    StopGetManey();
+		}
 	    else {
 		    if (!Fl_SellStart) {
 			    StartGetManey();
@@ -932,6 +964,7 @@ void vTask4( void *pvParameters )
 			CountPulse = MoneyToPulse(CountRManey);
 	    }
 	
+
 	    if (Sygnal_Get_BillGet) {
 		    				
             Sygnal_Get_BillGet = 0;
@@ -941,6 +974,7 @@ void vTask4( void *pvParameters )
 
 			CountPulse = MoneyToPulse(CountRManey);
 	    }
+
 
 		if (!Fl_ManeyGet) {
             CountRManey = PulseQuantityToMoney(CountPulse);
@@ -962,10 +996,6 @@ void vTask4( void *pvParameters )
 				
 				RegistratorSaveWater += WaterSave;                                      /* set data to transmit to registrator */
 
-                xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-		        SaveEvent(ManeySave, WaterSave, 1);
-			    IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
-
 			    if (*amount_water <= WaterSave) {
 			        *amount_water = 0;
 			    }
@@ -973,9 +1003,15 @@ void vTask4( void *pvParameters )
 		            *amount_water -= WaterSave;
 			    }
 
+                xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+		       
+			    SaveEvent(ManeySave, WaterSave, 1);
+			    
+				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
 
-                if (!IS_SERVICE_MODE) {
+                if (!is_service_mode) {
 				    IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
 					Fl_Get_New_Data = 1;
 				}
@@ -1003,15 +1039,10 @@ void vTask4( void *pvParameters )
 	#endif
 
 	    //if (Sygnal_Get_Stop && !(Sygnal_Get_Start) && Fl_SellStart) {
-          if (Sygnal_Get_Stop && (!(Sygnal_Get_Start) || Fl_SellStart)) {
+          if (Sygnal_Get_Stop && !Fl_SellStop && (!(Sygnal_Get_Start) || Fl_SellStart)) {
 	        SellingStop();
 		    Fl_SellStart = 0;
 		    Fl_SellStop  = 1;
-
-			if (Fl_Get_New_Data) {
-			    Fl_Get_New_Data = 0;
-                Fl_Send_Sell_End = 1;
-			}
 	    }	
 
 	    if ((CountPulse <= PumpTimeCoef) && (Fl_SellStart || Fl_SellStop)) {
@@ -1024,12 +1055,9 @@ void vTask4( void *pvParameters )
 
 		    PumpTimeCoef = *pump_off_time_coef;
 
-			if (Fl_Get_New_Data) {
-			    Fl_Get_New_Data = 0;
-                Fl_Send_Sell_End = 1;
-			}
     	}
-	
+
+
 	    if (Sygnal_Get_Reset) {
        
 	        if (!Fl_ErrReset) { 
@@ -1095,17 +1123,19 @@ void vTask4( void *pvParameters )
 			#endif
         }
 
-	    if (!Sygnal_Get_DoorOpn && Fl_MergeEnable) {
 
+	    if (!Sygnal_Get_DoorOpn && Fl_MergeEnable) {
 		    SellingStop();
 			Fl_MergeEnable = 0;
 	    }
+
 
         if (Fl_SellStart) {
 	        if (WtrCntTimer == CHECK_COUNTER_PERIOD) {
 	            tmp_cnt_pulse = CountPulse;
 				WtrCntTimer--;
             }
+
  	        if ((tmp_cnt_pulse == CountPulse) && (WtrCntTimer == 0)) { 
                 Fl_State_WtrCnt = REPORT_FLAG_ERR;
 		    //	WtrCntTimer = CHECK_COUNTER_PERIOD;  
@@ -1113,12 +1143,6 @@ void vTask4( void *pvParameters )
 			    SellingStop();
 		        Fl_SellStart = 0; 
 		        Fl_SellStop = 0; 
-
-                if (Fl_Get_New_Data) {
-                    RegistratorSaveWater = 0; 
-                    if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
-				        IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
-				}
 				
 				Fl_WtrCntrErr = 1;
             } 
@@ -1130,6 +1154,13 @@ void vTask4( void *pvParameters )
 	        WtrCntTimer  = CHECK_COUNTER_PERIOD;
 		    tmp_cnt_pulse = 0;	
 	    }
+
+
+		if (Fl_Get_New_Data && !Fl_SellStart) {                                /* When sell finneshed or pause the quantity of water send to registrator */
+			    Fl_Get_New_Data = 0;
+                Fl_Send_Sell_End = 1;
+	    }
+
 
 /////////// Get signal from axelerometr //////////////////////////////////////
 	    if (Sygnal_Get_Axellerometr) { 

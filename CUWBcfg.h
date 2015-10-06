@@ -1,4 +1,4 @@
-#define SOFTVARE_VERSION      0x3430
+#define SOFTVARE_VERSION      0x3431
 
 #define MODEM_DBG             0
 
