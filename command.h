@@ -10,7 +10,7 @@ u08 CntDoorOpn;
 u08 CntStart;
 u08 CntStop;
 u08 CntReset;
-u08 CntNoWrkBill;
+u16 CntNoWrkBill;
 u08 CntRegPresent;
 
 u16 MoneyToReturn;
@@ -18,10 +18,10 @@ u16 WaterToReturn;
 
 u08 IsDataToReturnSent;
 
-volatile u08 Fl_State_Water;
-volatile u08 Fl_State_Power;
-volatile u08 Fl_State_RsvBill;
-volatile u08 Fl_State_WtrCnt;
+u08 Fl_State_Water;
+u08 Fl_State_Power;
+u08 Fl_State_RsvBill;
+u08 Fl_State_WtrCnt;
 
 void SellingStart(void);
 void SellingStop(void);

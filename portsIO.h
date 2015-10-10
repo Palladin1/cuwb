@@ -111,9 +111,9 @@ volatile u08 Fl_RxReciv;
 #define  COUNTER_PULSE_FRONT_MASK       0x0010
 #define  COUNTER_WATER_ACTIVITY_MASK    0x1000
 
-#define  IS_BOARD_VERSION_NEW        (*board_version & BOARD_VERSION_MASK)
-#define  IS_SERVICE_MODE             (*board_version & SERVICE_MODE_MASK)
-#define  IS_COUNT_WATER_ONE_FRONT    (*board_version & COUNTER_PULSE_FRONT_MASK)   
+#define  IS_BOARD_VERSION_NEW            ((*board_version) & BOARD_VERSION_MASK)
+#define  IS_SERVICE_MODE                 ((*board_version) & SERVICE_MODE_MASK)
+#define  IS_COUNT_WATER_ONE_FRONT        ((*board_version) & COUNTER_PULSE_FRONT_MASK)   
 #define  IS_COUNTER_WATER_NOT_ACTIVE     ((*board_version) & COUNTER_WATER_ACTIVITY_MASK)   
 
 ////////////////////////////////////////////////////////////////////////////

@@ -17,6 +17,8 @@ static u08 PumpShouldTurnOn = 0;
 
 void SellingStart(void) {
 
+    portENTER_CRITICAL();
+
 	KLAPAN1_ON;
 	KLAPAN2_ON;
 	KLAPAN3_ON;
@@ -29,6 +31,8 @@ void SellingStart(void) {
 	    PUMP_OFF;
 	}
 
+    portEXIT_CRITICAL();
+
     PumpShouldTurnOn = 1;
 }
 
@@ -39,8 +43,8 @@ void SellingStart(void) {
 */
 enum {
     PULS_EQUAL_TIME_CNT_DEFAULT = 20,
-    PULS_EQUAL_TIME_CNT_20MS = 20,
-    PULS_EQUAL_TIME_CNT_40MS = 40
+    PULS_EQUAL_TIME_CNT_20MS    = 20,
+    PULS_EQUAL_TIME_CNT_40MS    = 40
 };
 
 volatile static u08 puls_time_cnt = PULS_EQUAL_TIME_CNT_DEFAULT;
@@ -71,6 +75,9 @@ void vApplicationTickHook(void)
 void SellingStop(void) {
 
     PumpShouldTurnOn = 0;
+
+	portENTER_CRITICAL();
+
     if (IS_BOARD_VERSION_NEW) {
 		PUMP_OFF;
 	}
@@ -81,7 +88,8 @@ void SellingStop(void) {
 	KLAPAN1_OFF;
 	KLAPAN2_OFF;
 	KLAPAN3_OFF;
-	
+
+	portEXIT_CRITICAL();	
 }
 
 void StartGetManey(void) {
@@ -286,11 +294,11 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (STATUS_COUNT_BILL) {
-	    if (CntNoWrkBill == 20) {
+	    if (CntNoWrkBill == 25000) {
 			key_kode |= (1 << 9);
-			CntNoWrkBill = 30;
+			CntNoWrkBill = 25000 + 10;
 		}    
-        else if (CntNoWrkBill < 20) {
+        else if (CntNoWrkBill < 25000) {
 		    CntNoWrkBill++;
         }
 	}

@@ -103,7 +103,6 @@ PGM_P SMS_TEXT[] PROGMEM = {
 
 #define  TIME_SEND_REGUEST    50ul   // 1 second = x * 100ms - is task sleep    
 
-#define  BILL_STATUS_TIME_OUT    600u * 5            //600  * 100mS = 60S * 5        
 
 /*
 *********************************************************************************************************
@@ -111,7 +110,6 @@ PGM_P SMS_TEXT[] PROGMEM = {
 *********************************************************************************************************
 */
 
-u16 BillStatusTimer = 0;
 
 typedef enum {
 	    
@@ -222,10 +220,11 @@ u16 atoin (u08 *s, u08 n);
 *********************************************************************************************************
 */
 
+
+u08 Counter_Test_Fag = 0; 
+
 int main( void )
 {
-
-
     xEventsQueue = xQueueCreate(16, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -286,8 +285,8 @@ void vTask1( void *pvParameters )
 
     for( ;; )
     {
-	    PORTF = 0x00;
-	
+	    //PORTF = 0x00;
+
         PORTA = ((PORTA & 0xF8) | LCD_NUMBER[CountLcdInt]);
 	    PORTF = (LCD_DATTA[LcdDatta[CountLcdInt]]);	
 
@@ -353,26 +352,26 @@ void vTask2( void *pvParameters )
 
         /*Change price of water*/
  		if (NewPrice) {
-			*cost_litre_coef = NewPrice;
+		    portENTER_CRITICAL();
+            *cost_litre_coef = NewPrice;
 			NewPrice = 0;
+			portEXIT_CRITICAL();
+			
 			xSemaphoreTake(xI2CMutex, portMAX_DELAY);
     	    IntEeprWordWrite (CostLitreCoefEEPROMAdr, *cost_litre_coef);
             xSemaphoreGive(xI2CMutex);
 		}
+		
+        if (WtrCntTimer > 0) {
+		    portENTER_CRITICAL();
+            WtrCntTimer--;
+			portEXIT_CRITICAL();
+		}
 
-        if (WtrCntTimer < CHECK_COUNTER_PERIOD) {
-              if (WtrCntTimer > 0) {
-	              WtrCntTimer--;
-              }
-        }
-
-		if (BillStatusTimer < BILL_STATUS_TIME_OUT)
-            BillStatusTimer++;
-
-		if (AxellCntTimer < ACCELEROMETR_PERIOD) {
-              if (AxellCntTimer > 0) {
-	              AxellCntTimer--;
-              }
+		if (AxellCntTimer > 0) {
+		    portENTER_CRITICAL();
+	        AxellCntTimer--;
+			portEXIT_CRITICAL();
         }
 
         if (min_counter == 0) {
@@ -425,7 +424,7 @@ void vTask2( void *pvParameters )
 
 
         if (Tmr_For_Init_Rr > 0) {
-		    --Tmr_For_Init_Rr;
+	        Tmr_For_Init_Rr--;
 		}
 
 
@@ -525,7 +524,7 @@ void vTask4( void *pvParameters )
     static u16 WaterSave = 0;
 	static u16 CountRManey = 0;
 
-    static u32 tmp_cnt_pulse = 0;
+    static u16 tmp_cnt_pulse = 0;
     
     PumpTimeCoef = *pump_off_time_coef;
 
@@ -535,7 +534,7 @@ void vTask4( void *pvParameters )
 	static u08 Fl_Send_Sell_End = 0;
 	static u08 Fl_Get_New_Data = 0;
 
-	const static u08 is_service_mode = IS_SERVICE_MODE;
+	static u08 is_service_mode;
 	
 	enum {
 	    IDLE_STATE,
@@ -556,7 +555,6 @@ void vTask4( void *pvParameters )
 	static RegistratorReceivedData err_data;
 	
     registrator_state = WAIT_INIT;
-    //registrator_state = (is_service_mode) ? SERVICE_MODE: WAIT_INIT;
 
 	
 	static RegistratorMsg CUWB_RegistratorMsg;
@@ -579,13 +577,15 @@ void vTask4( void *pvParameters )
 	MoneyToReturn = 0;
 	WaterToReturn = 0;
 
+	is_service_mode = ((IS_SERVICE_MODE) ? 1 : 0);
+
 // TODO:   
-    wdt_enable(WDTO_2S);
+//    wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
 //////////////////////////////////////////////////////////////////////////
-    wdt_reset();
+ //   wdt_reset();
 		
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
@@ -603,7 +603,6 @@ void vTask4( void *pvParameters )
 		         else {
 		             Uart0Disable();
 		             Uart0Enable(Uart0_Resiv,  19200);
-
 
 					 registrator_state = (is_service_mode) ? SERVICE_MODE: IDLE_STATE;
 	             }
@@ -831,7 +830,10 @@ void vTask4( void *pvParameters )
 
 			                xSemaphoreGive(xI2CMutex);
 
-				            CountPulse = 0;                                                        /* all flags sets that same method as the end of sell */
+							                                                       /* all flags sets that same method as the end of sell */
+							portENTER_CRITICAL();
+                            CountPulse = 0; 
+		                    portEXIT_CRITICAL();
                         }
 						else if (IsDataToReturnSent == 1) {
                             IsDataToReturnSent = 0;						    
@@ -905,20 +907,18 @@ void vTask4( void *pvParameters )
 	    }
 
 		 /* if water counter don't count, we can't sell the water */ 
-		if (Fl_WtrCntrErr) {  
-		    Fl_SellEnable = 0;
-		}
-/*		
-		if (Fl_RegistratorErr && !Fl_SellStop) {  
-		    Fl_SellEnable = 0;
-		}
-*/		
+		if (Fl_WtrCntrErr) {
+//		    KLAPAN1_ON;
 
-/*
-		if (Fl_Send_Sell_End && !Fl_RegistratorErr) {  
 		    Fl_SellEnable = 0;
 		}
-*/
+		else {
+//portENTER_CRITICAL();
+//		    KLAPAN1_OFF;
+//portEXIT_CRITICAL();
+	    }
+
+
         if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
 		    if (!Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
 		        xQueueSend(xEventsQueue, &Fl_Ev_RegError, 0);
@@ -934,6 +934,7 @@ void vTask4( void *pvParameters )
 		    Fl_SellEnable = 0;
 		}
 
+
 		if ((CountRManey >= 1000) || (!Fl_SellEnable) 
 	                              || Fl_ErrReset 
 				    			  || Sygnal_Get_NoWater
@@ -941,7 +942,7 @@ void vTask4( void *pvParameters )
 		    StopGetManey();
 	    }
 		else if (!is_service_mode && (Fl_RegistratorErr || (Fl_SellStop && Fl_Send_Sell_End)
-								                        || !IsRegistratorConnect)) {
+								                       || !IsRegistratorConnect)) {
 		    StopGetManey();
 		}
 	    else {
@@ -954,29 +955,28 @@ void vTask4( void *pvParameters )
 	    }
 
 	
-	    if (Sygnal_Get_CoinGet) {
+	    if (Sygnal_Get_CoinGet || Sygnal_Get_BillGet) {
             		
-            Sygnal_Get_CoinGet = 0;
-			Fl_ManeyGet = 1;
-	    	CountRManey += 25;
-		    ManeySave += 25;
+            Fl_ManeyGet = 1;
 
-			CountPulse = MoneyToPulse(CountRManey);
+			if (Sygnal_Get_CoinGet) {
+			    Sygnal_Get_CoinGet = 0;
+	    	    CountRManey += 25;
+		        ManeySave += 25;
+            }
+			else {
+    			Sygnal_Get_BillGet = 0;
+		        CountRManey += 100;
+		        ManeySave += 100;
+			}
+
+			portENTER_CRITICAL();
+            CountPulse = MoneyToPulse(CountRManey);
+		    portEXIT_CRITICAL();
 	    }
 	
 
-	    if (Sygnal_Get_BillGet) {
-		    				
-            Sygnal_Get_BillGet = 0;
-		    Fl_ManeyGet = 1;
-		    CountRManey += 100;
-		    ManeySave += 100;
-
-			CountPulse = MoneyToPulse(CountRManey);
-	    }
-
-
-		if (!Fl_ManeyGet) {
+	    if (!Fl_ManeyGet) {
             CountRManey = PulseQuantityToMoney(CountPulse);
 		}
 		
@@ -1031,30 +1031,34 @@ void vTask4( void *pvParameters )
 	        SellingStart();
 		    Fl_SellStop = 0;
 		    Fl_SellStart = 1;
+
+            portENTER_CRITICAL();
+        	WtrCntTimer = CHECK_COUNTER_PERIOD;  /* Starting the timer for check does the counter of water connected or worck */    
+            portEXIT_CRITICAL();
+            tmp_cnt_pulse = CountPulse;          
 	    }
 
-    #if BUZER_TIME
-        if (buzer_flag && Sygnal_Get_Stop)
-   		    buzer_flag = 0;
-	#endif
-
-	    //if (Sygnal_Get_Stop && !(Sygnal_Get_Start) && Fl_SellStart) {
-          if (Sygnal_Get_Stop && !Fl_SellStop && (!(Sygnal_Get_Start) || Fl_SellStart)) {
-	        SellingStop();
+	    
+        if (Sygnal_Get_Stop) {// && (!(Sygnal_Get_Start) || Fl_SellStart)) {
+	        
+			SellingStop();
 		    Fl_SellStart = 0;
 		    Fl_SellStop  = 1;
-	    }	
+	    }
+
 
 	    if ((CountPulse <= PumpTimeCoef) && (Fl_SellStart || Fl_SellStop)) {
 
 		    SellingStop();
 		    Fl_SellStart = 0; 
 		    Fl_SellStop = 0; 
+            CountRManey = 0;	
+
+            portENTER_CRITICAL();
             CountPulse = 0;
-		    CountRManey = 0;	
+		    portEXIT_CRITICAL();
 
 		    PumpTimeCoef = *pump_off_time_coef;
-
     	}
 
 
@@ -1099,14 +1103,15 @@ void vTask4( void *pvParameters )
 
 
 	    if (Sygnal_Get_DoorOpn && !Fl_MergeEnable) {
-		    if (!Fl_SellStart && !Fl_SellStop && !(Sygnal_Get_Reset)) {
+		    if (!Fl_SellStart && !Fl_SellStop && !(Sygnal_Get_Reset) && !Fl_WtrCntrErr) {
 	
 	    		Fl_MergeEnable = 1;
 	            SellingStart();
 	        }
         }
 
-	    if (Sygnal_Get_DoorOpn && !Fl_MergeEnable && Sygnal_Get_Reset) {
+
+	    if (Sygnal_Get_DoorOpn && !Fl_MergeEnable && Sygnal_Get_Reset && !Fl_WtrCntrErr) {
 
 		   	Fl_MergeEnable = 1;
             xSemaphoreTake(xI2CMutex, portMAX_DELAY);
@@ -1130,29 +1135,42 @@ void vTask4( void *pvParameters )
 	    }
 
 
-        if (Fl_SellStart) {
-	        if (WtrCntTimer == CHECK_COUNTER_PERIOD) {
-	            tmp_cnt_pulse = CountPulse;
-				WtrCntTimer--;
-            }
+        #if BUZER_TIME
+		if (buzer_flag && Sygnal_Get_Stop)
+   	        buzer_flag = 0;
+		#endif
 
- 	        if ((tmp_cnt_pulse == CountPulse) && (WtrCntTimer == 0)) { 
-                Fl_State_WtrCnt = REPORT_FLAG_ERR;
-		    //	WtrCntTimer = CHECK_COUNTER_PERIOD;  
-			
-			    SellingStop();
+
+
+        if (Fl_SellStart && !IS_COUNTER_WATER_NOT_ACTIVE && WtrCntTimer == 0) {
+		
+		    if (tmp_cnt_pulse == CountPulse) {
+      		   	SellingStop();
 		        Fl_SellStart = 0; 
-		        Fl_SellStop = 0; 
-				
-				Fl_WtrCntrErr = 1;
-            } 
-	        else {
-			    Fl_State_WtrCnt = REPORT_FLAG_OK;
-	        }
- 	    }
-	    else {
-	        WtrCntTimer  = CHECK_COUNTER_PERIOD;
-		    tmp_cnt_pulse = 0;	
+			    Fl_WtrCntrErr = 1;
+			}
+			else {
+			    tmp_cnt_pulse = CountPulse;
+			    //portENTER_CRITICAL();
+        	    WtrCntTimer = CHECK_COUNTER_PERIOD;  /* Starting the timer for check does the counter of water connected or worck */    
+                //portEXIT_CRITICAL();
+			}
+		}
+
+
+        if (Fl_WtrCntrErr) {
+		    if (Fl_State_WtrCnt != REPORT_FLAG_ERR) {
+			    Fl_State_WtrCnt = REPORT_FLAG_ERR;
+			}
+		}
+		else if (Fl_State_WtrCnt != REPORT_FLAG_OK) {
+		    Fl_State_WtrCnt = REPORT_FLAG_OK;
+		}
+
+
+		if (Fl_WtrCntrErr && Sygnal_Get_DoorOpn) {
+		    
+			Fl_WtrCntrErr = 0;
 	    }
 
 
@@ -1164,33 +1182,27 @@ void vTask4( void *pvParameters )
 
 /////////// Get signal from axelerometr //////////////////////////////////////
 	    if (Sygnal_Get_Axellerometr) { 
-
-	        if (AxellCntTimer == ACCELEROMETR_PERIOD) {
-	            AxellCntTimer--;
+            Sygnal_Get_Axellerometr = 0;
+			
+			if (AxellCntTimer == 0) {
+			    AxellCntTimer = ACCELEROMETR_PERIOD;
+                xQueueSend(xEventsQueue, &Fl_Ev_GetMoving, 0);
             }
-       
-	        if (AxellCntTimer == 0) { 
-			    xQueueSend(xEventsQueue, &Fl_Ev_GetMoving, 0);
-                Sygnal_Get_Axellerometr = 0;
-		    	AxellCntTimer = ACCELEROMETR_PERIOD;
-			}
-	    }
-	    
+        }
+    
 /////// the sygnall set when bill can't get maney ////////////////////////////
 
-        if (Sygnal_Get_NoWrkBill && *board_version && BillStatusTimer == BILL_STATUS_TIME_OUT) {            // If board version the first we
+        if (Sygnal_Get_NoWrkBill && *board_version) {            // If board version the first we
 
 	        if (!Fl_ErrRsvBill) {                                // can't get the right status 
-
 			    Fl_State_RsvBill = REPORT_FLAG_ERR;
+				Fl_ErrRsvBill = 1;
+
 				if (uxQueueMessagesWaiting(xEventsQueue) < 8)
                     xQueueSend(xEventsQueue, &Fl_Ev_ErrorBill, 0);
-				
-				Fl_ErrRsvBill = 1;
             }
 		}                                                          // of the bill receiver   
-        else {
-		    BillStatusTimer = 0;
+        else if (Fl_ErrRsvBill) {
 	        Fl_ErrRsvBill = 0;
 			Fl_State_RsvBill = REPORT_FLAG_OK;
 	    }
@@ -1620,20 +1632,14 @@ void vTask5( void *pvParameters )
 					 ModemSendData((char *)&Dns_Name[0], 1);
 /////////////////////////////////////////////////////////
 
-/*change 7.03.2013*/					 
 					 CARRENT_STATE = STATE_SOME_WAIT;
                      GSM_Timer.State_Change = STATE_SMS_PREPARE;
                      GSM_Timer.Interval = 500;
 
-//					 CARRENT_STATE = STATE_SMS_PREPARE;
-/*End*/
 					 if (ModemSendCom(Conn, 5000) == ACK_SEND_OK) {
 
 						 vTaskDelay(10000 / portTICK_RATE_MS);
 					 }
-//					 else {
-//					     CARRENT_STATE = STATE_GPRS_SEND_DATA;
-//					 }
 			     } 
                  else {
 				     CARRENT_STATE = STATE_GPRS_DEACTIVATE;
@@ -1647,9 +1653,6 @@ void vTask5( void *pvParameters )
 			uartSendByte(0, '2');
 			uartSendByte(0, '\n');
 #endif
-//		           CARRENT_STATE = STATE_SOME_WAIT;
-//                 GSM_Timer.State_Change = STATE_SMS_PREPARE;
-//                 GSM_Timer.Interval = 100; 
 				 
 				 ModemSendCom(DISCONNECT_SESSION, 500);
 				 break;
@@ -1664,7 +1667,6 @@ void vTask5( void *pvParameters )
 
                  if (disconnect_count >= 3) {
 	                 disconnect_count = 0;
-                     //CARRENT_STATE = STATE_NET_STATUS;
 					 CARRENT_STATE = STATE_MODEM_OFF;
 				 }
 				 else {
@@ -1912,8 +1914,10 @@ void custom_at_handler(u08 *pData)
 		    price = atoin(p, 4);
 
 		    if (*cost_litre_coef != price && 500 >= price) {
-		        NewPrice = price;
-		    }
+			    portENTER_CRITICAL();
+                NewPrice = price;
+			    portEXIT_CRITICAL();
+			}
         }
     }
 
