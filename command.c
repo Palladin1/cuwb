@@ -13,6 +13,9 @@
 
 #include "portmacro.h"
 
+#include  "indicator.h"
+
+
 static u08 PumpShouldTurnOn = 0;
 
 void SellingStart(void) {
@@ -52,6 +55,8 @@ volatile static u08 puls_time_cnt = PULS_EQUAL_TIME_CNT_DEFAULT;
 
 void vApplicationTickHook(void)
 {
+    IndicatorDataShow();
+
     if (IS_COUNTER_WATER_NOT_ACTIVE) {
 	    if ( PumpShouldTurnOn ) {
     

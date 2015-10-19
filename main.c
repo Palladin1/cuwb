@@ -138,7 +138,7 @@ typedef enum {
 
 CARRENT_STATE_CARRENT CARRENT_STATE;
 
-u08 LcdDatta[8];
+//u08 LcdDatta[8];
 u08 gFlLedStateWater = 0;
 
 u08 WtrCntTimer;
@@ -196,9 +196,6 @@ void vTask7( void *pvParameters );
 //void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
 
 
-static inline void DecodeForLCD (u16 led_maney, u16 led_water);
-static inline void NoWtrForLCD (void);
-
 static inline u16 MoneyToWater (u16 money_quantity);
 static inline u16 MoneyToPulse (u16 money_quantity); 
 static inline u16 PulseQuantityToMoney (u16 pulse_quantity);
@@ -244,6 +241,8 @@ int main( void )
 
     RegistratorInit();
 
+	IndicatorInit();
+
 #if MODEM_DBG
 Uart0Disable();
 Uart0Enable(Uart0_Resiv,  19200);
@@ -252,7 +251,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL);   //60
+	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL);   //60
 
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
 
@@ -278,27 +277,11 @@ return (0);
 
 void vTask1( void *pvParameters )
 {
-
-    //                       0     1     2     3     4     5     6     7     8     9     -
-    u08 LCD_DATTA[12]  = { 0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B, 0x01 };
-    u08 LCD_NUMBER[8]  = { 0x00, 0x04, 0x02, 0x06, 0x01, 0x05, 0x03, 0x07 };
-    static u08 CountLcdInt;
-
     u16 temp_key = 0;
 
 
-    for( ;; )
-    {
-	    //PORTF = 0x00;
+    for( ;; ) {
 
-        PORTA = ((PORTA & 0xF8) | LCD_NUMBER[CountLcdInt]);
-	    PORTF = (LCD_DATTA[LcdDatta[CountLcdInt]]);	
-
-	    CountLcdInt++;
-	    if (CountLcdInt >= 8) { 
-		    CountLcdInt = 0x00;
-        }  
-    
         ExtSignalStatus = KeySkan(ExtSignalStatus);
 		
 		if (ExtSignalStatus != temp_key) {
@@ -306,7 +289,7 @@ void vTask1( void *pvParameters )
 		    xSemaphoreGive(xExtSignalStatusSem);
 		}
 
-		vTaskDelay(2 / portTICK_RATE_MS);
+		vTaskDelay(5 / portTICK_RATE_MS);
 
 #if CHECK_STACK
     DebugBuff[0] = uxTaskGetStackHighWaterMark(NULL);
@@ -324,6 +307,8 @@ void vTask2( void *pvParameters )
     static u16 CountManey  = 0;
     static u16 CountWater  = 0;
 	static u16 min_counter = 600;
+
+	static u08 indicator_data_buf[8];
 
 	u16 DayOrNightTimer = MINUTES_IN_DAY;
 
@@ -348,10 +333,16 @@ void vTask2( void *pvParameters )
 		    CountWater = MoneyToWater(CountManey);
 	    }
 
-		if (!CountManey && gFlLedStateWater)
-		    NoWtrForLCD();
-        else
-		    DecodeForLCD(CountManey, CountWater);
+		if (!CountManey && gFlLedStateWater) {
+//		    NoWtrForLCD();
+            memset(indicator_data_buf, 10, sizeof indicator_data_buf / sizeof(indicator_data_buf[0]));
+			IndicatorDataWrite(indicator_data_buf);
+        }
+        else {
+//		    DecodeForLCD(CountManey, CountWater);
+            IndicatorDataConvert(indicator_data_buf, CountManey, CountWater);
+			IndicatorDataWrite(indicator_data_buf);
+        }
 
 
         /*Change price of water*/
@@ -1229,7 +1220,7 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
     
-//vTaskDelay(1 / portTICK_RATE_MS);
+vTaskDelay(2 / portTICK_RATE_MS);
 
     }
 
@@ -1448,16 +1439,15 @@ void vTask5( void *pvParameters )
 				 memset(send_data_buff, 0x00, 60);
 
 				 xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-//				 IntEeprBlockRead((unsigned int)&send_data_buff[0], ApnUserPassAdressEEPROMAdr, 60);
-				 IntEeprBlockRead(&send_data_buff[0], ApnUserPassAdressEEPROMAdr, 20);
+				 IntEeprBlockRead((u16)&send_data_buff[0], ApnUserPassAdressEEPROMAdr, 20);
 				 xSemaphoreGive(xI2CMutex);
 
 				 xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-				 IntEeprBlockRead(&send_data_buff[20], (ApnUserPassAdressEEPROMAdr + 20), 20);
+				 IntEeprBlockRead((u16)&send_data_buff[20], (ApnUserPassAdressEEPROMAdr + 20), 20);
 				 xSemaphoreGive(xI2CMutex);
 
  				 xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-				 IntEeprBlockRead(&send_data_buff[40], (ApnUserPassAdressEEPROMAdr + 40), 20);
+				 IntEeprBlockRead((u16)&send_data_buff[40], (ApnUserPassAdressEEPROMAdr + 40), 20);
 				 xSemaphoreGive(xI2CMutex);
 
 				 data_len = strnlen((char *)&send_data_buff[0], 60);
@@ -1771,10 +1761,12 @@ void vTask6( void *pvParameters )
 	     
 		    com_buff[cnt] = GSM_RxBuf_Char_Get();
 
+
 #if MODEM_DBG
 			uartSendByte(0, com_buff[cnt]);
 			uartSendByte(0, '\n');
 #endif
+
 		    if ((com_buff[cnt] == '\n') || (com_buff[cnt] == '>')) {
 		        cnt = 0; 
 				custom_at_handler(&com_buff[0]);
@@ -1977,31 +1969,6 @@ void custom_at_handler(u08 *pData)
 	
 }
 /////////////////////////////////////////////////////////////////////////////////////
-
-
-static inline void DecodeForLCD (u16 led_maney, u16 led_water) 
-{
-/*
-    itoa(led_maney & 0x1FFF, &LcdDatta[0], 10);
-	
-	itoa(led_water & 0x1FFF, &LcdDatta[4], 10);
-*/
-	LcdDatta[0] = (u08)( led_maney / 1000);
-	LcdDatta[1] = (u08)((led_maney / 100) % 10);
-	LcdDatta[2] = (u08)((led_maney % 100) / 10);
-	LcdDatta[3] = (u08)((led_maney % 100) % 10);
-
-	LcdDatta[4] = (u08)( led_water / 1000);
-	LcdDatta[5] = (u08)((led_water / 100) % 10);
-	LcdDatta[6] = (u08)((led_water % 100) / 10);
-	LcdDatta[7] = (u08)((led_water % 100) % 10);
-}
-
-
-static inline void NoWtrForLCD (void)
-{
-    memset(LcdDatta, 10, sizeof LcdDatta / sizeof(LcdDatta[0]));      /* Заполняем буфер символами "-" для вывода на индикаторы, когда закончилась вода */
-}
 
 
 static inline u16 MoneyToWater (u16 money_quantity) 

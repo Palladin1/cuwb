@@ -45,7 +45,7 @@
 #include "queue.h"
 #include "semphr.h"
 //#include "timers.h"
-//#include "croutine.h"
+#include "croutine.h"
 
 
 /*
@@ -66,6 +66,10 @@
 #include "CUWBcfg.h"
 
 #include  "registrator.h"
+
+#include  "indicator.h"
+
+
 /*
 *********************************************************************************************************
 *                                               TCPIP
