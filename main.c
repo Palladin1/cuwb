@@ -193,6 +193,9 @@ void vTask6( void *pvParameters );
 void vTask7( void *pvParameters );
 #endif
 
+//void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
+
+
 static inline void DecodeForLCD (u16 led_maney, u16 led_water);
 static inline void NoWtrForLCD (void);
 
@@ -265,6 +268,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);   //20
     #endif
 
+//    xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
 	vTaskStartScheduler();
 
@@ -712,7 +716,9 @@ void vTask4( void *pvParameters )
 
 						           RegistratorSaveWater = 0;
 					               if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
-				                       IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+								       xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+    	      	                       IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+                                       xSemaphoreGive(xI2CMutex);
 
 					               registrator_state = SEND_SELL_START;
 
@@ -1039,9 +1045,10 @@ void vTask4( void *pvParameters )
 	    }
 
 	    
-        if (Sygnal_Get_Stop) {// && (!(Sygnal_Get_Start) || Fl_SellStart)) {
+        if (Sygnal_Get_Stop && (!(Sygnal_Get_Start) || Fl_SellStart)) {
 	        
 			SellingStop();
+
 		    Fl_SellStart = 0;
 		    Fl_SellStop  = 1;
 	    }
@@ -1050,6 +1057,7 @@ void vTask4( void *pvParameters )
 	    if ((CountPulse <= PumpTimeCoef) && (Fl_SellStart || Fl_SellStop)) {
 
 		    SellingStop();
+
 		    Fl_SellStart = 0; 
 		    Fl_SellStop = 0; 
             CountRManey = 0;	
@@ -1075,9 +1083,9 @@ void vTask4( void *pvParameters )
 		        dattaH = (u16) ((*day_maney_cnt) >> 16);
 		        dattaL = (u16) ((*day_maney_cnt) & 0x0000FFFF);
              
-//			    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+			    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 		        SaveEvent(dattaH, dattaL, 3);
-//              xSemaphoreGive(xI2CMutex);
+                xSemaphoreGive(xI2CMutex);
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 				CollectoinCountManey += *day_maney_cnt;
@@ -1221,6 +1229,8 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
     
+//vTaskDelay(1 / portTICK_RATE_MS);
+
     }
 
     vTaskDelete (NULL);
@@ -1261,37 +1271,43 @@ void vTask5( void *pvParameters )
 
     memset(Script_Name, 0x00, 16);
 	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-//	IntEeprBlockRead((unsigned int)&Script_Name[0], ScriptNameEEPROMAdr, 16);
-	IntEeprBlockRead(&Script_Name[0], ScriptNameEEPROMAdr, 16);
+	IntEeprBlockRead((u16)&Script_Name[0], ScriptNameEEPROMAdr, 16);
     Script_Name[15] = 0;
 	xSemaphoreGive(xI2CMutex);
 				 
     memset(Password, 0x00, 10);
 	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-//	IntEeprBlockRead((unsigned int)&Password[0], PasswordEEPROMAdr, 10);
-    IntEeprBlockRead(&Password[0], PasswordEEPROMAdr, 10);
+    IntEeprBlockRead((u16)&Password[0], PasswordEEPROMAdr, 10);
 	Password[9] = 0;
 	xSemaphoreGive(xI2CMutex);
 	
 
     memset(Server_Name, 0x00, 30);
 	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-//	IntEeprBlockRead((unsigned int)&Server_Name[0], ServerNameEEPROMAdr, 30);
-	IntEeprBlockRead(&Server_Name[0], ServerNameEEPROMAdr, 30);
+	IntEeprBlockRead((u16)&Server_Name[0], ServerNameEEPROMAdr, 30);
 	xSemaphoreGive(xI2CMutex);
 
-    *p_data_len = strnlen((char*)&Server_Name[0], 30);
-    Server_Name[*p_data_len] = '\n';
-    Server_Name[*p_data_len+1] = 0;
+    static u08 len;
+	len = strnlen((char*)&Server_Name[0], 30); 
+	Server_Name[len] = '\n';
+	++len;
+    Server_Name[len] = 0;
 
     strncpy((char*)&send_data_buff[0], (char*)&Server_Name[0], 30);
-	p_data_len = strstr((char *)&send_data_buff[0], ",");
-    *p_data_len = (p_data_len - &send_data_buff[1]) - 1;
+
+	p_data_len = (u08 *)strstr((char *)&send_data_buff[0], ",");
+	if (p_data_len) {
+        len = (p_data_len - &send_data_buff[1]) - 1;
 	memset(Dns_Name, 0x00, 30);
-    strncpy((char *)&Dns_Name[0], (char *)&send_data_buff[1], *p_data_len);
-    Dns_Name[*p_data_len] = '\n';
-	Dns_Name[*p_data_len+1] = 0; 
-	
+        strncpy((char *)&Dns_Name[0], (char *)&send_data_buff[1], len);
+        Dns_Name[len] = '\n';
+        ++len;
+	    Dns_Name[len] = 0; 
+	}
+	else {
+	    Dns_Name[0] = '\n';
+        Dns_Name[1] = 0;
+	}
 	
     vTaskDelay(5000 / portTICK_RATE_MS);
 
@@ -1789,7 +1805,7 @@ void vTask7 (void *pvParameters)
 
     for( ;; )
     {
-
+#if 1
 		if (buzer_flag == 1) {
 		    BUZZER_ON;
             vTaskDelay(300 / portTICK_RATE_MS);
@@ -1808,6 +1824,9 @@ void vTask7 (void *pvParameters)
 		else {
 		    vTaskDelay(2000 / portTICK_RATE_MS);
 		}
+#else
+    vTaskDelay(2000 / portTICK_RATE_MS);
+#endif 
 
 #if CHECK_STACK
     DebugBuff[6] = uxTaskGetStackHighWaterMark(NULL);
@@ -1818,6 +1837,40 @@ void vTask7 (void *pvParameters)
     vTaskDelete (NULL);
 }
 #endif
+
+
+/*
+void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex)
+{
+    static u16 buzer_timer = BUZER_TIME;
+
+    crSTART(xHandle);
+    
+    for( ;; ) {
+
+		if (buzer_flag == 1) {
+		    BUZZER_ON;
+            crDELAY(xHandle, 300 / portTICK_RATE_MS);
+		    BUZZER_OFF;
+	        crDELAY(xHandle, 1700 / portTICK_RATE_MS);
+        
+		    if (buzer_timer == 0) {
+	        
+			    buzer_flag = 0;
+			    buzer_timer = BUZER_TIME;
+            }
+            else {
+		        buzer_timer--;
+		    }
+		}
+		else {
+		    crDELAY(xHandle, 2000 / portTICK_RATE_MS);
+		}
+    }
+
+    crEND();
+}
+*/
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -2009,6 +2062,14 @@ extern void RegistratorSendStr (u08 *s, u08 len) {
 	    uartSendByte(0, *s);
 		s++;
 	}
+}
+
+
+void vApplicationIdleHook( void )
+{
+    for( ;; ) {
+        vCoRoutineSchedule();
+    }
 }
 
 //void vApplicationStackOverflowHook (xTaskHandle *pxTask, signed portCHAR *pcTaskName) {

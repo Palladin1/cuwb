@@ -415,7 +415,9 @@ void GetCmd (unsigned char *get_cmd_buff) {
 		i2ceepromWriteBloc(*ext_eepr_data_adr, (get_cmd_buff + 2), 2);
 		ADR_LAST_DATTA = 0x0000;
 		*ext_eepr_cur_adr = 0x0000;
+		portENTER_CRITICAL();
 		IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, *ext_eepr_cur_adr);
+		portENTER_CRITICAL();
 
 		get_cmd_buff[0] = 1;
 		uartSendBuf(0, &get_cmd_buff[0], 2);
@@ -469,9 +471,10 @@ void GetCmd (unsigned char *get_cmd_buff) {
 	}
 
 	void WRITE_PULSE_COUNT (void) {
-				
+		portENTER_CRITICAL();		
 		CountPulse = (get_cmd_buff[2] << 8);
 		CountPulse = CountPulse + get_cmd_buff[3];
+		portEXIT_CRITICAL();
 			
 		get_cmd_buff[0] = 1;
 		uartSendBuf(0, &get_cmd_buff[0], 2);
