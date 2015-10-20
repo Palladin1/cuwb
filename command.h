@@ -23,6 +23,20 @@ u08 Fl_State_Power;
 u08 Fl_State_RsvBill;
 u08 Fl_State_WtrCnt;
 
+
+/*
+typedef struct {
+    u08 Seconds;
+    u08 Minutes; 
+    u08 Hour;
+    u08 Day;
+    u08 Month;
+    u08 Year;
+} TimeAndDate;
+
+TimeAndDate TimeAndDateCurrent;
+*/
+
 void SellingStart(void);
 void SellingStop(void);
 

@@ -11,8 +11,11 @@
 #define  INDICATOR_DIGIT_PORT_MASK    0xF8
 
 
-#define  INDICATOR_DIGIT_NUMBER_MAX    8
-#define  INDICATOR_SYMBOL_SHOW_MAX    11
+#define  INDICATOR_DIGIT_NUMBER_MAX    8U
+#define  INDICATOR_SYMBOL_SHOW_MAX    11U
+
+
+#define  INDICATOR_DATA_VALUE_MAX    9999U
 
 
 void IndicatorInit (void);

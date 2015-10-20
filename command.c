@@ -714,3 +714,44 @@ void uartSendBuf(u08 num, u08 *s , u08 len) {
 	while (len-- > 0)
 	    uartSendByte(num, *s++);
 }
+
+
+/*
+void TimeAndDateRtcRead (TimeAndDate *time_and_date_cur)
+{
+    u08 time_and_date_buf[7];
+	
+
+	DS1337ReadDatta(time_and_date_buf);
+
+	time_and_date_cur->Seconds = time_and_date_buf[0];
+    time_and_date_cur->Minutes = time_and_date_buf[1]; 
+    time_and_date_cur->Hour = time_and_date_buf[2];
+    time_and_date_cur->Day = time_and_date_buf[3];
+    time_and_date_cur->Month = time_and_date_buf[5];
+    time_and_date_cur->Year = time_and_date_buf[6];
+}
+
+u32 TimeAndDateToSecondConvert (TimeAndDate *time_and_date_cur) 
+{
+    u32 day_second_cur;
+
+	day_second_cur = 0;
+    
+	day_second_cur = time_and_date_cur->Hour * 60;
+    day_second_cur += time_and_date_cur->Minuts;
+	day_second_cur = day_second_cur * 60;
+	day_second_cur = time_and_date_cur->Seconds
+
+	return day_second_cur;
+}
+
+void TimeAndDateFromSecondConvert (TimeAndDate *time_and_date_cur, const u32 day_second_cur) 
+{
+    time_and_date_cur->Seconds = (u08)(day_second_cur % 60);
+	day_second_cur /= 60;
+	time_and_date_cur->Minuts = (u08)(day_second_cur % 60);
+	day_second_cur /= 60;
+	time_and_date_cur->Hour = (u08)(day_second_cur % 60);
+}
+*/

@@ -31,10 +31,11 @@
 void DS1337Init(void)
 {
 	u08 status;
+portENTER_CRITICAL();
 //	i2cInit(); //Init in main
 	status = DS1337ReadByte(DS1337_REG_STATUS);
 //cli();
-portENTER_CRITICAL();
+
 	if (status & 0x80)
 	    DS1337WriteByte(DS1337_REG_CONTROL, (status & 0x7F));
 //sei();
