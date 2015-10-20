@@ -68,20 +68,27 @@
  * See http://www.freertos.org/a00110.html.
  *----------------------------------------------------------*/
 
-#define configUSE_PREEMPTION		1
-#define configUSE_IDLE_HOOK			0
-#define configUSE_TICK_HOOK			1
-#define configCPU_CLOCK_HZ			( ( unsigned long ) 7372800 )
-#define configTICK_RATE_HZ			( ( portTickType ) 1000 )
-#define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 4 )
-#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 100 )
-#define configTOTAL_HEAP_SIZE		( (size_t ) ( 2050) ) //2050
-#define configMAX_TASK_NAME_LEN		( 6 )
-#define configUSE_TRACE_FACILITY	0
-#define configUSE_16_BIT_TICKS		1
-#define configIDLE_SHOULD_YIELD		1
-#define configQUEUE_REGISTRY_SIZE	0
-#define configUSE_MUTEXES           1
+#define  configUSE_PREEMPTION		  1
+#define  configUSE_IDLE_HOOK		  0
+#define  configUSE_TICK_HOOK		  1
+#define  configCPU_CLOCK_HZ			  ( ( unsigned long ) 7372800 )
+#define  configTICK_RATE_HZ			  ( ( portTickType ) 1000 )
+#define  configMAX_PRIORITIES		  ( ( unsigned portBASE_TYPE ) 4 )
+#define  configMINIMAL_STACK_SIZE	  ( ( unsigned short ) 100 )
+#define  configTOTAL_HEAP_SIZE		  ( (size_t ) ( 2050) ) //2050
+#define  configMAX_TASK_NAME_LEN	  ( 6 )
+#define  configUSE_TRACE_FACILITY	  0
+#define  configUSE_16_BIT_TICKS		  1
+#define  configIDLE_SHOULD_YIELD	  1
+#define  configQUEUE_REGISTRY_SIZE    0
+#define  configUSE_MUTEXES            1
+
+#define  configUSE_TIMERS             1
+
+#define  configTIMER_TASK_PRIORITY    1
+ 
+#define  configTIMER_QUEUE_LENGTH        5 
+#define  configTIMER_TASK_STACK_DEPTH   (160)
 
 #define configCHECK_FOR_STACK_OVERFLOW  0//2
 

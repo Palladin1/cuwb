@@ -156,6 +156,8 @@ xSemaphoreHandle xI2CMutex;
 xSemaphoreHandle xExtSignalStatusSem; 
 xSemaphoreHandle xTimeSendRequestSem;
 
+xTimerHandle xButton_Poll_Timer;
+
 
 //u08 Trace_Buffer[300];
 //u08 send_data_buff[300];
@@ -182,7 +184,7 @@ static u16 DebugBuff[TASK_NUMBER] = {0};
 *                                         FUNCTION PROTOTYPES
 *********************************************************************************************************
 */
-void vTask1( void *pvParameters );
+//void vTask1( void *pvParameters );
 void vTask2( void *pvParameters );
 void vTask3( void *pvParameters );
 void vTask4( void *pvParameters );
@@ -192,6 +194,8 @@ void vTask6( void *pvParameters );
 #if BUZER_TIME
 void vTask7( void *pvParameters );
 #endif
+
+void vCallback_Button_Poll (xTimerHandle xTimer);
 
 //void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
 
@@ -251,7 +255,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL);   //60
+//	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL);   //60
 
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
 
@@ -267,6 +271,9 @@ Uart0Enable(Uart0_Resiv,  19200);
 	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);   //20
     #endif
 
+	xButton_Poll_Timer = xTimerCreate("TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_Button_Poll);
+	xTimerReset(xButton_Poll_Timer, 0);
+
 //    xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
@@ -276,6 +283,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 return (0);
 }
 
+/*
 void vTask1( void *pvParameters )
 {
     u16 temp_key = 0;
@@ -299,6 +307,19 @@ void vTask1( void *pvParameters )
     }
 
     vTaskDelete (NULL);
+}
+*/
+
+void vCallback_Button_Poll (xTimerHandle xTimer)
+{
+    static u16 temp_key = 0;
+
+    ExtSignalStatus = KeySkan(ExtSignalStatus);
+		
+	if (ExtSignalStatus != temp_key) {
+	    temp_key = ExtSignalStatus;
+	    xSemaphoreGive(xExtSignalStatusSem);
+	}
 }
 
 
@@ -1221,7 +1242,7 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
     
-//vTaskDelay(10 / portTICK_RATE_MS);
+vTaskDelay(5 / portTICK_RATE_MS);
 
     }
 
