@@ -1,6 +1,24 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+
+
+typedef struct {
+    u08 Seconds;
+    u08 Minutes; 
+    u08 Hour;
+    u08 Day;
+    u08 Month;
+    u08 Year;
+} TimeAndDate;
+
+TimeAndDate TimeAndDateCurrent;
+
+
+typedef u32 SecondsInDay;
+
+#define  SECONDS_IN_DAY_MAX    (60ul * 60ul * 24ul)
+
 u08 CntTmrBill;
 u08 CntTmrCoin;
 u08 CntNoWater;
@@ -24,18 +42,7 @@ u08 Fl_State_RsvBill;
 u08 Fl_State_WtrCnt;
 
 
-/*
-typedef struct {
-    u08 Seconds;
-    u08 Minutes; 
-    u08 Hour;
-    u08 Day;
-    u08 Month;
-    u08 Year;
-} TimeAndDate;
-
-TimeAndDate TimeAndDateCurrent;
-*/
+void TimeAndDayCurrentGet (SecondsInDay time_in_day_cur, TimeAndDate *time_and_date_cur);
 
 void SellingStart(void);
 void SellingStop(void);

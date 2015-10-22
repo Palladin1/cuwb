@@ -732,26 +732,58 @@ void TimeAndDateRtcRead (TimeAndDate *time_and_date_cur)
     time_and_date_cur->Year = time_and_date_buf[6];
 }
 
-u32 TimeAndDateToSecondConvert (TimeAndDate *time_and_date_cur) 
+SecondsInDay TimeRtcToSecondInDay (TimeAndDate *time_and_date_cur) 
 {
-    u32 day_second_cur;
+    SecondsInDay second_in_day_cur;
 
-	day_second_cur = 0;
+	second_in_day_cur = 0;
     
-	day_second_cur = time_and_date_cur->Hour * 60;
-    day_second_cur += time_and_date_cur->Minuts;
-	day_second_cur = day_second_cur * 60;
-	day_second_cur = time_and_date_cur->Seconds
+	second_in_day_cur = time_and_date_cur->Hour * 60;
+    second_in_day_cur += time_and_date_cur->Minuts;
+	second_in_day_cur = day_second_cur * 60;
+	second_in_day_cur = time_and_date_cur->Seconds
 
-	return day_second_cur;
-}
+	if (second_in_day_cur >= SECONDS_IN_DAY_MAX) {
+	    second_in_day_cur = 0;
+	}
 
-void TimeAndDateFromSecondConvert (TimeAndDate *time_and_date_cur, const u32 day_second_cur) 
-{
-    time_and_date_cur->Seconds = (u08)(day_second_cur % 60);
-	day_second_cur /= 60;
-	time_and_date_cur->Minuts = (u08)(day_second_cur % 60);
-	day_second_cur /= 60;
-	time_and_date_cur->Hour = (u08)(day_second_cur % 60);
+	return second_in_day_cur;
 }
 */
+
+/*
+inline static u08 i_to_bsd (u08 digit)
+{
+    u08 ret;
+
+	ret = 0;	
+	if (digit != 0) {
+	    ret = digit % 10;
+        ret += (digit / 10) * 16;
+	}
+
+	return ret;
+} 
+
+void TimeAndDateFromToBsd (u08 * time_date_buf, TimeAndDate *time_and_date_cur) 
+{
+    time_date_buf = time_and_date_cur->Seconds 
+	time_date_buf = time_and_date_cur->Minuts
+	time_date_buf = time_and_date_cur->Hour
+}
+*/
+
+void TimeAndDayCurrentGet (SecondsInDay time_in_day_cur, TimeAndDate *time_and_date_cur) 
+{
+    time_and_date_cur->Day    = (u08)(time_in_day_cur / SECONDS_IN_DAY_MAX);
+   
+    time_in_day_cur %= SECONDS_IN_DAY_MAX;    
+
+	time_and_date_cur->Hour = (u08)(time_in_day_cur / 3600ul);
+     
+    time_in_day_cur %= 3600ul;
+    time_and_date_cur->Minutes  = (u08)(time_in_day_cur / 60ul);
+	
+	time_and_date_cur->Seconds = (u08)(time_in_day_cur % 60ul);
+
+} 

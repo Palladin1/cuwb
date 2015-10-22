@@ -234,6 +234,11 @@ u08 Counter_Test_Fag = 0;
 
 int main( void )
 {
+SecondsInDay seconds = 17ul*86400ul+19ul*3600ul+57ul*60ul+39ul;
+TimeAndDate system_time_and_date = {0};
+
+TimeAndDayCurrentGet(seconds, &system_time_and_date);
+
     xEventsQueue = xQueueCreate(16, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -308,14 +313,16 @@ void vCallback_ButtonPoll (xTimerHandle xTimer)
 void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer)
 {
     static u16 buzer_timer = BUZER_TIME;
-	static u08 buzzer_state = 0;
+	static u08 is_buzzer_on = 1;
 
     if (buzer_flag == 1) {
-	    if (buzzer_state) {
+	    if (is_buzzer_on) {
+		    is_buzzer_on = 0; 
 	        BUZZER_ON;
 			xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (300 / portTICK_RATE_MS), 0);
         }
 		else {    
+		    is_buzzer_on = 1;
 			BUZZER_OFF;
 			xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (1700 / portTICK_RATE_MS), 0);
 		
