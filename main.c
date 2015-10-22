@@ -156,9 +156,9 @@ xSemaphoreHandle xExtSignalStatusSem;
 xSemaphoreHandle xTimeSendRequestSem;
 
 xTimerHandle xTimer_ButtonPoll;
-xTimerHandle xTimer_NoWaterSoundSignal;
-xTimerHandle xTimer_SafeOpenSignal;
-xTimerHandle xTimer_BarrelFullSignal;
+
+xTimerHandle xTimer_NoWaterBuzzerSignal;
+xTimerHandle xTimer_BuzzerOff;
 
 xTimerHandle xTimer_ModemStart;
 
@@ -166,10 +166,8 @@ xTimerHandle xTimer_ModemStart;
 //u08 Trace_Buffer[300];
 //u08 send_data_buff[300];
 
-#if BUZER_TIME
-u08 buzer_flag = 0;
-#endif
 
+u08 buzer_flag = 0;
 
 static u08 IsRegistratorConnect = 0;
 
@@ -184,37 +182,22 @@ static u16 DebugBuff[TASK_NUMBER] = {0};
 #endif //CHECK_STACK
 
 
-enum {
-    SAFE_OPENED,
-    BARREL_FULL,
-    TIMER_SIGNAL_MAX
-} ID_TIMER_SIGNAL;
-
 /*
 *********************************************************************************************************
 *                                         FUNCTION PROTOTYPES
 *********************************************************************************************************
 */
-//void vTask1( void *pvParameters );
 void vTask2( void *pvParameters );
 void vTask3( void *pvParameters );
 void vTask4( void *pvParameters );
 void vTask5( void *pvParameters );
 void vTask6( void *pvParameters );
 
-/*
-#if BUZER_TIME
-void vTask7( void *pvParameters );
-#endif
-*/
 
 void vCallback_ButtonPoll (xTimerHandle xTimer);
 
-void vCallback_NoWaterSoundSygnal (xTimerHandle xTimer);
-
-//void vCallback_SoundSignals (xTimerHandle xTimer);
-void vCallback_SafeOpenSoundSignal (xTimerHandle xTimer);
-void vCallback_BarrelFulSoundSignal (xTimerHandle xTimer);
+void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer);
+void vCallback_BuzzerOff (xTimerHandle xTimer);
 
 void vCallback_ModemStart (xTimerHandle xTimer);
 
@@ -277,8 +260,6 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-//	xTaskCreate(vTask1, (signed char*) "Task_1", configMINIMAL_STACK_SIZE + 60, NULL, 2, NULL);   //60
-
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
 
     xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL);   //60
@@ -289,29 +270,18 @@ Uart0Enable(Uart0_Resiv,  19200);
     
 	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL);   //80
  
-/*    #if BUZER_TIME    
-	xTaskCreate(vTask7, (signed char*) "Task_7", configMINIMAL_STACK_SIZE + 20, NULL, 1, NULL);   //20
-    #endif
-*/
 
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	
 	xTimerReset(xTimer_ButtonPoll, 0);
     
-//	xTimer_NoWaterSoundSignal = xTimerCreate((signed char *)"NoWtr", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterSoundSygnal);
+	xTimer_NoWaterBuzzerSignal = xTimerCreate((signed char *)"NoWtr", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterBuzzerSignal);
 
-    //ID_TIMER_SIGNAL = SAFE_OPENED;
-	//xTimer_SafeOpenSignal = xTimerCreate((signed char *)"SafeOp", 0, pdFALSE, &ID_TIMER_SIGNAL, vCallback_SoundSignals);
-	xTimer_SafeOpenSignal = xTimerCreate((signed char *)"SafeOp", 200 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_SafeOpenSoundSignal);
+	xTimer_BuzzerOff = xTimerCreate((signed char *)"SafeOp", 200 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_BuzzerOff);
 
-    //ID_TIMER_SIGNAL = BARREL_FULL;
-    //xTimer_BarrelFullSignal = xTimerCreate((signed char *)"BarFul", 0, pdFALSE, &ID_TIMER_SIGNAL, vCallback_SoundSignals);
-//	xTimer_BarrelFullSignal = xTimerCreate((signed char *)"BarFul", 0, pdFALSE, NULL, vCallback_BarrelFulSoundSignal);
-
-//	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 0, pdFALSE, NULL, vCallback_ModemStart);
+	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
 	
-
 //    xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
 	/* Запуск шедулера, после чего задачи запустятся на выполнение. */
@@ -321,32 +291,6 @@ Uart0Enable(Uart0_Resiv,  19200);
 return (0);
 }
 
-/*
-void vTask1( void *pvParameters )
-{
-    u16 temp_key = 0;
-
-
-    for( ;; ) {
-
-        ExtSignalStatus = KeySkan(ExtSignalStatus);
-		
-		if (ExtSignalStatus != temp_key) {
-		    temp_key = ExtSignalStatus;
-		    xSemaphoreGive(xExtSignalStatusSem);
-		}
-
-		vTaskDelay(2 / portTICK_RATE_MS);
-
-#if CHECK_STACK
-    DebugBuff[0] = uxTaskGetStackHighWaterMark(NULL);
-#endif //CHECK_STACK
-
-    }
-
-    vTaskDelete (NULL);
-}
-*/
 
 void vCallback_ButtonPoll (xTimerHandle xTimer)
 {
@@ -359,61 +303,50 @@ void vCallback_ButtonPoll (xTimerHandle xTimer)
 	    xSemaphoreGive(xExtSignalStatusSem);
 	}
 }
-/*
-void vCallback_NoWaterSoundSygnal (xTimerHandle xTimer)
+
+
+void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer)
 {
     static u16 buzer_timer = BUZER_TIME;
 	static u08 buzzer_state = 0;
 
     if (buzer_flag == 1) {
 	    if (buzzer_state) {
-//	        BUZZER_ON;
-			xTimerChangePeriod(xTimer_NoWaterSoundSignal, (300 / portTICK_RATE_MS), 0);
+	        BUZZER_ON;
+			xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (300 / portTICK_RATE_MS), 0);
         }
 		else {    
 			BUZZER_OFF;
-			xTimerChangePeriod(xTimer_NoWaterSoundSignal, (1700 / portTICK_RATE_MS), 0);
+			xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (1700 / portTICK_RATE_MS), 0);
 		
-	    if (buzer_timer == 0) {
-	        buzer_flag = 0;
-	        buzer_timer = BUZER_TIME;
-        }
-        else {
-	        buzer_timer--;
-		}
+	        if (buzer_timer == 0) {
+	            buzer_flag = 0;
+	            buzer_timer = BUZER_TIME;
+            }
+            else {
+	            buzer_timer--;
+		    }
 		}
 	}
 	else {
-	    xTimerChangePeriod(xTimer_NoWaterSoundSignal, (2000 / portTICK_RATE_MS), 0);
+	    xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (2000 / portTICK_RATE_MS), 0);
 	}
+}
 
-}
-*/
-/*
-void vCallback_SoundSignals (xTimerHandle xTimer)
-{
-   BUZZER_OFF; 
-}
-*/
 
-void vCallback_SafeOpenSoundSignal (xTimerHandle xTimer)
+void vCallback_BuzzerOff (xTimerHandle xTimer)
 {
    BUZZER_OFF; 
 }
-/*
-void vCallback_BarrelFulSoundSignal (xTimerHandle xTimer)
-{
-   BUZZER_OFF; 
-}
-*/
-/*
+
+
 void vCallback_ModemStart (xTimerHandle xTimer)
 {
     CARRENT_STATE = STATE_MODEM_ON;
 
 	BUZZER_OFF;
 }
-*/
+
 
 void vTask2( void *pvParameters )
 {
@@ -448,12 +381,12 @@ void vTask2( void *pvParameters )
 	    }
 
 		if (!CountManey && gFlLedStateWater) {
-//		    NoWtrForLCD();
+		    /* symbol "-" write instead all digits to indicator */
             memset(indicator_data_buf, 10, sizeof indicator_data_buf / sizeof(indicator_data_buf[0]));
 			IndicatorDataWrite(indicator_data_buf);
         }
         else {
-//		    DecodeForLCD(CountManey, CountWater);
+   		    /* number money and water sow ea indicator */
             IndicatorDataConvert(indicator_data_buf, CountManey, CountWater);
 			IndicatorDataWrite(indicator_data_buf);
         }
@@ -1200,19 +1133,17 @@ void vTask4( void *pvParameters )
                 xSemaphoreGive(xI2CMutex);
                                  
                 
-				//xTimerChangePeriod(xTimer_SafeOpenSignal, (200 / portTICK_RATE_MS), 0);
+				
 				BUZZER_ON;
-//				if (xTimerIsTimerActive(xTimer_SafeOpenSignal) == pdFALSE) {
-			        xTimerStart(xTimer_SafeOpenSignal, 0);
-//			    }
+				xTimerChangePeriod(xTimer_BuzzerOff, (200 / portTICK_RATE_MS), 0);
+				if (xTimerIsTimerActive(xTimer_BuzzerOff) == pdFALSE) {
+			        xTimerStart(xTimer_BuzzerOff, 0);
+			    }
 				
 
-                
-				#if BUZER_TIME
-				if (*amount_water < *max_size_barrel) {
+                if (*amount_water < *max_size_barrel) {
     			    buzer_flag = 1;
 				}
-				#endif
 		    }
         }
         else {
@@ -1237,16 +1168,13 @@ void vTask4( void *pvParameters )
             xSemaphoreGive(xI2CMutex);		
 		    *amount_water = *max_size_barrel;
 
-//			BUZZER_ON;
-//			xTimerChangePeriod(xTimer_BarrelFullSignal, (100 / portTICK_RATE_MS), 0);
-//			if (xTimerIsTimerActive(xTimer_BarrelFullSignal) == pdFALSE) {
-//			    xTimerStart(xTimer_BarrelFullSignal, 0);
-//			}
+		    BUZZER_ON;
+			xTimerChangePeriod(xTimer_BuzzerOff, (200 / portTICK_RATE_MS), 0);
+			if (xTimerIsTimerActive(xTimer_BuzzerOff) == pdFALSE) {
+			    xTimerStart(xTimer_BuzzerOff, 0);
+			}
 
-
-            #if BUZER_TIME
-    		buzer_flag = 0;
-			#endif
+            buzer_flag = 0;
         }
 
 
@@ -1256,11 +1184,9 @@ void vTask4( void *pvParameters )
 	    }
 
 
-        #if BUZER_TIME
-		if (buzer_flag && Sygnal_Get_Stop)
+		if (buzer_flag && Sygnal_Get_Stop) {
    	        buzer_flag = 0;
-		#endif
-
+		}
 
 
         if (Fl_SellStart && !IS_COUNTER_WATER_NOT_ACTIVE && WtrCntTimer == 0) {
@@ -1871,13 +1797,8 @@ void vTask6( void *pvParameters )
     u08 com_buff[30];
 	u08 cnt = 0;
 
-    //CARRENT_STATE = STATE_MODEM_ON;
-
-//	BUZZER_ON;
-//	xTimerChangePeriod(xTimer_ModemStart, (100 / portTICK_RATE_MS), 0);
-//	xTimerStart(xTimer_ModemStart, 0);
-    //vTaskDelay(100 / portTICK_RATE_MS);
-	//BUZZER_OFF;
+	BUZZER_ON;                                                                 /* buzzer will be turn off when timeer finnished */
+	xTimerStart(xTimer_ModemStart, 0);
 
 	for( ;; )
     {
@@ -1913,47 +1834,6 @@ void vTask6( void *pvParameters )
     vTaskDelete (NULL);
 }
 
-/*
-#if BUZER_TIME
-void vTask7 (void *pvParameters)
-{
-    u16 buzer_timer = BUZER_TIME;
-
-    for( ;; )
-    {
-#if 1
-		if (buzer_flag == 1) {
-		    BUZZER_ON;
-            vTaskDelay(300 / portTICK_RATE_MS);
-		    BUZZER_OFF;
-	        vTaskDelay(1700 / portTICK_RATE_MS);
-        
-		    if (buzer_timer == 0) {
-	        
-			    buzer_flag = 0;
-			    buzer_timer = BUZER_TIME;
-            }
-            else {
-		        buzer_timer--;
-		    }
-		}
-		else {
-		    vTaskDelay(2000 / portTICK_RATE_MS);
-		}
-#else
-    vTaskDelay(2000 / portTICK_RATE_MS);
-#endif 
-
-#if CHECK_STACK
-    DebugBuff[6] = uxTaskGetStackHighWaterMark(NULL);
-#endif //CHECK_STACK
-        
-	}
-
-    vTaskDelete (NULL);
-}
-#endif
-*/
 
 /*
 void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex)
