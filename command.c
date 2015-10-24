@@ -14,9 +14,12 @@
 #include "portmacro.h"
 
 #include  "indicator.h"
+//#include  <time.h>
 
 
 static u08 PumpShouldTurnOn = 0;
+
+static const u08 Days_In_Month_Buf[MONTH_MAX] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 void SellingStart(void) {
 
@@ -683,17 +686,128 @@ inline void hextoa2(u08 binval, u08 *asc) {
 }
 
 
+void uartSendBuf(u08 num, u08 *s , u08 len) {
+    
+	while (len-- > 0)
+	    uartSendByte(num, *s++);
+}
+
+
+static u08 bcd_to_i (u08 binval);
+static u08 i_to_bcd (u08 digit);
+
 u16 GetRealTime (void) {
 
     u08 check_time_buff[8];
     
 	DS1337ReadDatta(check_time_buff);
-	check_time_buff[1] = bcdtoi2(check_time_buff[1]);
+	check_time_buff[1] = bcd_to_i(check_time_buff[1]);
     
-return ((bcdtoi2(check_time_buff[2]) * 60) + check_time_buff[1]);
+return ((bcd_to_i(check_time_buff[2]) * 60) + check_time_buff[1]);
 }
 
-inline u08 bcdtoi2(u08 binval) {
+
+u08 TimeAndDateRtcRead (TimeAndDate *time_and_date)
+{
+    u08 time_and_date_buf[7];
+
+	DS1337ReadDatta(time_and_date_buf);
+
+                                                                               /* chack if read data correct */
+    if (time_and_date_buf[0] < 0x60 && time_and_date_buf[1] <  0x60 
+	                                && time_and_date_buf[2] <  0x24
+									&& time_and_date_buf[3] >= 0x01
+									&& time_and_date_buf[3] <= 0x31
+									&& time_and_date_buf[5] >= 0x01
+									&& time_and_date_buf[5] <= 0x12
+									&& time_and_date_buf[6] >= 0x15 
+									&& time_and_date_buf[6] <= 0x99) {
+
+	    time_and_date->Second = bcd_to_i(time_and_date_buf[0]);   
+        time_and_date->Minute = bcd_to_i(time_and_date_buf[1]);
+        time_and_date->Hour   = bcd_to_i(time_and_date_buf[2]);
+        time_and_date->Day    = bcd_to_i(time_and_date_buf[3]);
+        time_and_date->Month = bcd_to_i(time_and_date_buf[5]);
+        time_and_date->Year   = bcd_to_i(time_and_date_buf[6]);
+
+		return 0;
+	}
+
+	return 1;
+}
+
+
+void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_from) 
+{
+    time_and_date_to->Second = i_to_bcd(time_and_date_from.Second);
+	time_and_date_to->Minute = i_to_bcd(time_and_date_from.Minute);
+	time_and_date_to->Hour   = i_to_bcd(time_and_date_from.Hour);
+	time_and_date_to->Day    = i_to_bcd(time_and_date_from.Day);
+	time_and_date_to->Month  = i_to_bcd(time_and_date_from.Month);
+	time_and_date_to->Year   = i_to_bcd(time_and_date_from.Year);
+}
+
+
+void TimeAndDateDefaultSet (TimeAndDate *time_and_date)
+{
+    time_and_date->Second = 0;   
+    time_and_date->Minute = 0;
+    time_and_date->Hour   = 0;
+    time_and_date->Day    = 1;
+    time_and_date->Month  = 1;
+    time_and_date->Year   = START_POINT_YEAR;
+}
+
+
+inline static u08 days_in_curr_month (u08 mounth_current, u16 year_current);
+
+
+void TimeAndDateSecAdd (TimeAndDate *time_and_date)
+{
+    if ((++time_and_date->Second) == SECONDS_MAX) {
+	    time_and_date->Second = 0;
+	    
+		if ((++time_and_date->Minute) == MINUTES_MAX) {
+		    time_and_date->Minute = 0;
+		
+		    if ((++time_and_date->Hour) == HOURS_MAX) {
+			    time_and_date->Hour = 0;
+			
+			    if ((++time_and_date->Day) == days_in_curr_month(time_and_date->Month, time_and_date->Year)) {
+				    time_and_date->Day = 0;
+				
+				    if ((++time_and_date->Month) == MONTH_MAX) {
+					    time_and_date->Month = 0;
+					
+					    if ((++time_and_date->Year) == YEAR_MAX) {
+						    time_and_date->Year = 0;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+inline static u08 days_in_curr_month (u08 mounth_current, u16 year_current)
+{
+    u08 days_num;
+	//leap = (year % 4 == 0 && year % 1000 != 0) || year % 400 == 0;
+	
+	year_current += 2000;
+	
+	days_num = Days_In_Month_Buf[mounth_current-1];
+
+	if (mounth_current == 2) {
+	    days_num += ((year_current % 4 == 0 && year_current % 1000 != 0) || year_current % 400 == 0);
+	}
+	
+	return days_num;
+}
+
+
+inline static u08 bcd_to_i(u08 binval) {
 
     u08 val, temp = 0;
     
@@ -708,51 +822,7 @@ inline u08 bcdtoi2(u08 binval) {
 return (temp + binval);
 }
 
-
-void uartSendBuf(u08 num, u08 *s , u08 len) {
-    
-	while (len-- > 0)
-	    uartSendByte(num, *s++);
-}
-
-
-/*
-void TimeAndDateRtcRead (TimeAndDate *time_and_date_cur)
-{
-    u08 time_and_date_buf[7];
-	
-
-	DS1337ReadDatta(time_and_date_buf);
-
-	time_and_date_cur->Seconds = time_and_date_buf[0];
-    time_and_date_cur->Minutes = time_and_date_buf[1]; 
-    time_and_date_cur->Hour = time_and_date_buf[2];
-    time_and_date_cur->Day = time_and_date_buf[3];
-    time_and_date_cur->Month = time_and_date_buf[5];
-    time_and_date_cur->Year = time_and_date_buf[6];
-}
-
-SecondsInDay TimeRtcToSecondInDay (TimeAndDate *time_and_date_cur) 
-{
-    SecondsInDay second_in_day_cur;
-
-	second_in_day_cur = 0;
-    
-	second_in_day_cur = time_and_date_cur->Hour * 60;
-    second_in_day_cur += time_and_date_cur->Minuts;
-	second_in_day_cur = day_second_cur * 60;
-	second_in_day_cur = time_and_date_cur->Seconds
-
-	if (second_in_day_cur >= SECONDS_IN_DAY_MAX) {
-	    second_in_day_cur = 0;
-	}
-
-	return second_in_day_cur;
-}
-*/
-
-/*
-inline static u08 i_to_bsd (u08 digit)
+inline static u08 i_to_bcd (u08 digit)
 {
     u08 ret;
 
@@ -763,27 +833,4 @@ inline static u08 i_to_bsd (u08 digit)
 	}
 
 	return ret;
-} 
-
-void TimeAndDateFromToBsd (u08 * time_date_buf, TimeAndDate *time_and_date_cur) 
-{
-    time_date_buf = time_and_date_cur->Seconds 
-	time_date_buf = time_and_date_cur->Minuts
-	time_date_buf = time_and_date_cur->Hour
-}
-*/
-
-void TimeAndDayCurrentGet (SecondsInDay time_in_day_cur, TimeAndDate *time_and_date_cur) 
-{
-    time_and_date_cur->Day    = (u08)(time_in_day_cur / SECONDS_IN_DAY_MAX);
-   
-    time_in_day_cur %= SECONDS_IN_DAY_MAX;    
-
-	time_and_date_cur->Hour = (u08)(time_in_day_cur / 3600ul);
-     
-    time_in_day_cur %= 3600ul;
-    time_and_date_cur->Minutes  = (u08)(time_in_day_cur / 60ul);
-	
-	time_and_date_cur->Seconds = (u08)(time_in_day_cur % 60ul);
-
 } 

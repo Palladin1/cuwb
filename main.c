@@ -109,6 +109,7 @@ PGM_P SMS_TEXT[] PROGMEM = {
 *********************************************************************************************************
 */
 
+TimeAndDate Time_And_Date_System = {0};
 
 typedef enum {
 	    
@@ -234,11 +235,6 @@ u08 Counter_Test_Fag = 0;
 
 int main( void )
 {
-SecondsInDay seconds = 17ul*86400ul+19ul*3600ul+57ul*60ul+39ul;
-TimeAndDate system_time_and_date = {0};
-
-TimeAndDayCurrentGet(seconds, &system_time_and_date);
-
     xEventsQueue = xQueueCreate(16, sizeof(unsigned char *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -262,6 +258,11 @@ Uart0Disable();
 Uart0Enable(Uart0_Resiv,  19200);
 #endif
 
+
+    if (TimeAndDateRtcRead (&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set default */
+        TimeAndDateDefaultSet(&Time_And_Date_System);
+    } 
+	
 
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
