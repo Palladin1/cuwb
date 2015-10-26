@@ -231,7 +231,7 @@ u16 atoin (u08 *s, u08 n);
 */
 
 
-u08 Counter_Test_Fag = 0; 
+//u08 Counter_Test_Fag = 0; 
 
 int main( void )
 {
@@ -259,7 +259,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 #endif
 
 
-    if (TimeAndDateRtcRead (&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set default */
+    if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set default */
         TimeAndDateDefaultSet(&Time_And_Date_System);
     } 
 	
@@ -278,10 +278,10 @@ Uart0Enable(Uart0_Resiv,  19200);
  
 
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
-	
 	xTimerReset(xTimer_ButtonPoll, 0);
     
 	xTimer_NoWaterBuzzerSignal = xTimerCreate((signed char *)"NoWtr", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterBuzzerSignal);
+    xTimerReset(xTimer_NoWaterBuzzerSignal, 0);
 
 	xTimer_BuzzerOff = xTimerCreate((signed char *)"SafeOp", 200 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_BuzzerOff);
 
@@ -362,7 +362,9 @@ void vTask2( void *pvParameters )
     static u16 CountManey  = 0;
     static u16 CountWater  = 0;
 	static u16 min_counter = 600;
-
+    
+	static u08 sec_counter = 10;
+	
 	static u08 indicator_data_buf[8];
 
 	u16 DayOrNightTimer = MINUTES_IN_DAY;
@@ -429,9 +431,15 @@ void vTask2( void *pvParameters )
 
 			if (DayOrNightTimer >= MINUTES_IN_DAY) {
 			    //DayOrNightTimer = MINUTES_IN_DAY;
-//				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-    			DayOrNightTimer = GetRealTime();
-//				xSemaphoreGive(xI2CMutex); 
+				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+
+                if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set to default */
+                    TimeAndDateDefaultSet(&Time_And_Date_System);
+                } 
+				xSemaphoreGive(xI2CMutex); 
+
+    			DayOrNightTimer = GetTimeAsMinute(&Time_And_Date_System);
+
 			}
 
             if ((0 == *lower_report_limit) && (0 == *upper_report_limit)) {
@@ -465,6 +473,14 @@ void vTask2( void *pvParameters )
 		    min_counter--;
 		}
 
+
+        if (sec_counter == 0) {
+		    sec_counter = 10;
+	        TimeAndDateSecAdd(&Time_And_Date_System);
+		}
+		else {
+		    sec_counter--;
+		}
 
 		TimeSendRequestCnt++;
 		if (TimeSendRequestCnt == TIME_SEND_REGUEST) {
@@ -531,6 +547,8 @@ void vTask4( void *pvParameters )
 {
     static u16 PumpTimeCoef ;
 //	u16 get_key_skan = 0;
+
+    static TimeAndDate Time_And_Date_Bcd = {0};
 
     static u08 Fl_SellEnable   = 0;
     static u08 Fl_SellStart    = 0;
@@ -876,10 +894,10 @@ void vTask4( void *pvParameters )
 						    MoneyToReturn = PulseQuantityToMoney(CountPulse);
 				            WaterToReturn = MoneyToWater(MoneyToReturn);
 
-					        xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+					        TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
-                            SaveEvent(MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
-
+							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+                            SaveEvent((u08 *)&Time_And_Date_Bcd, MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
 			                xSemaphoreGive(xI2CMutex);
 
 							                                                       /* all flags sets that same method as the end of sell */
@@ -1055,9 +1073,10 @@ void vTask4( void *pvParameters )
 		            *amount_water -= WaterSave;
 			    }
 
-                xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-		       
-			    SaveEvent(ManeySave, WaterSave, 1);
+                TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+
+				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, 1);
 			    
 				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
 
@@ -1129,8 +1148,10 @@ void vTask4( void *pvParameters )
 		        dattaH = (u16) ((*day_maney_cnt) >> 16);
 		        dattaL = (u16) ((*day_maney_cnt) & 0x0000FFFF);
              
-			    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-		        SaveEvent(dattaH, dattaL, 3);
+			    TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+
+				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+                SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 3);
                 xSemaphoreGive(xI2CMutex);
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
@@ -1678,7 +1699,7 @@ void vTask5( void *pvParameters )
 					 memset(send_data_buff, 0x00, 60);
 
                      xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                     Create_Report_String(&send_data_buff[0], num_event);
+                     Create_Report_String((u08 *)&Time_And_Date_System, &send_data_buff[0], num_event);
                      xSemaphoreGive(xI2CMutex);  
 
                      ModemSendData((char *)&send_data_buff[0], 1);             //

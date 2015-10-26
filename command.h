@@ -11,7 +11,8 @@ typedef struct {
     u08 Year;
 } TimeAndDate;
 
-           
+
+    
 #define  START_POINT_YEAR    15u
 
 #define  SECONDS_MAX    60u
@@ -50,7 +51,7 @@ void SellingStop(void);
 void StartGetManey(void);
 void StopGetManey(void);
 
-void SaveEvent (const u16 cntmaney, const u16 cntwater, u08 event);
+void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u08 event);
 
 u16 KeySkan (u16 key_kode);
 
@@ -63,13 +64,14 @@ void SendError (u08 EventNamber);
 void itoan (u32 binval, u08 *asc, u08 size);
 void hextoa2 (u08 binval, u08 *asc);
 
-u16 GetRealTime (void);
+u16 GetTimeAsMinute (TimeAndDate *time_and_date);
 u08 TimeAndDateRtcRead (TimeAndDate *time_and_date);
-void TimeAndDayToBcd (TimeAndDate *time_and_date_bcd, TimeAndDate time_and_date); 
+void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_from);
 void TimeAndDateDefaultSet (TimeAndDate *time_and_date);
+void TimeAndDateSecAdd (TimeAndDate *time_and_date);
 
 void Get_Pfone_Number (u08 *phone_buff);
-void Create_Report_String (u08 *report_buff, u08 EventNamber);
+void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber);
 
 void Uart1Enable (void);
 void Uart1Disable (void);

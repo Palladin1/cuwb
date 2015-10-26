@@ -114,14 +114,15 @@ void StopGetManey(void) {
 }
 
 
-void SaveEvent(const u16 cntmaney, const u16 cntwater, u08 event) {
+void SaveEvent(u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u08 event) {
 
     u08 EventBuff[12];
-	u08 AdrEventBuff[2];	
+	u08 AdrEventBuff[2];
+	u08 i;
+		
 
-	DS1337ReadDatta(EventBuff);
-	for(u08 count=4; count<=6; count++) {
-		EventBuff[count-1] = EventBuff[count];
+	for(i = 0; i < 6; i++) {
+		EventBuff[i] = time_and_date_buf[i];
 	}
 	
 	EventBuff[6] = (cntmaney >> 8);
@@ -130,7 +131,7 @@ void SaveEvent(const u16 cntmaney, const u16 cntwater, u08 event) {
 	EventBuff[9] = (cntwater & 0x00FF);
 	EventBuff[10] = event;
 
-    Global_Time_Deluy(5);
+//    Global_Time_Deluy(5);
     if (*ext_eepr_data_adr < (*ext_eepr_cur_adr + 11)) { 
 	    ADR_LAST_DATTA  = *ext_eepr_cur_adr;
         *ext_eepr_cur_adr = 0x0000;
@@ -340,27 +341,34 @@ return key_kode;
 
 void GetCmd (unsigned char *get_cmd_buff) {
 
+extern TimeAndDate Time_And_Date_System;
+
     void SET_THE_RTC (void) {
 
 		get_cmd_buff[8] = get_cmd_buff[7];
 		get_cmd_buff[7] = get_cmd_buff[6];
 		get_cmd_buff[6] = get_cmd_buff[5];
 		get_cmd_buff[5] = 1;
-		
+
+//		portENTER_CRITICAL();
 		DS1337WriteDatta((get_cmd_buff+2));
+		
+		TimeAndDateRtcRead(&Time_And_Date_System);
+//		portENTER_CRITICAL();
 		
 		get_cmd_buff[0] = 1;
 		uartSendBuf(0, &get_cmd_buff[0], 2);
 	}
 	
 	void RAEAD_FROM_RTC (void) {
+
+ //       portENTER_CRITICAL();
+	    TimeAndDateRtcRead(&Time_And_Date_System);
+//		portENTER_CRITICAL();
 		
-		DS1337ReadDatta((get_cmd_buff + 2));
-		
+        TimeAndDayToBcd((TimeAndDate *)&get_cmd_buff[2], Time_And_Date_System);
+
 		get_cmd_buff[0] = 7;
-		get_cmd_buff[5] = get_cmd_buff[6];
-		get_cmd_buff[6] = get_cmd_buff[7];
-		get_cmd_buff[7] = get_cmd_buff[8];		
 
 		uartSendBuf(0, &get_cmd_buff[0], 8);
 	}
@@ -536,28 +544,6 @@ void GetCmd (unsigned char *get_cmd_buff) {
 	}
 }
 
-/*
-void Get_Pfone_Number (u08 *phone_buff) {
-
-  	    phone_buff[0] = '\"';
-		phone_buff[1]  = (u08)(*pfone_number_1 >> 8);                       // Read pfone namber for send message
-	    phone_buff[2]  = (u08)(*pfone_number_1 & 0x00FF);
-	    phone_buff[3]  = (u08)(*pfone_number_2 >> 8);
-	    phone_buff[4]  = (u08)(*pfone_number_2 & 0x00FF);
-	    phone_buff[5]  = (u08)(*pfone_number_3 >> 8);
-	    phone_buff[6]  = (u08)(*pfone_number_3 & 0x00FF);
-	    phone_buff[7]  = (u08)(*pfone_number_4 >> 8);
-	    phone_buff[8]  = (u08)(*pfone_number_4 & 0x00FF);
-	    phone_buff[9]  = (u08)(*pfone_number_5 >> 8);
-	    phone_buff[10] = (u08)(*pfone_number_5 & 0x00FF);
-        phone_buff[12] = (u08)(*pfone_number_6 >> 8);
-        phone_buff[13] = (u08)(*pfone_number_6 & 0x00FF);
-        phone_buff[14] = (u08)(*pfone_number_7 >> 8);
-	    phone_buff[15] = '\"';
-		phone_buff[16] = '\r';
-		phone_buff[17] = '\0';
-}
-*/
 
 void Get_APN (u08 *apn_buff) {
     
@@ -567,6 +553,7 @@ void Get_APN (u08 *apn_buff) {
 	eeprom_read_block (apn_buff, (uint16_t *)*(&EepromAdr), 15);
 }
 
+
 void Get_IP (u08 *ip_buff) {
 
 	u16 EepromAdr;    
@@ -574,6 +561,7 @@ void Get_IP (u08 *ip_buff) {
 	eeprom_busy_wait();
     eeprom_read_block (ip_buff, (uint16_t *)*(&EepromAdr), 8);
 }
+
 
 void Get_SCRIPT_PASS (u08 *script_pass_buff) {
     
@@ -583,20 +571,19 @@ void Get_SCRIPT_PASS (u08 *script_pass_buff) {
 	eeprom_read_block (script_pass_buff, (uint16_t *)*(&EepromAdr), 8);
 }
 
-inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
+
+inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber) {
 
 	    u08 cnt_buf = 0;
 
         itoan(*vodomat_number, &report_buff[cnt_buf], 4); 
-
-	    DS1337ReadDatta(&report_buff[cnt_buf+4]);                              //Read data from RTC  
 	
-		hextoa2(report_buff[10+cnt_buf], &report_buff[14+cnt_buf]);                   // Convert the Data and time which read to ASCII
-		hextoa2(report_buff[9+cnt_buf],  &report_buff[12+cnt_buf]);                   //
-		hextoa2(report_buff[8+cnt_buf],  &report_buff[10+cnt_buf]);                   //
-		hextoa2(report_buff[6+cnt_buf],  &report_buff[8+cnt_buf]);                    //
-		hextoa2(report_buff[5+cnt_buf],  &report_buff[6+cnt_buf]);                    //
-		hextoa2(report_buff[4+cnt_buf],  &report_buff[4+cnt_buf]);                    //
+                                                                               /* Convert the date and time to ASCII */
+        for (cnt_buf = 0; cnt_buf < 6; cnt_buf++) {
+		    itoan(time_and_date_buf[cnt_buf], &report_buff[((cnt_buf * 2) + 4)], 2);
+		}
+
+		cnt_buf = 0;
 
         if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
             itoan(CollectoinCountManey, &report_buff[16+cnt_buf], 6);
@@ -625,13 +612,25 @@ inline void Create_Report_String (u08 *report_buff, u08 EventNamber) {
 *       Sets the flags of stats from board unit     
 ************************************************************
 */
-        report_buff[32+cnt_buf] = Fl_State_Water;
+        if (Fl_State_Water  >= '0' && Fl_State_RsvBill >= '0' && Fl_State_Power >= '0' && Fl_State_WtrCnt >= '0') {
 
-        report_buff[33+cnt_buf] = Fl_State_RsvBill;
+            report_buff[32+cnt_buf] = Fl_State_Water;
 
-        report_buff[34+cnt_buf] = Fl_State_Power;
+            report_buff[33+cnt_buf] = Fl_State_RsvBill;
+
+            report_buff[34+cnt_buf] = Fl_State_Power;
       
-        report_buff[35+cnt_buf] = Fl_State_WtrCnt;
+            report_buff[35+cnt_buf] = Fl_State_WtrCnt;
+		}
+		else {
+		    report_buff[32+cnt_buf] = '2';
+
+            report_buff[33+cnt_buf] = '2';
+
+            report_buff[34+cnt_buf] = '2';
+      
+            report_buff[35+cnt_buf] = '2';
+		}
 /*
 ************************************************************ 
 *       End flags sets 
@@ -696,14 +695,9 @@ void uartSendBuf(u08 num, u08 *s , u08 len) {
 static u08 bcd_to_i (u08 binval);
 static u08 i_to_bcd (u08 digit);
 
-u16 GetRealTime (void) {
+u16 GetTimeAsMinute (TimeAndDate *time_and_date) {
 
-    u08 check_time_buff[8];
-    
-	DS1337ReadDatta(check_time_buff);
-	check_time_buff[1] = bcd_to_i(check_time_buff[1]);
-    
-return ((bcd_to_i(check_time_buff[2]) * 60) + check_time_buff[1]);
+    return (time_and_date->Hour * 60 + time_and_date->Minute);
 }
 
 
@@ -716,8 +710,8 @@ u08 TimeAndDateRtcRead (TimeAndDate *time_and_date)
                                                                                /* chack if read data correct */
     if (time_and_date_buf[0] < 0x60 && time_and_date_buf[1] <  0x60 
 	                                && time_and_date_buf[2] <  0x24
-									&& time_and_date_buf[3] >= 0x01
-									&& time_and_date_buf[3] <= 0x31
+									&& time_and_date_buf[4] >= 0x01
+									&& time_and_date_buf[4] <= 0x31
 									&& time_and_date_buf[5] >= 0x01
 									&& time_and_date_buf[5] <= 0x12
 									&& time_and_date_buf[6] >= 0x15 
@@ -726,8 +720,8 @@ u08 TimeAndDateRtcRead (TimeAndDate *time_and_date)
 	    time_and_date->Second = bcd_to_i(time_and_date_buf[0]);   
         time_and_date->Minute = bcd_to_i(time_and_date_buf[1]);
         time_and_date->Hour   = bcd_to_i(time_and_date_buf[2]);
-        time_and_date->Day    = bcd_to_i(time_and_date_buf[3]);
-        time_and_date->Month = bcd_to_i(time_and_date_buf[5]);
+        time_and_date->Day    = bcd_to_i(time_and_date_buf[4]);
+        time_and_date->Month  = bcd_to_i(time_and_date_buf[5]);
         time_and_date->Year   = bcd_to_i(time_and_date_buf[6]);
 
 		return 0;
