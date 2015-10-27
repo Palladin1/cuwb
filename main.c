@@ -178,7 +178,7 @@ static u16 Tmr_For_Init_Rr = 600; /* need time in Sec = Tmr_For_Init_Rr * 100ms,
 
 
 #if CHECK_STACK
-#define TASK_NUMBER    7
+#define TASK_NUMBER    5
 static u16 DebugBuff[TASK_NUMBER] = {0};
 #endif //CHECK_STACK
 
@@ -268,13 +268,13 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60, NULL, 1, NULL);   //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60 + 10, NULL, 1, NULL);   //60
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 1, NULL);   //70
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 2, NULL);   //70
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280, NULL, 1, NULL); //280
+    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280 - 50, NULL, 1, NULL); //280
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80, NULL, 1, NULL);   //80
+	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80 - 20, NULL, 1, NULL);   //80
  
 
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
@@ -328,7 +328,11 @@ void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer)
 			xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (1700 / portTICK_RATE_MS), 0);
 		
 	        if (buzer_timer == 0) {
-	            buzer_flag = 0;
+
+				portENTER_CRITICAL();
+	        	buzer_flag = 0;
+		        portENTER_CRITICAL();
+	            
 	            buzer_timer = BUZER_TIME;
             }
             else {
@@ -337,6 +341,11 @@ void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer)
 		}
 	}
 	else {
+	    if (is_buzzer_on == 0) {
+		    is_buzzer_on = 1;
+			BUZZER_OFF;
+		}
+
 	    xTimerChangePeriod(xTimer_NoWaterBuzzerSignal, (2000 / portTICK_RATE_MS), 0);
 	}
 }
@@ -431,8 +440,8 @@ void vTask2( void *pvParameters )
 
 			if (DayOrNightTimer >= MINUTES_IN_DAY) {
 			    //DayOrNightTimer = MINUTES_IN_DAY;
-				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
+				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
                 if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set to default */
                     TimeAndDateDefaultSet(&Time_And_Date_System);
                 } 
@@ -497,7 +506,7 @@ void vTask2( void *pvParameters )
 		vTaskDelay(100 / portTICK_RATE_MS);
 
 #if CHECK_STACK
-    DebugBuff[1] = uxTaskGetStackHighWaterMark(NULL);
+    DebugBuff[0] = uxTaskGetStackHighWaterMark(NULL);
 #endif //CHECK_STACK
     }
 
@@ -534,7 +543,7 @@ void vTask3( void *pvParameters )
         vTaskDelay(50 / portTICK_RATE_MS);   
 
 #if CHECK_STACK
-    DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
+    DebugBuff[1] = uxTaskGetStackHighWaterMark(NULL);
 #endif //CHECK_STACK
 
 	}
@@ -648,12 +657,12 @@ void vTask4( void *pvParameters )
 	is_service_mode = ((IS_SERVICE_MODE) ? 1 : 0);
 
 // TODO:   
-//    wdt_enable(WDTO_2S);
+    wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
 //////////////////////////////////////////////////////////////////////////
- //   wdt_reset();
+    wdt_reset();
 		
 		
 ///////////////////////////////////////////////////////////////////////////////////////		
@@ -693,7 +702,7 @@ void vTask4( void *pvParameters )
                  registrator_state = SEND_SELL_END;
 	         }
 	         else  if (!Fl_ManeyGet && !Fl_SellStart 
-			                        && !Fl_SellStop 
+			                        //&& !Fl_SellStop 
 			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
 									&& IsRegistratorConnect) {
 
@@ -817,7 +826,7 @@ void vTask4( void *pvParameters )
 #if CHECK_STACK
 			     //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
                  static u08 i = 0;
-                 DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
+                 DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
                  pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
              
                  if(i >= TASK_NUMBER)
@@ -894,9 +903,9 @@ void vTask4( void *pvParameters )
 						    MoneyToReturn = PulseQuantityToMoney(CountPulse);
 				            WaterToReturn = MoneyToWater(MoneyToReturn);
 
+							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 					        TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
-							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
                             SaveEvent((u08 *)&Time_And_Date_Bcd, MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
 			                xSemaphoreGive(xI2CMutex);
 
@@ -978,15 +987,8 @@ void vTask4( void *pvParameters )
 
 		 /* if water counter don't count, we can't sell the water */ 
 		if (Fl_WtrCntrErr) {
-//		    KLAPAN1_ON;
-
 		    Fl_SellEnable = 0;
 		}
-		else {
-//portENTER_CRITICAL();
-//		    KLAPAN1_OFF;
-//portEXIT_CRITICAL();
-	    }
 
 
         if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
@@ -1073,9 +1075,9 @@ void vTask4( void *pvParameters )
 		            *amount_water -= WaterSave;
 			    }
 
-                TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+                xSemaphoreTake(xI2CMutex, portMAX_DELAY);  
+				TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
-				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, 1);
 			    
 				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
@@ -1297,7 +1299,7 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
     
-//vTaskDelay(200 / portTICK_RATE_MS);
+    vTaskDelay(2 / portTICK_RATE_MS);
 
     }
 
@@ -1419,7 +1421,7 @@ void vTask5( void *pvParameters )
                      vTaskDelay(2 / portTICK_RATE_MS);				   
 
 					 GSM_Timer.State_Change = STATE_MODEM_FIRST_INIT;
-					 GSM_Timer.Interval = 6000;  //23.09.2012 //6000
+					 GSM_Timer.Interval = 6000;
 					 CARRENT_STATE = STATE_SOME_WAIT;
                  }   
 			     break;
@@ -1507,6 +1509,7 @@ void vTask5( void *pvParameters )
             uartSendByte(0, '\n');
 #endif
                  u08 data_len = 0; 
+				 
 				 ModemSendCom(SET_GPRS_FORMAT, 500);
 
 				 ModemSendCom(CONNECT_DOMAIN_NAME, 500);
@@ -1528,8 +1531,14 @@ void vTask5( void *pvParameters )
 				 xSemaphoreGive(xI2CMutex);
 
 				 data_len = strnlen((char *)&send_data_buff[0], 60);
-				 send_data_buff[data_len] = '\n';
-				 send_data_buff[data_len+1] = 0;
+				 if (data_len <= 60 - 2) {
+				     send_data_buff[data_len] = '\n';
+				     send_data_buff[data_len+1] = 0;
+				 }
+				 else {
+				     send_data_buff[60-2] = '\n';
+				     send_data_buff[60-1] = 0;
+				 }
 
 				 if (ModemSendData((char *)&send_data_buff[0], 1000) == ACK_OK) {
 
@@ -1810,7 +1819,7 @@ void vTask5( void *pvParameters )
 //        vTaskDelay(500 / portTICK_RATE_MS);
 
 #if CHECK_STACK
-    DebugBuff[4] = uxTaskGetStackHighWaterMark(NULL);
+    DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
 #endif //CHECK_STACK
 
 	}
@@ -1855,7 +1864,7 @@ void vTask6( void *pvParameters )
         vTaskDelay(10 / portTICK_RATE_MS);
 
 #if CHECK_STACK
-    DebugBuff[5] = uxTaskGetStackHighWaterMark(NULL);
+    DebugBuff[4] = uxTaskGetStackHighWaterMark(NULL);
 #endif //CHECK_STACK
 
     }

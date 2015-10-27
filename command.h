@@ -12,7 +12,6 @@ typedef struct {
 } TimeAndDate;
 
 
-    
 #define  START_POINT_YEAR    15u
 
 #define  SECONDS_MAX    60u

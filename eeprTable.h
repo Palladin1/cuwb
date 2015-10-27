@@ -109,7 +109,7 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
    											
 
    [R_ADR(LockParamEEPROMAdr)]          =   0x0100,
-   [R_ADR(SoftVersionEEPROMAdr)]        =   0x3332,
+   [R_ADR(SoftVersionEEPROMAdr)]        =   0x3335,
    
 }; 
 

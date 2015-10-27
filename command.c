@@ -449,9 +449,10 @@ extern TimeAndDate Time_And_Date_System;
 		eeprom_write_word ((uint16_t*)*(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
 		portEXIT_CRITICAL();
 			
-		EepromAdr = CostLitreCoefEEPROMAdr;													
+		EepromAdr = CostLitreCoefEEPROMAdr;	
+		
+		portENTER_CRITICAL();												
 		eeprom_busy_wait();
-		portENTER_CRITICAL();
 		eeprom_read_block (EEPROM_DATA,(uint16_t *)*(&EepromAdr), 54);
         portEXIT_CRITICAL();
 
@@ -477,8 +478,8 @@ extern TimeAndDate Time_And_Date_System;
 
 	void READ_INT_EEPROM (void) {
 		
+		portENTER_CRITICAL();		
 		eeprom_busy_wait();
-		portENTER_CRITICAL();
 		((uint16_t*) get_cmd_buff)[2] = eeprom_read_word ((uint16_t *)*(&((uint16_t*) get_cmd_buff)[1]));
 		portEXIT_CRITICAL();
 		get_cmd_buff[0] = 5;
@@ -623,13 +624,13 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
             report_buff[35+cnt_buf] = Fl_State_WtrCnt;
 		}
 		else {
-		    report_buff[32+cnt_buf] = '2';
+		    report_buff[32+cnt_buf] = '0';
 
-            report_buff[33+cnt_buf] = '2';
+            report_buff[33+cnt_buf] = '0';
 
-            report_buff[34+cnt_buf] = '2';
+            report_buff[34+cnt_buf] = '0';
       
-            report_buff[35+cnt_buf] = '2';
+            report_buff[35+cnt_buf] = '0';
 		}
 /*
 ************************************************************ 

@@ -70,7 +70,7 @@ void InitPortsIO (void) {
     eeprom_read_block((u16 *)&RegistratorSaveWater,(uint32_t *)*(&EepromAdr), 4);
 
 
-/*Check version of softvare and set if this need*/    
+/* Check version of softvare and set if don't equal */    
 	u16 CurrSoftVer;
 	EepromAdr = SoftVersionEEPROMAdr;
     eeprom_read_block((u16 *)&CurrSoftVer,(uint16_t *)*(&EepromAdr), 2);
