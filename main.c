@@ -582,6 +582,7 @@ void vTask4( void *pvParameters )
 //    u08 Fl_Ev_RequestData = 6;
     u08 Fl_Ev_ErrorBill   = 7;
 	u08 Fl_Ev_RegError    = 8;
+	const u08 Fl_Ev_ServiceKey  = 9;
 			
 
     static u08 Sygnal_Get_NoWater;
@@ -594,6 +595,8 @@ void vTask4( void *pvParameters )
     static u08 Sygnal_Get_DoorOpn;
     static u08 Sygnal_Get_BillGet;
     static u08 Sygnal_Get_CoinGet;
+
+	static u08 Sygnal_Get_ServiceKey;
 
     static u08 Fl_ManeyGet = 0;
 
@@ -612,6 +615,11 @@ void vTask4( void *pvParameters )
 	static u08 Fl_Get_New_Data = 0;
 
 	static u08 is_service_mode;
+
+	static u08 coin_which_get_cntr;
+	static u08 bill_which_get_cntr;
+
+	static u08 is_service_key_put;
 	
 	enum {
 	    IDLE_STATE,
@@ -669,7 +677,7 @@ void vTask4( void *pvParameters )
     switch (registrator_state) {
 
 	    case WAIT_INIT: {
-		     if ( xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE ) {
+		     if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
                  
 				 if (IsRegistratorConnect && !is_service_mode) {
   		             Uart0Disable();
@@ -884,6 +892,8 @@ void vTask4( void *pvParameters )
 		    Sygnal_Get_NoWrkBill = ((ExtSignalStatus >> 9) & 1);
 
 			IsRegistratorConnect = ((ExtSignalStatus >> 10) & 1);
+
+			Sygnal_Get_ServiceKey = ((ExtSignalStatus >> 11) & 1);
 		}
 
 		if (Sygnal_Get_NoPower1 || Sygnal_Get_NoPower2) {
@@ -906,7 +916,7 @@ void vTask4( void *pvParameters )
 							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 					        TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
-                            SaveEvent((u08 *)&Time_And_Date_Bcd, MoneyToReturn, WaterToReturn, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
+                            SaveEvent((u08 *)&Time_And_Date_Bcd, MoneyToReturn, WaterToReturn, 0, 0, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
 			                xSemaphoreGive(xI2CMutex);
 
 							                                                       /* all flags sets that same method as the end of sell */
@@ -1027,7 +1037,7 @@ void vTask4( void *pvParameters )
 	    }
 
 	
-	    if (Sygnal_Get_CoinGet || Sygnal_Get_BillGet) {
+	    if ((Sygnal_Get_CoinGet || Sygnal_Get_BillGet) && !Fl_SellStart) {
             		
             Fl_ManeyGet = 1;
 
@@ -1035,11 +1045,15 @@ void vTask4( void *pvParameters )
 			    Sygnal_Get_CoinGet = 0;
 	    	    CountRManey += 25;
 		        ManeySave += 25;
+
+				coin_which_get_cntr++;
             }
 			else {
     			Sygnal_Get_BillGet = 0;
 		        CountRManey += 100;
 		        ManeySave += 100;
+				
+				bill_which_get_cntr++;
 			}
 
 			portENTER_CRITICAL();
@@ -1078,7 +1092,7 @@ void vTask4( void *pvParameters )
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);  
 				TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
-		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, 1);
+		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, coin_which_get_cntr, bill_which_get_cntr, 1);
 			    
 				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
 
@@ -1090,6 +1104,9 @@ void vTask4( void *pvParameters )
 				}
 
                 xSemaphoreGive(xI2CMutex);
+                
+				coin_which_get_cntr = 0;
+				bill_which_get_cntr = 0;
 
 				ManeySave = WaterSave = 0;
 		    }
@@ -1137,7 +1154,18 @@ void vTask4( void *pvParameters )
     	}
 
 
-	    if (Sygnal_Get_Reset) {
+        if (Sygnal_Get_ServiceKey) {
+		    if (is_service_key_put == 0) {
+			    is_service_key_put = 1; 
+                xQueueSend(xEventsQueue, &Fl_Ev_ServiceKey, 0);
+			}
+		}
+		else {
+		    is_service_key_put = 0;
+	    }
+
+
+	    if (Sygnal_Get_Reset && !Sygnal_Get_ServiceKey) {
        
 	        if (!Fl_ErrReset) { 
                 StopGetManey();
@@ -1153,7 +1181,7 @@ void vTask4( void *pvParameters )
 			    TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 3);
+                SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
                 xSemaphoreGive(xI2CMutex);
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);

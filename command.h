@@ -20,6 +20,8 @@ typedef struct {
 #define  MONTH_MAX      12u
 #define  YEAR_MAX       99u
 
+#define  EXT_EEPR_LINE_WRT_SIZE    13
+
 
 u08 CntTmrBill;
 u08 CntTmrCoin;
@@ -32,6 +34,7 @@ u08 CntStop;
 u08 CntReset;
 u16 CntNoWrkBill;
 u08 CntRegPresent;
+u08 CntReserv1Press;
 
 u16 MoneyToReturn;
 u16 WaterToReturn;
@@ -50,7 +53,7 @@ void SellingStop(void);
 void StartGetManey(void);
 void StopGetManey(void);
 
-void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u08 event);
+void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, const u08 coin_cntr, const u08 bill_cntr, u08 event);
 
 u16 KeySkan (u16 key_kode);
 

@@ -114,9 +114,9 @@ void StopGetManey(void) {
 }
 
 
-void SaveEvent(u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u08 event) {
+void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, const u08 coin_cntr, const u08 bill_cntr, u08 event) {
 
-    u08 EventBuff[12];
+    u08 EventBuff[13];
 	u08 AdrEventBuff[2];
 	u08 i;
 		
@@ -129,10 +129,14 @@ void SaveEvent(u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u
 	EventBuff[7] = (cntmaney & 0x00FF);
 	EventBuff[8] = (cntwater >> 8);
 	EventBuff[9] = (cntwater & 0x00FF);
-	EventBuff[10] = event;
+/*	EventBuff[10] = event;*/
+
+	EventBuff[10] = coin_cntr;
+	EventBuff[11] = bill_cntr;
+	EventBuff[12] = event;
 
 //    Global_Time_Deluy(5);
-    if (*ext_eepr_data_adr < (*ext_eepr_cur_adr + 11)) { 
+    if (*ext_eepr_data_adr < (*ext_eepr_cur_adr + EXT_EEPR_LINE_WRT_SIZE)) { 
 	    ADR_LAST_DATTA  = *ext_eepr_cur_adr;
         *ext_eepr_cur_adr = 0x0000;
 
@@ -143,7 +147,7 @@ void SaveEvent(u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, u
     	Global_Time_Deluy(5);
 	}
    
-    i2ceepromWriteBloc(*ext_eepr_cur_adr, EventBuff, 11);
+    i2ceepromWriteBloc(*ext_eepr_cur_adr, EventBuff, EXT_EEPR_LINE_WRT_SIZE);
 	*ext_eepr_cur_adr += 11;
 	IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, *ext_eepr_cur_adr);
 }
@@ -332,8 +336,24 @@ u16 KeySkan(u16 key_kode) {
 	    CntRegPresent = 0;
 	}
 
-return key_kode;	
+//=================================
 
+	if (!BTN_RESERV1) {
+	    if (CntReserv1Press == 20) {
+			key_kode |= (1 << 11);
+			CntReserv1Press = 30;
+		}    
+        else if (CntReserv1Press < 20) {
+		    CntReserv1Press++;
+        }
+	}
+	else {
+		key_kode &= ~(1 << 11);
+	    CntReserv1Press = 0;
+	}
+	
+
+    return key_kode;	
 }
 
 //=====================================================================
@@ -381,7 +401,7 @@ extern TimeAndDate Time_And_Date_System;
         u16 stop_adr_uart_rx_buf  = (((u16)get_cmd_buff[5]) << 8) + get_cmd_buff[4];
         
 	   	
-		if (start_adr_uart_rx_buf < (*ext_eepr_data_adr - 11)) {
+		if (start_adr_uart_rx_buf < (*ext_eepr_data_adr - EXT_EEPR_LINE_WRT_SIZE)) {
 		    start_memAddr_for_read = start_adr_uart_rx_buf;
 		}
 
@@ -395,12 +415,12 @@ extern TimeAndDate Time_And_Date_System;
 								 
 		    while (start_memAddr_for_read < ADR_LAST_DATTA) {
 		
-		    	i2ceepromReadBloc(start_memAddr_for_read, (get_cmd_buff+2), 11);
+		    	i2ceepromReadBloc(start_memAddr_for_read, (get_cmd_buff+2), EXT_EEPR_LINE_WRT_SIZE);
 	
-			    start_memAddr_for_read += 11;
-			    get_cmd_buff[0] = 12;
+			    start_memAddr_for_read += EXT_EEPR_LINE_WRT_SIZE;
+			    get_cmd_buff[0] = 12 + 2;
 			    
-			    uartSendBuf(0, &get_cmd_buff[0], 13);
+			    uartSendBuf(0, &get_cmd_buff[0], EXT_EEPR_LINE_WRT_SIZE + 2);
 //		        _delay_ms(20);
                 Global_Time_Deluy(20);
     	    }
