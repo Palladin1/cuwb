@@ -869,6 +869,126 @@ void vTask4( void *pvParameters )
 			 }		   
 			 break;
 		}
+        case SEND_TIME_DATE_GET: {
+			 
+			 if (should_send_to_registrator) {
+                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+
+                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     		     }
+			 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+			         }
+				     case RR_CONNECTION_OK: {
+				          Fl_RegistratorErr = 0;
+
+                          registrator_state = SEND_SELL_START;
+
+                          should_send_to_registrator = 1;
+					      break;
+					 }
+					 default:
+					      break;
+				 }
+			 }		   
+			 break;
+		}
+		case SEND_TIME_DATE_CUR_GET: {
+			 
+			 if (should_send_to_registrator) {
+                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+
+                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     		     }
+			 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+			         }
+				     case RR_CONNECTION_OK: {
+				          Fl_RegistratorErr = 0;
+
+                          registrator_state = SEND_SELL_START;
+
+                          should_send_to_registrator = 1;
+					      break;
+					 }
+					 default:
+					      break;
+				 }
+			 }		   
+			 break;
+		}
+		case SEND_MODEM_STATUS_GET: {
+			 
+			 if (should_send_to_registrator) {
+                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+
+                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     		     }
+			 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+			         }
+				     case RR_CONNECTION_OK: {
+				          Fl_RegistratorErr = 0;
+
+                          registrator_state = SEND_SELL_START;
+
+                          should_send_to_registrator = 1;
+					      break;
+					 }
+					 default:
+					      break;
+				 }
+			 }		   
+			 break;
+		}
+        case SEND_WITHDRAW_THE_AMOUNT: {
+			 
+			 if (should_send_to_registrator) {
+                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+
+                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                     should_send_to_registrator = 0;
+     		     }
+			 }
+			 else {
+			     switch ( RegistratorStatusGet() ) {
+				     case RR_CONNECTION_ERROR: {
+	                      Fl_RegistratorErr = 1;
+
+						  break;
+			         }
+				     case RR_CONNECTION_OK: {
+				          Fl_RegistratorErr = 0;
+
+                          registrator_state = SEND_SELL_START;
+
+                          should_send_to_registrator = 1;
+					      break;
+					 }
+					 default:
+					      break;
+				 }
+			 }		   
+			 break;
+		}
 //		default : {
 //		     break;
 //		}
