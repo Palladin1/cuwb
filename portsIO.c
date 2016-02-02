@@ -52,7 +52,7 @@ void InitPortsIO (void) {
 	pfone_number_7	     = (uint16_t *) &EEPROM_DATA[14];
 
 	board_version	     = (uint16_t *) &EEPROM_DATA[15];
-    sms_water_level	     = (uint16_t *) &EEPROM_DATA[16];
+    water_level_marck_min = (uint16_t *) &EEPROM_DATA[16];
 
 	amount_water         = (uint32_t *) &EEPROM_DATA[17]; 
 	day_maney_cnt        = (uint32_t *) &EEPROM_DATA[19];
@@ -195,6 +195,7 @@ void Uart1_Resiv(u08 udrdata1) {
 }
 
 void Uart1Enable (void) {
+    uart1DeInit();
     uart1Init();
 	uartSetBaudRate(1, 19200);
 	uartSetRxHandler(1, Uart1_Resiv);
@@ -209,6 +210,7 @@ void Uart1Disable (void) {
 
 /* The UART 0 initialization */
 void Uart0Enable (void (*getbyte)(u08 c),  u16 baudrate) {
+    uart0DeInit();
     uart0Init();
 	uartSetBaudRate(0, baudrate);
 	uartSetRxHandler(0, getbyte);

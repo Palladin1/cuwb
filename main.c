@@ -88,17 +88,17 @@ PGM_P SMS_TEXT[] PROGMEM = {
 };
 
 
-#define ACCELEROMETR_PERIOD   3000ul           //3000 * 100mS = 300S
-#define CHECK_COUNTER_PERIOD  50ul             //50  * 100mS = 5S
+#define  ACCELEROMETR_PERIOD   3000ul           //3000 * 100mS = 300S
+#define  CHECK_COUNTER_PERIOD  50ul             //50  * 100mS = 5S
 
-#define MINUTES_IN_DAY        1440ul    
+#define  MINUTES_IN_DAY        1440ul    
 
-#define REPORT_FLAG_ERR       0x31   
-#define REPORT_FLAG_OK        0x30
+#define  REPORT_FLAG_ERR          0x31   
+#define  REPORT_FLAG_OK           0x30
 
-#define SMS_FLAG_DAY          0x01
-#define SMS_FLAG_NIGHT        0x00
-#define SMS_FLAG_SEND_DISABLE 0x02   
+#define  SMS_FLAG_DAY             0x01
+#define  SMS_FLAG_NIGHT           0x00
+#define  SMS_FLAG_SEND_DISABLE    0x02   
 
 #define  TIME_SEND_REGUEST    50ul   // 1 second = x * 100ms - is task sleep    
 
@@ -194,7 +194,6 @@ void vTask4( void *pvParameters );
 void vTask5( void *pvParameters );
 void vTask6( void *pvParameters );
 
-
 void vCallback_ButtonPoll (xTimerHandle xTimer);
 
 void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer);
@@ -202,9 +201,7 @@ void vCallback_BuzzerOff (xTimerHandle xTimer);
 
 void vCallback_ModemStart (xTimerHandle xTimer);
 
-
 //void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
-
 
 static inline u16 MoneyToWater (u16 money_quantity);
 static inline u16 MoneyToPulse (u16 money_quantity); 
@@ -241,9 +238,7 @@ int main( void )
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
     vSemaphoreCreateBinary(xTimeSendRequestSem);
 	
-
     xI2CMutex = xSemaphoreCreateMutex();
-
 
     InitPortsIO();
 
@@ -254,7 +249,7 @@ int main( void )
 	IndicatorInit();
 
 #if MODEM_DBG
-Uart0Disable();
+//Uart0Disable();
 Uart0Enable(Uart0_Resiv,  19200);
 #endif
 
@@ -276,7 +271,6 @@ Uart0Enable(Uart0_Resiv,  19200);
     
 	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80 - 20, NULL, 1, NULL);   //80
  
-
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
     
@@ -510,7 +504,7 @@ void vTask2( void *pvParameters )
 #endif //CHECK_STACK
     }
 
-    vTaskDelete (NULL);
+    vTaskDelete(NULL);
 }
 
 
@@ -548,7 +542,7 @@ void vTask3( void *pvParameters )
 
 	}
 
-    vTaskDelete (NULL);
+    vTaskDelete(NULL);
 }
 
 
@@ -559,31 +553,47 @@ void vTask4( void *pvParameters )
 
     static TimeAndDate Time_And_Date_Bcd = {0};
 
-    static u08 Fl_SellEnable   = 0;
-    static u08 Fl_SellStart    = 0;
-    static u08 Fl_SellStop	   = 0;
-    static u08 Fl_MergeEnable  = 0;
-
-    static u08 Fl_ErrPower	   = 0;
-    static u08 Fl_ErrWater	   = 0;
-    static u08 Fl_ErrReset	   = 0;
-    static u08 Fl_ErrMinWater  = 0;
-	static u08 Fl_ErrRsvBill   = 0;
+    static u08 Fl_SellEnable    = 0;
+    static u08 Fl_SellStart     = 0;
+    static u08 Fl_SellStop	    = 0;
+    static u08 Fl_MergeEnable   = 0;
+    static u08 Fl_ErrPower	    = 0;
+    static u08 Fl_ErrWater	    = 0;
+    static u08 Fl_SeifOpened    = 0;
+    static u08 Fl_ErrMinWater   = 0;
+	static u08 Fl_ErrRsvBill    = 0;
+	static u08 Fl_WtrCntrErr    = 0;
+	static u08 Fl_ServiceOpened = 0;
 
 	static u08 Is_Registrator_Err_Gprs_Send = 0;
 	
-	static u08 Fl_WtrCntrErr   = 0;
+    /* The events which sends to server by GSM modem */
+	enum {
+        Fl_Ev_NoWater               =  1,          
+        Fl_Ev_NoPower               =  2,
+        Fl_Ev_TakeManey             =  3,
+        Fl_Ev_GetMoving             =  4,
+        Fl_Ev_LimWater              =  5,
+        Fl_Ev_RequestData           =  6,
+        Fl_Ev_ErrorBill             =  7,
+	    Fl_Ev_RegError              =  8,
+	    Fl_Ev_ServiceModeActivate   =  9,
+	    Fl_Ev_ServiceModeDeactivate = 10,
+		Fl_Ev_ServiceOpening        = 11,  
+	} SYSTEM_EVENTS;
 
-    u08 Fl_Ev_NoWater     = 1;          //  the namber of sending by SMS event
-    u08 Fl_Ev_NoPower     = 2;
-    u08 Fl_Ev_TakeManey   = 3;
-    u08 Fl_Ev_GetMoving   = 4;
-    u08 Fl_Ev_LimWater    = 5;
-//    u08 Fl_Ev_RequestData = 6;
-    u08 Fl_Ev_ErrorBill   = 7;
-	u08 Fl_Ev_RegError    = 8;
-	const u08 Fl_Ev_ServiceKey  = 9;
-			
+/*			
+    const u08 Fl_Ev_NoWater              =  1;          
+    const u08 Fl_Ev_NoPower              =  2;
+    const u08 Fl_Ev_TakeManey            =  3;
+    const u08 Fl_Ev_GetMoving            =  4;
+    const u08 Fl_Ev_LimWater             =  5;
+//  const u08 Fl_Ev_RequestData = 6;
+    const u08 Fl_Ev_ErrorBill            =  7;
+	const u08 Fl_Ev_RegError             =  8;
+	const u08 Fl_Ev_ServiceKeyPresent    =  9;
+	const u08 Fl_Ev_ServiceKeyNotPresent = 10;
+*/
 
     static u08 Sygnal_Get_NoWater;
     static u08 Sygnal_Get_NoWrkBill;
@@ -619,31 +629,39 @@ void vTask4( void *pvParameters )
 	static u08 coin_which_get_cntr;
 	static u08 bill_which_get_cntr;
 
-	static u08 is_service_key_put;
+	static u08 is_service_key_present;
 	
-	enum {
+	typedef enum {
 	    IDLE_STATE,
 		WAIT_INIT,
 		SEND_SELL_START,
 		SEND_SELL_END,
 		SEND_SELL_CANCEL,
+		SEND_TIME_DATE_GET, 
+		SEND_MODEM_STATUS_CHECK, 
+		SEND_WITHDRAW_THE_AMOUNT,
+		REGISTRATOR_ANSVER_GET,
+		REGISTRATOR_ANSVER_WAIT,
 		SERVICE_MODE
-	} registrator_state;
+	} REGISTRATOR_STATE_COMMUNICATE;
 
+	REGISTRATOR_STATE_COMMUNICATE  registrator_state;
+	REGISTRATOR_STATE_COMMUNICATE  registrator_ansver_to;
+ 
 	enum event_to_ext_eeprom {
 	    EV_SAVE_SELL_START = 1,
 		EV_SAVE_CASH_COLLECTION = 3,
 		EV_SAVE_NO_POWER
 	};
 
-	static u08 should_send_to_registrator = 1;
 	static RegistratorReceivedData err_data;
-	
-    registrator_state = WAIT_INIT;
-
+	static RegistratorReceivedData request_data;
 	
 	static RegistratorMsg CUWB_RegistratorMsg;
 	static RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
+
+    registrator_state = WAIT_INIT;
+	registrator_ansver_to = IDLE_STATE;
 
     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
     pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = 0;
@@ -664,7 +682,6 @@ void vTask4( void *pvParameters )
 
 	is_service_mode = ((IS_SERVICE_MODE) ? 1 : 0);
 
-// TODO:   
     wdt_enable(WDTO_2S);
 
 	for( ;; )
@@ -680,13 +697,13 @@ void vTask4( void *pvParameters )
 		     if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
                  
 				 if (IsRegistratorConnect && !is_service_mode) {
-  		             Uart0Disable();
+//                   Uart0Disable();
  		             Uart0Enable(RegistratorCharPut, 9600);
 
 					 registrator_state = SEND_SELL_START;
                  }
 		         else {
-		             Uart0Disable();
+//		             Uart0Disable();
 		             Uart0Enable(Uart0_Resiv,  19200);
 
 					 registrator_state = (is_service_mode) ? SERVICE_MODE: IDLE_STATE;
@@ -720,273 +737,169 @@ void vTask4( void *pvParameters )
 		     break;
 		}
 		case SEND_SELL_START: {
-		     if (should_send_to_registrator) {
-				      if ( RegistratorDataSet(RCMD_SELL_START, NULL) ) {
-			              should_send_to_registrator = 0; 
-			          }
+		     if ( RegistratorDataSet(RCMD_SELL_START, NULL) ) {
+				 registrator_ansver_to = SEND_SELL_START;
+				 registrator_state = REGISTRATOR_ANSVER_WAIT;
 			 }
-			 else {
-
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
-
-						  break;
-				     }
-				     case RR_CONNECTION_OK: {
-				          					 
-					      RegistratorDataGet(&err_data, ERROR_CODE);
-
-					      switch ( RegistratorErrorCode(&err_data) ) {
-					  
-					          case RR_ERR_NO: {
-					               Fl_RegistratorErr = 0;
-						           registrator_state = IDLE_STATE;
-
-								   break;
-					          }
-					          case RR_ERR_STATE_NOT_RIGHT: {
-					               Fl_RegistratorErr = 0;
-						           registrator_state = SEND_SELL_CANCEL;
-
-								   break;
-					          }
-					          default: {
-					               Fl_RegistratorErr = 1;
-				    	           registrator_state = SEND_SELL_START;
-
-								   break;
-					          }
-					      }
-
-						  should_send_to_registrator = 1;
-						  break;
-					 }
-					 default:
-					      break;
-				 }
-			 }
-		     break;
+			 break;
 		}
 		case SEND_SELL_END: {
 		     
-			 if (should_send_to_registrator) {
-			     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
-                 pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-                 pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
+		     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
              
-			     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     			 }
+		     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_SELL_END;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-                          Fl_RegistratorErr = 1;
-
-						  break;
-                     }
-					 case RR_CONNECTION_OK: {
-                          RegistratorDataGet(&err_data, ERROR_CODE);
-
-					      switch ( RegistratorErrorCode(&err_data) ) {
-					  
-					          case RR_ERR_NO: {
-					               Fl_Send_Sell_End = 0;
-					               Fl_RegistratorErr = 0;
-
-						           RegistratorSaveWater = 0;
-					               if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0)   
-								       xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-    	      	                       IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
-                                       xSemaphoreGive(xI2CMutex);
-
-					               registrator_state = SEND_SELL_START;
-
-								   break;
-					          }
-					          case RR_ERR_STATE_NOT_RIGHT: {
-					               Fl_RegistratorErr = 0;
-						           registrator_state = SEND_SELL_START;
-
-								   break;
-					          }
-					          default: {
-					               Fl_RegistratorErr = 1;
-				    	           registrator_state = SEND_SELL_START;
-
-								   break;
-					          }
-						  }
-
-                          should_send_to_registrator = 1;
-					      break;
-				     }
-					 default:
-					      break;
-				 }
-			 }
-		     break;
+			 break;
 		}
 		case SEND_SELL_CANCEL: {
 			 
-			 if (should_send_to_registrator) {
 #if CHECK_STACK
 			     //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
                  static u08 i = 0;
                  DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
                  pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
              
-                 if(i >= TASK_NUMBER)
+                 if(i >= TASK_NUMBER) {
                      i = 0;
+				 }
 #else
               pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
-#endif //CHECK_STACK
+#endif /* CHECK_STACK */
 
-
-                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     		     }
-			 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
-
-						  break;
-			         }
-				     case RR_CONNECTION_OK: {
-				          Fl_RegistratorErr = 0;
-
-                          registrator_state = SEND_SELL_START;
-
-                          should_send_to_registrator = 1;
-					      break;
-					 }
-					 default:
-					      break;
-				 }
-			 }		   
+             if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+                 registrator_ansver_to = SEND_SELL_CANCEL;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
+     		 }
 			 break;
 		}
         case SEND_TIME_DATE_GET: {
-			 
-			 if (should_send_to_registrator) {
-                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
-
-                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     		     }
-			 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
-
-						  break;
-			         }
-				     case RR_CONNECTION_OK: {
-				          Fl_RegistratorErr = 0;
-
-                          registrator_state = SEND_SELL_START;
-
-                          should_send_to_registrator = 1;
-					      break;
-					 }
-					 default:
-					      break;
-				 }
-			 }		   
+		 
+			 if ( RegistratorDataSet(RCMD_DATA_TIME_GET, NULL) ) {
+			     registrator_ansver_to = SEND_SELL_END;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
+	    	 }
 			 break;
 		}
-		case SEND_TIME_DATE_CUR_GET: {
-			 
-			 if (should_send_to_registrator) {
-                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+		case SEND_MODEM_STATUS_CHECK: {
 
-                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     		     }
-			 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
+			 pCUWB_RegistratorMsg->Data.Report.IsPrint = 0;          /* 0 - not print a report, 1 - print a report */
 
-						  break;
-			         }
-				     case RR_CONNECTION_OK: {
-				          Fl_RegistratorErr = 0;
-
-                          registrator_state = SEND_SELL_START;
-
-                          should_send_to_registrator = 1;
-					      break;
-					 }
-					 default:
-					      break;
-				 }
-			 }		   
-			 break;
-		}
-		case SEND_MODEM_STATUS_GET: {
-			 
-			 if (should_send_to_registrator) {
-                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
-
-                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     		     }
-			 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
-
-						  break;
-			         }
-				     case RR_CONNECTION_OK: {
-				          Fl_RegistratorErr = 0;
-
-                          registrator_state = SEND_SELL_START;
-
-                          should_send_to_registrator = 1;
-					      break;
-					 }
-					 default:
-					      break;
-				 }
-			 }		   
+			 if ( RegistratorDataSet(RCMD_MODEM_STATUS, (void **) &pCUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_SELL_END;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
+	    	 }
 			 break;
 		}
         case SEND_WITHDRAW_THE_AMOUNT: {
 			 
-			 if (should_send_to_registrator) {
-                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+			 pCUWB_RegistratorMsg->Data.Money.DataCode = 0;          /* 0 -  national currency */
+             pCUWB_RegistratorMsg->Data.Money.Quantity = Emount of the money will to clear;         /* current emount money which need put or get out from registrator */
+			 pCUWB_RegistratorMsg->Data.Money.Quantity *= -1;        /* if number < 0 we have get out the data from registrator*/
 
-                 if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
-                     should_send_to_registrator = 0;
-     		     }
-			 }
-			 else {
-			     switch ( RegistratorStatusGet() ) {
-				     case RR_CONNECTION_ERROR: {
-	                      Fl_RegistratorErr = 1;
+             if ( RegistratorDataSet(RCMD_CASH_GET_PUT, (void **) &pCUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_SELL_END;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
+	    	 }
+			 break;
+		}
+		case REGISTRATOR_ANSVER_WAIT: {
 
-						  break;
-			         }
-				     case RR_CONNECTION_OK: {
-				          Fl_RegistratorErr = 0;
+			 if (RegistratorStatusGet() == RR_CONNECTION_OK) {
+			     registrator_state = REGISTRATOR_ANSVER_GET;
+             }
+			 else if (RegistratorStatusGet() == RR_CONNECTION_ERROR) {
+			     Fl_RegistratorErr = 1;
+             }
+			 break;
+		}
+    	case REGISTRATOR_ANSVER_GET: {
+		     switch (registrator_ansver_to) {
+			     case SEND_SELL_START: {
+                      RegistratorDataGet(&err_data, ERROR_CODE);
 
-                          registrator_state = SEND_SELL_START;
-
-                          should_send_to_registrator = 1;
-					      break;
-					 }
-					 default:
-					      break;
+					  switch ( RegistratorErrorCode(&err_data) ) {
+					  
+					      case RR_ERR_NO: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = IDLE_STATE;
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_CANCEL;
+							   break;
+                          }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = SEND_SELL_START;
+							   break;
+					      }
+					  }
+					  break;
 				 }
-			 }		   
+				 case SEND_SELL_END: {
+                      RegistratorDataGet(&err_data, ERROR_CODE);
+
+					  switch ( RegistratorErrorCode(&err_data) ) {
+					      case RR_ERR_NO: {
+					           Fl_Send_Sell_End = 0;
+					           Fl_RegistratorErr = 0;
+
+						       RegistratorSaveWater = 0;
+					           if (IntEeprDwordRead(RegistratorWaterEEPROMAdr) != 0) {  
+							       xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+    	      	                   IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
+                                   xSemaphoreGive(xI2CMutex);
+							   }
+
+					           registrator_state = SEND_SELL_START;
+
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_START;
+
+							   break;
+					      }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = SEND_SELL_START;
+
+							   break;
+					      }
+				     }
+					 break;
+				 }
+				 case SEND_SELL_CANCEL: {
+			          Fl_RegistratorErr = 0;
+                      registrator_state = SEND_SELL_START;
+                      break;
+				 }
+				 case SEND_TIME_DATE_GET: {
+                      RegistratorDataGet(&request_data, DATA);
+                      
+                      break;
+                 }
+				 case SEND_MODEM_STATUS_CHECK: {
+				      RegistratorDataGet(&request_data, DATA);
+				 
+				      break;
+				 }
+				 case SEND_WITHDRAW_THE_AMOUNT: {
+//				      RegistratorDataGet(&request_data, DATA);
+
+					  break;
+			     }
+				 default:
+				 break;
+			 }
+
+			 registrator_ansver_to = 0;
 			 break;
 		}
 //		default : {
@@ -1058,7 +971,7 @@ void vTask4( void *pvParameters )
 
 				            WaterSave = MoneyToWater(ManeySave);
 
-				            RegistratorSaveWater += WaterSave;                                     /* set data to transmit to registrator */
+				            RegistratorSaveWater += WaterSave;                                     /* emount of water to transmit to registrator */
 
                             if (*amount_water <= WaterSave) {                                      /* how many water left in the barrel */
 			                    *amount_water = 0;
@@ -1088,8 +1001,9 @@ void vTask4( void *pvParameters )
 		            }
 //				}
 				
-				/*xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0);*/
-				xQueueSendToFront(xEventsQueue, &Fl_Ev_NoPower, 0);
+				/* xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0); */
+				SYSTEM_EVENTS = Fl_Ev_NoPower;
+				xQueueSendToFront(xEventsQueue, &SYSTEM_EVENTS, 0);
             }
 	    }
         else {
@@ -1106,7 +1020,8 @@ void vTask4( void *pvParameters )
 			    gFlLedStateWater = 1;
                 Fl_ErrWater = 1;
 		        //Fl_Ev_NoWater = 1;
-				xQueueSend(xEventsQueue, &Fl_Ev_NoWater, 0);
+				SYSTEM_EVENTS = Fl_Ev_NoWater;
+				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
             }
 	    }
         else {
@@ -1123,7 +1038,8 @@ void vTask4( void *pvParameters )
 
         if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
 		    if (!Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
-		        xQueueSend(xEventsQueue, &Fl_Ev_RegError, 0);
+			    SYSTEM_EVENTS = Fl_Ev_RegError;
+		        xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 			    Is_Registrator_Err_Gprs_Send = 1;
 			}
 		}
@@ -1138,7 +1054,7 @@ void vTask4( void *pvParameters )
 
 
 		if ((CountRManey >= 1000) || (!Fl_SellEnable) 
-	                              || Fl_ErrReset 
+	                              || Fl_SeifOpened 
 				    			  || Sygnal_Get_NoWater
 								  || Fl_WtrCntrErr) {
 		    StopGetManey();
@@ -1275,23 +1191,41 @@ void vTask4( void *pvParameters )
 
 
         if (Sygnal_Get_ServiceKey) {
-		    if (is_service_key_put == 0) {
-			    is_service_key_put = 1; 
-                xQueueSend(xEventsQueue, &Fl_Ev_ServiceKey, 0);
+		    if (is_service_key_present == 0) {
+			    is_service_key_present = 1; 
+
+				SellingStop();
+
+				SYSTEM_EVENTS = Fl_Ev_ServiceModeActivate;
+                xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 			}
 		}
-		else {
-		    is_service_key_put = 0;
+		else if (is_service_key_present) {
+		    is_service_key_present = 0;
+
+			CountRManey = 0;
+		    ManeySave = 0;
+
+			coin_which_get_cntr = 0;
+			bill_which_get_cntr = 0;
+
+            portENTER_CRITICAL();
+            CountPulse = 0;
+		    portEXIT_CRITICAL();
+
+            SYSTEM_EVENTS = Fl_Ev_ServiceModeDeactivate;
+			xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 	    }
 
 
-	    if (Sygnal_Get_Reset && !Sygnal_Get_ServiceKey) {
+        if (Sygnal_Get_Reset && !Sygnal_Get_ServiceKey) {
        
-	        if (!Fl_ErrReset) { 
+	        if (!Fl_SeifOpened) { 
                 StopGetManey();
-		        Fl_ErrReset = 1;
+		        Fl_SeifOpened = 1;
 			    //Fl_Ev_TakeManey = 1;
-				xQueueSend(xEventsQueue, &Fl_Ev_TakeManey, 0);
+				SYSTEM_EVENTS = Fl_Ev_TakeManey;
+				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 
                 u16 dattaH;
 		        u16 dattaL;
@@ -1309,24 +1243,36 @@ void vTask4( void *pvParameters )
                 *day_maney_cnt = 0;
     			IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
 				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+
+#if 1
+                if (*amount_water < *max_size_barrel) {
+                    IntEeprDwordWrite (AmountWaterEEPROMAdr, *max_size_barrel);
+                    *amount_water = *max_size_barrel;
+				}
+#endif
                 xSemaphoreGive(xI2CMutex);
-                                 
-                
-				
+                                 				
 				BUZZER_ON;
 				xTimerChangePeriod(xTimer_BuzzerOff, (200 / portTICK_RATE_MS), 0);
 				if (xTimerIsTimerActive(xTimer_BuzzerOff) == pdFALSE) {
 			        xTimerStart(xTimer_BuzzerOff, 0);
 			    }
-				
 
-                if (*amount_water < *max_size_barrel) {
-    			    buzer_flag = 1;
+#if 0
+                if (*amount_water < *max_size_barrel) {                        /* Is the signal of buzzer to make remember to push the key "drain of water" */
+    			    buzer_flag = 1;                                            /* which need after the  */
 				}
+#endif
 		    }
         }
-        else {
-	        Fl_ErrReset = 0;
+		else if (Sygnal_Get_Reset && Sygnal_Get_ServiceKey) {
+		    Fl_ServiceOpened = 1;
+		    SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
+			xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+		}
+		else {
+		    Fl_ServiceOpened = 0;
+			Fl_SeifOpened = 0;
 	    }
 
 
@@ -1338,7 +1284,7 @@ void vTask4( void *pvParameters )
 	        }
         }
 
-
+#if 0
 	    if (Sygnal_Get_DoorOpn && !Fl_MergeEnable && Sygnal_Get_Reset && !Fl_WtrCntrErr) {
 
 		   	Fl_MergeEnable = 1;
@@ -1354,19 +1300,19 @@ void vTask4( void *pvParameters )
 			}
 
             buzer_flag = 0;
-        }
-
+	    }
+#endif
 
 	    if (!Sygnal_Get_DoorOpn && Fl_MergeEnable) {
 		    SellingStop();
 			Fl_MergeEnable = 0;
 	    }
 
-
+#if 0
 		if (buzer_flag && Sygnal_Get_Stop) {
    	        buzer_flag = 0;
 		}
-
+#endif
 
         if (Fl_SellStart && !IS_COUNTER_WATER_NOT_ACTIVE && WtrCntTimer == 0) {
 		
@@ -1395,7 +1341,6 @@ void vTask4( void *pvParameters )
 
 
 		if (Fl_WtrCntrErr && Sygnal_Get_DoorOpn) {
-		    
 			Fl_WtrCntrErr = 0;
 	    }
 
@@ -1412,7 +1357,8 @@ void vTask4( void *pvParameters )
 			
 			if (AxellCntTimer == 0) {
 			    AxellCntTimer = ACCELEROMETR_PERIOD;
-                xQueueSend(xEventsQueue, &Fl_Ev_GetMoving, 0);
+				SYSTEM_EVENTS = Fl_Ev_GetMoving;
+                xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
             }
         }
     
@@ -1424,8 +1370,10 @@ void vTask4( void *pvParameters )
 			    Fl_State_RsvBill = REPORT_FLAG_ERR;
 				Fl_ErrRsvBill = 1;
 
-				if (uxQueueMessagesWaiting(xEventsQueue) < 8)
-                    xQueueSend(xEventsQueue, &Fl_Ev_ErrorBill, 0);
+				if (uxQueueMessagesWaiting(xEventsQueue) < 8) {
+				    SYSTEM_EVENTS = Fl_Ev_ErrorBill;
+                    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+				}
             }
 		}                                                          // of the bill receiver   
         else if (Fl_ErrRsvBill) {
@@ -1435,10 +1383,13 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
  
-        if ((*amount_water <= ((u32)*sms_water_level))) {
+        if ((*amount_water <= ((u32)*water_level_marck_min))) {
 	        if (!Fl_ErrMinWater) {
-				xQueueSend(xEventsQueue, &Fl_Ev_LimWater, 0);
-	            Fl_ErrMinWater = 1;
+	            Fl_ErrMinWater = 1;	
+			    
+				SYSTEM_EVENTS = Fl_Ev_LimWater;
+				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+
             }
 	    }
         else {
@@ -1448,10 +1399,9 @@ void vTask4( void *pvParameters )
 //  ////////////////////////////////////////////////////////////////////////////////
     
     vTaskDelay(2 / portTICK_RATE_MS);
-
     }
 
-    vTaskDelete (NULL);
+    vTaskDelete(NULL);
 }
 
 
@@ -1972,7 +1922,7 @@ void vTask5( void *pvParameters )
 
 	}
 
-    vTaskDelete (NULL);
+    vTaskDelete(NULL);
 }
 
 
@@ -2017,7 +1967,7 @@ void vTask6( void *pvParameters )
 
     }
 
-    vTaskDelete (NULL);
+    vTaskDelete(NULL);
 }
 
 

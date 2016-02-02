@@ -22,12 +22,7 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 		                                    0x3730,									// |
 	                                     	0x3531,                                 // |   Pfone number for sending SMS 
 	                                    	0x3900,                                 // |
-                                  //		0x3939,									// |
-                                 // 		0x3439,									//  }  Pfone number for sending SMS	
-                                  //		0x3139,									// |
-                                    //		0x3736,                                 // |   Pfone number for sending SMS 
-                                  //		0x3100,                                 // |
-	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
+  	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
 	[R_ADR(SMSWaterLevelEEPROMAdr)]     = 	0x2710,                                 //value of water for send sms 100 Litre
 	[R_ADR(AmountWaterEEPROMAdr)]       = 	0x0000,                                 //qualiti of water
 		                                    0x0000,                                 //

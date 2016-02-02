@@ -135,7 +135,7 @@ unsigned int		*pfone_number_6;
 unsigned int		*pfone_number_7;
 
 unsigned int		*board_version;
-unsigned int		*sms_water_level;
+unsigned int		*water_level_marck_min;
 
 unsigned long		*amount_water;
 unsigned long		*day_maney_cnt;
@@ -187,6 +187,7 @@ unsigned int		*lock_param;
 #define             CollectionManeyEEPROMAdr 		0xca
 
 #define             RegistratorWaterEEPROMAdr 		0xce
+//#define             RegistratorWaterEEPROMAdr 		0xce
 
 #define             LockParamEEPROMAdr              0xffc 
 #define             SoftVersionEEPROMAdr            0xffe

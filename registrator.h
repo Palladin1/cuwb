@@ -9,7 +9,11 @@
 
 #define  RCMD_SELL_START     0x7C
 #define  RCMD_SELL_END       0x7D
-#define  RCMD_SELL_CANCELL   0x6B     
+#define  RCMD_SELL_CANCELL   0x6B 
+#define  RCMD_DATA_TIME_GET  0x21                                    /* Get the date and time without seconds */
+#define  RCMD_DATA_TIMES_GET 0x3B                                    /* Get the date and time with seconds */  
+#define  RCMD_CASH_GET_PUT   0x77
+#define  RCMD_MODEM_STATUS   0xEA
 
 #define  RANSVER_NAK    0x15
 #define  RANSVER_SYN    0x16
@@ -86,10 +90,21 @@ struct RegistratorDataCancelSale {
     u32 Operation;
 };
 
+struct RegistratorDataMoneyGetPut {
+    u16 DataCode;
+	s32 Quantity;
+};
+
+struct RegistratorDataModemStatus {
+    u32 IsPrint;
+};
+
 typedef struct RR_Msg {
     union data {
-	    struct RegistratorDataFinishSale ProductInfo;
-		struct RegistratorDataCancelSale OperationNum;
+	    struct RegistratorDataFinishSale  ProductInfo;
+		struct RegistratorDataCancelSale  OperationNum;
+		struct RegistratorDataMoneyGetPut Money;
+        struct RegistratorDataModemStatus Report;
 	} Data;
 } RegistratorMsg;
 

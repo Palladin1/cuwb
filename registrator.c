@@ -53,7 +53,7 @@ void RegistratorStatusSet (REGISTRATOR_STATUS status_cur);
        
 u08 increase_seq (u08 cur);
 u08 make_data_type_n (u08 *to, u32 d);
-u08 make_data_type_m (u08 *to, u32 d);
+u08 make_data_type_m (u08 *to, s32 d);
 u08 make_data_type_q (u08 *to, u32 d);
 u08 set_point (u08 *s, u08 pos, u08 len_cur);
 
@@ -228,7 +228,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 			 if (data != NULL) {
                  offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
                  offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
-                 offset += make_data_type_m(&send_message.data[offset], (*(u32**)data)[2]);
+                 offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[2]);
 
                  send_message.data_len = offset;
 			 }
@@ -255,6 +255,45 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
                  send_message.data_len = 0;
 			 }
 
+             should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
+             break;
+        }
+		case RCMD_DATA_TIME_GET: {
+			 send_message.data_len = 0;
+                
+             should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
+             break;
+        }
+		case RCMD_CASH_GET_PUT: {
+			 if (data != NULL) {
+                 offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
+                 offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[1]);
+
+                 send_message.data_len = offset;
+			 }
+			 else {
+			     send_message.data[0] = '\0';
+                 send_message.data_len = 0;
+			 }
+                
+             should_send_data = 1;
+			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
+             break;
+        }
+		case RCMD_MODEM_STATUS: {
+			 if (data != NULL) {
+			     offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+
+                 send_message.data_len = offset;
+			 }
+             else {
+			     send_message.data[0] = '\0';
+
+                 send_message.data_len = 0;
+			 }
+                
              should_send_data = 1;
 			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
@@ -478,7 +517,7 @@ u08 make_data_type_n (u08 *to, u32 d)
     return len;
 }
 
-u08 make_data_type_m (u08 *to, u32 d)
+u08 make_data_type_m (u08 *to, s32 d)
 {
     u08 len;
 
