@@ -69,6 +69,9 @@ void InitPortsIO (void) {
 	EepromAdr = RegistratorWaterEEPROMAdr;
     eeprom_read_block((u16 *)&RegistratorSaveWater,(uint32_t *)*(&EepromAdr), 4);
 
+	EepromAdr = RegistratorCashEEPROMAdr;
+    eeprom_read_block((u16 *)&RegistratorCashClear,(uint32_t *)*(&EepromAdr), 4);
+
 
 /* Check version of softvare and set if don't equal */    
 	u16 CurrSoftVer;

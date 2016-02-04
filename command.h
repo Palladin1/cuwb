@@ -68,9 +68,12 @@ void hextoa2 (u08 binval, u08 *asc);
 
 u16 GetTimeAsMinute (TimeAndDate *time_and_date);
 u08 TimeAndDateRtcRead (TimeAndDate *time_and_date);
+void TimeAndDateRtcWrite (TimeAndDate *time_and_date_bcd);
 void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_from);
 void TimeAndDateDefaultSet (TimeAndDate *time_and_date);
 void TimeAndDateSecAdd (TimeAndDate *time_and_date);
+void TimeAndDayFromStr (TimeAndDate *time_and_date_to, u08 *str_from);
+u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit);
 
 void Get_Pfone_Number (u08 *phone_buff);
 void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber);
@@ -79,6 +82,8 @@ void Uart1Enable (void);
 void Uart1Disable (void);
 
 void uartSendBuf (u08 num, u08 *s , u08 len);
+
+u16 atoin (u08 *s, u08 n);
 
 
 #endif    /* COMMAND_H */

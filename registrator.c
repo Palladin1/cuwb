@@ -9,9 +9,9 @@
 #define  R_CRC_LEN             4
 #define  R_STATUS_LEN          6
 #define  R_SEND_DATA_LEN      20
-#define  R_RECEIV_DATA_LEN    20
+#define  R_RECEIV_DATA_LEN    30
 
-#define  RECEIVE_BUF_MAX    50
+#define  RECEIVE_BUF_MAX    60
  
 typedef enum FRAME_STATE {
     FRAME_WAIT,

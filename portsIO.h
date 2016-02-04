@@ -23,6 +23,7 @@ u16	EEPROM_DATA[54];
 
 volatile u32 CollectoinCountManey;
 volatile u32 RegistratorSaveWater;
+volatile u32 RegistratorCashClear;
 
 #define  MAX_RX_SIZE_BUFF 20
 volatile u08 BUF_UART_RX[MAX_RX_SIZE_BUFF];
@@ -187,7 +188,7 @@ unsigned int		*lock_param;
 #define             CollectionManeyEEPROMAdr 		0xca
 
 #define             RegistratorWaterEEPROMAdr 		0xce
-//#define             RegistratorWaterEEPROMAdr 		0xce
+#define             RegistratorCashEEPROMAdr 		0xd2
 
 #define             LockParamEEPROMAdr              0xffc 
 #define             SoftVersionEEPROMAdr            0xffe

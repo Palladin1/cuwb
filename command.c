@@ -752,6 +752,23 @@ u08 TimeAndDateRtcRead (TimeAndDate *time_and_date)
 }
 
 
+void TimeAndDateRtcWrite (TimeAndDate *time_and_date_bcd)
+{
+    u08 time_and_date_buf[7];
+
+	time_and_date_buf[0] = time_and_date_bcd->Second;   
+    time_and_date_buf[1] = time_and_date_bcd->Minute;
+    time_and_date_buf[2] = time_and_date_bcd->Hour;
+    time_and_date_buf[4] = time_and_date_bcd->Day;
+    time_and_date_buf[5] = time_and_date_bcd->Month;
+    time_and_date_buf[6] = time_and_date_bcd->Year;
+    
+	time_and_date_buf[3] = 0; 
+
+    DS1337WriteDatta(time_and_date_buf);
+}
+
+
 void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_from) 
 {
     time_and_date_to->Second = i_to_bcd(time_and_date_from.Second);
@@ -760,6 +777,33 @@ void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_f
 	time_and_date_to->Day    = i_to_bcd(time_and_date_from.Day);
 	time_and_date_to->Month  = i_to_bcd(time_and_date_from.Month);
 	time_and_date_to->Year   = i_to_bcd(time_and_date_from.Year);
+}
+
+
+void TimeAndDayFromStr (TimeAndDate *time_and_date_to, u08 *str_from) 
+{
+/*
+    u08 *time_date = (u08 *)time_and_date_to;
+//	if (str_from != NULL) {
+
+        u08 i = sizeof (*time_and_date_to) / sizeof (time_and_date_to->Second);
+        for (i = 0; str_from > 0; i++) {
+	        time_date[i] = atoin(str_from[i], 1);
+	    }
+//	}
+*/
+
+    time_and_date_to->Second = atoin(str_from, 2);
+    str_from += 2;
+	time_and_date_to->Minute = atoin(str_from, 2);
+	str_from += 2;
+	time_and_date_to->Hour   = atoin(str_from, 2);
+	str_from += 2;
+	time_and_date_to->Day    = atoin(str_from, 2);
+	str_from += 2;
+	time_and_date_to->Month  = atoin(str_from, 2);
+	str_from += 2;
+	time_and_date_to->Year   = atoin(str_from, 2);
 }
 
 
@@ -805,6 +849,18 @@ void TimeAndDateSecAdd (TimeAndDate *time_and_date)
 }
 
 
+u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit) 
+{
+
+//    hour_transmit->Hour   = 0;
+//    hour_transmit->Day    = 1;
+//    hour_transmit->Month  = 1;
+//    hour_transmit->Year   = START_POINT_YEAR;
+
+	return (hour_transmit->Hour < hour_cur->Hour) ? (hour_cur->Hour - hour_transmit->Hour) : 0;
+}
+
+
 inline static u08 days_in_curr_month (u08 mounth_current, u16 year_current)
 {
     u08 days_num;
@@ -834,7 +890,7 @@ inline static u08 bcd_to_i(u08 binval) {
 		temp += 10;
     }
        
-return (temp + binval);
+    return (temp + binval);
 }
 
 inline static u08 i_to_bcd (u08 digit)
@@ -849,3 +905,21 @@ inline static u08 i_to_bcd (u08 digit)
 
 	return ret;
 } 
+
+
+u16 atoin (u08 *s, u08 n)
+{ 
+    u16 ret;
+
+	ret = 0;
+    while (n--) {
+    
+	    if (*s < '0' && '9' < *s)
+	        return 0;
+
+	    ret = ret * 10 + *s - '0'; 
+		s++;
+	}
+
+	return ret;
+}

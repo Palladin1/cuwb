@@ -213,7 +213,6 @@ void Global_Time_Deluy (unsigned int time_val);
 //u08 ModemSendCom (u08 *buff, u32 deluy_time_ms);
 void custom_at_handler(u08 *pData);
 
-u16 atoin (u08 *s, u08 n);
 
 /*
 *********************************************************************************************************
@@ -232,7 +231,7 @@ u16 atoin (u08 *s, u08 n);
 
 int main( void )
 {
-    xEventsQueue = xQueueCreate(16, sizeof(unsigned char *));
+    xEventsQueue = xQueueCreate(16, sizeof(u08 *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
@@ -258,18 +257,17 @@ Uart0Enable(Uart0_Resiv,  19200);
         TimeAndDateDefaultSet(&Time_And_Date_System);
     } 
 	
-
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE + 40, NULL, 1, NULL);   //40
+	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  40 */
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE + 60 + 10, NULL, 1, NULL);   //60
+    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE + 70, NULL, 2, NULL);   //70
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 280 - 50, NULL, 1, NULL); //280
+    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE + 80 - 20, NULL, 1, NULL);   //80
+	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  80 */
  
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
@@ -281,14 +279,14 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
-	
-//    xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
+//  xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
-	/* «апуск шедулера, после чего задачи запуст€тс€ на выполнение. */
+	/* «апуск планировщика, после чего задачи запуст€тс€ на выполнение. */
 	vTaskStartScheduler();
 
-	for( ;; );
-return (0);
+	for( ;; ) ;
+
+    return (0);
 }
 
 
@@ -405,7 +403,7 @@ void vTask2( void *pvParameters )
         }
 
 
-        /*Change price of water*/
+        /*Change price of water, NewPrice get from back messages from server to mgsm modem*/
  		if (NewPrice) {
 		    portENTER_CRITICAL();
             *cost_litre_coef = NewPrice;
@@ -623,6 +621,7 @@ void vTask4( void *pvParameters )
 	static u08 registrator_connect_prev;
 	static u08 Fl_Send_Sell_End = 0;
 	static u08 Fl_Get_New_Data = 0;
+	static u08 Fl_Send_Withdraw_The_Cash = 0;
 
 	static u08 is_service_mode;
 
@@ -639,7 +638,7 @@ void vTask4( void *pvParameters )
 		SEND_SELL_CANCEL,
 		SEND_TIME_DATE_GET, 
 		SEND_MODEM_STATUS_CHECK, 
-		SEND_WITHDRAW_THE_AMOUNT,
+		SEND_WITHDRAW_THE_CASH,
 		REGISTRATOR_ANSVER_GET,
 		REGISTRATOR_ANSVER_WAIT,
 		SERVICE_MODE
@@ -767,7 +766,7 @@ void vTask4( void *pvParameters )
                      i = 0;
 				 }
 #else
-              pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif /* CHECK_STACK */
 
              if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
@@ -794,11 +793,11 @@ void vTask4( void *pvParameters )
 	    	 }
 			 break;
 		}
-        case SEND_WITHDRAW_THE_AMOUNT: {
+        case SEND_WITHDRAW_THE_CASH: {
 			 
-			 pCUWB_RegistratorMsg->Data.Money.DataCode = 0;          /* 0 -  national currency */
-             pCUWB_RegistratorMsg->Data.Money.Quantity = Emount of the money will to clear;         /* current emount money which need put or get out from registrator */
-			 pCUWB_RegistratorMsg->Data.Money.Quantity *= -1;        /* if number < 0 we have get out the data from registrator*/
+			 pCUWB_RegistratorMsg->Data.Money.DataCode = 0;                                        /* 0 -  national currency */
+             pCUWB_RegistratorMsg->Data.Money.Quantity = RegistratorCashClear;                     /* current emount money which need put or get out from registrator */
+			 pCUWB_RegistratorMsg->Data.Money.Quantity *= -1;                                      /* if number < 0 we have get out the data from registrator*/
 
              if ( RegistratorDataSet(RCMD_CASH_GET_PUT, (void **) &pCUWB_RegistratorMsg) ) {
 			     registrator_ansver_to = SEND_SELL_END;
@@ -881,19 +880,101 @@ void vTask4( void *pvParameters )
                       break;
 				 }
 				 case SEND_TIME_DATE_GET: {
-                      RegistratorDataGet(&request_data, DATA);
-                      
-                      break;
+                      switch ( RegistratorErrorCode(&err_data) ) {
+					      case RR_ERR_NO: {
+						       Fl_RegistratorErr = 0;
+							   RegistratorDataGet(&request_data, DATA);
+
+					           xSemaphoreTake(xI2CMutex, portMAX_DELAY);                               
+							   TimeAndDayFromStr(&Time_And_Date_System, );
+							   TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+							   TimeAndDateRtcWrite(&Time_And_Date_Bcd);
+                               xSemaphoreGive(xI2CMutex);
+
+                               xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+							   TimeAndDateRtcRead(&Time_And_Date_System);
+                               xSemaphoreGive(xI2CMutex);
+
+					           registrator_state = SEND_SELL_START;
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_CANCEL;
+							   break;
+					      }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = SEND_SELL_START;
+							   break;
+					      }
+				     }
+					 break;
                  }
 				 case SEND_MODEM_STATUS_CHECK: {
-				      RegistratorDataGet(&request_data, DATA);
-				 
-				      break;
-				 }
-				 case SEND_WITHDRAW_THE_AMOUNT: {
-//				      RegistratorDataGet(&request_data, DATA);
+				      RegistratorDataGet(&err_data, ERROR_CODE);
 
-					  break;
+					  switch ( RegistratorErrorCode(&err_data) ) {
+					      case RR_ERR_NO: {
+						       Fl_RegistratorErr = 0;
+							   RegistratorDataGet(&request_data, DATA);
+
+                               TimeAndDate when_not_transmited;
+
+                               TimeAndDayFromStr(&when_not_transmited, );
+							   
+							   xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
+//							   u16 Hour_BeforeWorkStop;                              
+							   Hour_BeforeWorkStop = HoursToBlocking(&Time_And_Date_System, &when_not_transmited);
+                               xSemaphoreGive(xI2CMutex);
+
+					           registrator_state = SEND_SELL_START;
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_CANCEL;
+							   break;
+					      }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = SEND_SELL_START;
+							   break;
+					      }
+				     }
+					 break;
+				 }
+				 case SEND_WITHDRAW_THE_CASH: {
+                      RegistratorDataGet(&err_data, ERROR_CODE);
+
+					  switch ( RegistratorErrorCode(&err_data) ) {
+					      case RR_ERR_NO: {
+						  //   RegistratorDataGet(&request_data, DATA);
+					           Fl_RegistratorErr = 0;
+
+						       Fl_Send_Withdraw_The_Cash = 0;
+					           RegistratorCashClear = 0;
+							   xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+					           if (IntEeprDwordRead(RegistratorCashEEPROMAdr) != 0) {  
+    	      	                   IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
+							   }
+                               xSemaphoreGive(xI2CMutex);
+
+					           registrator_state = SEND_SELL_START;
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_CANCEL;
+							   break;
+					      }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = SEND_SELL_START;
+							   break;
+					      }
+				     }
+					 break;
 			     }
 				 default:
 				 break;
@@ -1154,14 +1235,14 @@ void vTask4( void *pvParameters )
 		        PumpTimeCoef = (PumpTimeCoef - (*pump_on_time_coef));
 		    }
 				
-	        SellingStart();
-		    Fl_SellStop = 0;
-		    Fl_SellStart = 1;
-
             portENTER_CRITICAL();
         	WtrCntTimer = CHECK_COUNTER_PERIOD;  /* Starting the timer for check does the counter of water connected or worck */    
             portEXIT_CRITICAL();
             tmp_cnt_pulse = CountPulse;          
+
+		    SellingStart();
+		    Fl_SellStop = 0;
+		    Fl_SellStart = 1;
 	    }
 
 	    
@@ -1238,10 +1319,21 @@ void vTask4( void *pvParameters )
                 SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
                 xSemaphoreGive(xI2CMutex);
 
-				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-				CollectoinCountManey += *day_maney_cnt;
+                CollectoinCountManey = *day_maney_cnt;
+                RegistratorCashClear = *day_maney_cnt;
                 *day_maney_cnt = 0;
-    			IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
+
+				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+				
+				if (CollectoinCountManey != 0) {
+    			    IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
+				}
+
+				if (RegistratorCashClear != 0) {
+				    IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
+					Fl_Send_Withdraw_The_Cash = 1;
+				}
+				
 				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
 
 #if 1
@@ -2005,24 +2097,6 @@ void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE u
 */
 
 /////////////////////////////////////////////////////////////////////////////////////
-
-u16 atoin (u08 *s, u08 n)
-{ 
-    u16 ret;
-
-	ret = 0;
-    while (n--) {
-    
-	    if (*s < '0' && '9' < *s)
-	        return 0;
-
-	    ret = ret * 10 + *s - '0'; 
-		s++;
-	}
-
-	return ret;
-}
-
 
 void custom_at_handler(u08 *pData)
 {
