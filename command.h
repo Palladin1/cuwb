@@ -72,7 +72,7 @@ void TimeAndDateRtcWrite (TimeAndDate *time_and_date_bcd);
 void TimeAndDayToBcd (TimeAndDate *time_and_date_to, TimeAndDate time_and_date_from);
 void TimeAndDateDefaultSet (TimeAndDate *time_and_date);
 void TimeAndDateSecAdd (TimeAndDate *time_and_date);
-void TimeAndDayFromStr (TimeAndDate *time_and_date_to, u08 *str_from);
+void TimeAndDayFromRegStr (TimeAndDate *time_and_date_to, u08 *str_from);
 u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit);
 
 void Get_Pfone_Number (u08 *phone_buff);

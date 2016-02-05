@@ -163,19 +163,23 @@ xTimerHandle xTimer_BuzzerOff;
 
 xTimerHandle xTimer_ModemStart;
 
+xTimerHandle xTimer_TimeBlockChack;
+
 
 //u08 Trace_Buffer[300];
 //u08 send_data_buff[300];
 
 
-u08 buzer_flag = 0;
+volatile u08 buzer_flag = 0;
 
-static u08 IsRegistratorConnect = 0;
+volatile static u08 IsRegistratorConnect = 0;
 
 static u16 ExtSignalStatus = 0;
 
 static u16 Tmr_For_Init_Rr = 600; /* need time in Sec = Tmr_For_Init_Rr * 100ms, 600 * 100 = 60 S  */
 
+volatile u08 Fl_Send_HourBeforeBlock = 0;
+volatile u08 Fl_Send_TimeDateCurGet = 0;
 
 #if CHECK_STACK
 #define TASK_NUMBER    5
@@ -200,6 +204,8 @@ void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer);
 void vCallback_BuzzerOff (xTimerHandle xTimer);
 
 void vCallback_ModemStart (xTimerHandle xTimer);
+
+void vCallback_TimerBlockChack (xTimerHandle xTimer);
 
 //void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
 
@@ -279,6 +285,8 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
+	xTimer_TimeBlockChack = xTimerCreate((signed char *)"TBlck", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockChack);
+
 //  xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
 	/* Запуск планировщика, после чего задачи запустятся на выполнение. */
@@ -354,6 +362,14 @@ void vCallback_ModemStart (xTimerHandle xTimer)
     CARRENT_STATE = STATE_MODEM_ON;
 
 	BUZZER_OFF;
+}
+
+
+void vCallback_TimerBlockChack (xTimerHandle xTimer)
+{
+    if (Fl_Send_HourBeforeBlock == 0) {
+	    Fl_Send_HourBeforeBlock = 1;
+	}       
 }
 
 
@@ -441,6 +457,9 @@ void vTask2( void *pvParameters )
 
     			DayOrNightTimer = GetTimeAsMinute(&Time_And_Date_System);
 
+                if (Fl_Send_TimeDateCurGet == 0) {
+                    Fl_Send_TimeDateCurGet = 1;
+				}
 			}
 
             if ((0 == *lower_report_limit) && (0 == *upper_report_limit)) {
@@ -462,8 +481,8 @@ void vTask2( void *pvParameters )
 			        interval_for_send = 1;
 				}
 				else {
-				    if (uxQueueMessagesWaiting(xEventsQueue) < 8) {            /*Check queue for know when with GPRS whots happened */
-				        u08 tmp_event = 6;                                     /*and we don't wont to overflow the queue            */
+				    if (uxQueueMessagesWaiting(xEventsQueue) == 0) { 
+				        u08 tmp_event = 6;                          
                         xQueueSend(xEventsQueue, &tmp_event, 0);
 					}
 				}
@@ -578,6 +597,7 @@ void vTask4( void *pvParameters )
 	    Fl_Ev_ServiceModeActivate   =  9,
 	    Fl_Ev_ServiceModeDeactivate = 10,
 		Fl_Ev_ServiceOpening        = 11,  
+		Fl_Ev_WillBlocked           = 12,
 	} SYSTEM_EVENTS;
 
 /*			
@@ -622,6 +642,7 @@ void vTask4( void *pvParameters )
 	static u08 Fl_Send_Sell_End = 0;
 	static u08 Fl_Get_New_Data = 0;
 	static u08 Fl_Send_Withdraw_The_Cash = 0;
+
 
 	static u08 is_service_mode;
 
@@ -676,6 +697,11 @@ void vTask4( void *pvParameters )
 	    Fl_Send_Sell_End = 1;
 	}
 
+    if (RegistratorCashClear > 0) {     /* The RegistratorSaveWater takes it value by read internal eeprom while initialization of the microcontroller */
+	    Fl_Send_Withdraw_The_Cash = 1;
+	}
+
+
 	MoneyToReturn = 0;
 	WaterToReturn = 0;
 
@@ -722,17 +748,27 @@ void vTask4( void *pvParameters )
 			     registrator_connect_prev = IsRegistratorConnect;
 	             registrator_state = WAIT_INIT;
   	         }    
-	         else if (Fl_Send_Sell_End == 1 && IsRegistratorConnect) {
-                 registrator_state = SEND_SELL_END;
+	         else if (IsRegistratorConnect) {
+			     if (Fl_Send_Sell_End == 1) {
+				     registrator_state = SEND_SELL_END;
+				 }
+				 else if (Fl_Send_Withdraw_The_Cash == 1) {
+				     registrator_state = SEND_WITHDRAW_THE_CASH;
+				 }
+				 else if (Fl_Send_TimeDateCurGet == 1) {
+				     registrator_state = SEND_TIME_DATE_GET;
+				 }
+				 else if (Fl_Send_HourBeforeBlock == 1) {
+				     registrator_state = SEND_MODEM_STATUS_CHECK;
+				 }
 	         }
 	         else  if (!Fl_ManeyGet && !Fl_SellStart 
 			                        //&& !Fl_SellStop 
 			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
 									&& IsRegistratorConnect) {
 
-			     registrator_state = SEND_SELL_CANCEL;
+			     registrator_state = SEND_SELL_START;
 			 }
-
 		     break;
 		}
 		case SEND_SELL_START: {
@@ -834,7 +870,7 @@ void vTask4( void *pvParameters )
                           }
 					      default: {
 					           Fl_RegistratorErr = 1;
-				    	       registrator_state = SEND_SELL_START;
+				    	       registrator_state = IDLE_STATE;
 							   break;
 					      }
 					  }
@@ -855,7 +891,7 @@ void vTask4( void *pvParameters )
                                    xSemaphoreGive(xI2CMutex);
 							   }
 
-					           registrator_state = SEND_SELL_START;
+					           registrator_state = IDLE_STATE;
 
 							   break;
 					      }
@@ -867,7 +903,7 @@ void vTask4( void *pvParameters )
 					      }
 					      default: {
 					           Fl_RegistratorErr = 1;
-				    	       registrator_state = SEND_SELL_START;
+				    	       registrator_state = IDLE_STATE;
 
 							   break;
 					      }
@@ -876,7 +912,7 @@ void vTask4( void *pvParameters )
 				 }
 				 case SEND_SELL_CANCEL: {
 			          Fl_RegistratorErr = 0;
-                      registrator_state = SEND_SELL_START;
+                      registrator_state = IDLE_STATE;
                       break;
 				 }
 				 case SEND_TIME_DATE_GET: {
@@ -885,17 +921,22 @@ void vTask4( void *pvParameters )
 						       Fl_RegistratorErr = 0;
 							   RegistratorDataGet(&request_data, DATA);
 
-					           xSemaphoreTake(xI2CMutex, portMAX_DELAY);                               
-							   TimeAndDayFromStr(&Time_And_Date_System, );
-							   TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
-							   TimeAndDateRtcWrite(&Time_And_Date_Bcd);
-                               xSemaphoreGive(xI2CMutex);
+                               if (request_data.len >= 10) {
 
-                               xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-							   TimeAndDateRtcRead(&Time_And_Date_System);
-                               xSemaphoreGive(xI2CMutex);
+					               xSemaphoreTake(xI2CMutex, portMAX_DELAY);                               
+							       TimeAndDayFromRegStr(&Time_And_Date_System, (u08 *)request_data.dataptr);
+							       TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+							       TimeAndDateRtcWrite(&Time_And_Date_Bcd);
+                                   xSemaphoreGive(xI2CMutex);
 
-					           registrator_state = SEND_SELL_START;
+                                   xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+							       TimeAndDateRtcRead(&Time_And_Date_System);
+                                   xSemaphoreGive(xI2CMutex);
+
+								   Fl_Send_TimeDateCurGet = 0;
+							   }
+
+					           registrator_state = IDLE_STATE;
 							   break;
 					      }
 					      case RR_ERR_STATE_NOT_RIGHT: {
@@ -905,7 +946,7 @@ void vTask4( void *pvParameters )
 					      }
 					      default: {
 					           Fl_RegistratorErr = 1;
-				    	       registrator_state = SEND_SELL_START;
+				    	       registrator_state = IDLE_STATE;
 							   break;
 					      }
 				     }
@@ -919,16 +960,24 @@ void vTask4( void *pvParameters )
 						       Fl_RegistratorErr = 0;
 							   RegistratorDataGet(&request_data, DATA);
 
-                               TimeAndDate when_not_transmited;
+                               if (request_data.len > 10) {
+                                   TimeAndDate when_not_transmited;
 
-                               TimeAndDayFromStr(&when_not_transmited, );
+                                   TimeAndDayFromRegStr(&when_not_transmited, (u08 *)(strstr((const char *)request_data.dataptr, ";") + 1));
 							   
-							   xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
-//							   u16 Hour_BeforeWorkStop;                              
-							   Hour_BeforeWorkStop = HoursToBlocking(&Time_And_Date_System, &when_not_transmited);
-                               xSemaphoreGive(xI2CMutex);
+							       xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
+							       //u16 Hours_BeforeWorkStop;                              
+							       //Hours_BeforeWorkStop = HoursToBlocking(&Time_And_Date_System, &when_not_transmited);
+							       if (HoursToBlocking(&Time_And_Date_System, &when_not_transmited) > (72 - 60)) {
+							           SYSTEM_EVENTS = Fl_Ev_WillBlocked;
+				                       xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+							       }
+                                   xSemaphoreGive(xI2CMutex);
 
-					           registrator_state = SEND_SELL_START;
+								   Fl_Send_HourBeforeBlock = 0;
+                               }
+
+					           registrator_state = IDLE_STATE;
 							   break;
 					      }
 					      case RR_ERR_STATE_NOT_RIGHT: {
@@ -938,7 +987,7 @@ void vTask4( void *pvParameters )
 					      }
 					      default: {
 					           Fl_RegistratorErr = 1;
-				    	       registrator_state = SEND_SELL_START;
+				    	       registrator_state = IDLE_STATE;
 							   break;
 					      }
 				     }
@@ -952,15 +1001,16 @@ void vTask4( void *pvParameters )
 						  //   RegistratorDataGet(&request_data, DATA);
 					           Fl_RegistratorErr = 0;
 
-						       Fl_Send_Withdraw_The_Cash = 0;
-					           RegistratorCashClear = 0;
+						       RegistratorCashClear = 0;
 							   xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 					           if (IntEeprDwordRead(RegistratorCashEEPROMAdr) != 0) {  
     	      	                   IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
 							   }
                                xSemaphoreGive(xI2CMutex);
 
-					           registrator_state = SEND_SELL_START;
+					           Fl_Send_Withdraw_The_Cash = 0;
+
+							   registrator_state = IDLE_STATE;
 							   break;
 					      }
 					      case RR_ERR_STATE_NOT_RIGHT: {
@@ -970,7 +1020,7 @@ void vTask4( void *pvParameters )
 					      }
 					      default: {
 					           Fl_RegistratorErr = 1;
-				    	       registrator_state = SEND_SELL_START;
+				    	       registrator_state = IDLE_STATE;
 							   break;
 					      }
 				     }
