@@ -792,17 +792,16 @@ void TimeAndDayFromRegStr (TimeAndDate *time_and_date_to, u08 *str_from)
 	    }
 //	}
 */
-
-    time_and_date_to->Second = 0;
-    time_and_date_to->Hour   = atoin(str_from, 2);
+    time_and_date_to->Day   = atoin(str_from, 2);
 	str_from += 2;
-	time_and_date_to->Minute = atoin(str_from, 2);
+	time_and_date_to->Month = atoin(str_from, 2);
+	str_from += 2;
+	time_and_date_to->Year    = atoin(str_from, 2);
 	str_from += 3;
-	time_and_date_to->Day    = atoin(str_from, 2);
+	time_and_date_to->Hour  = atoin(str_from, 2);
 	str_from += 2;
-	time_and_date_to->Month  = atoin(str_from, 2);
-	str_from += 2;
-	time_and_date_to->Year   = atoin(str_from, 2);
+	time_and_date_to->Minute   = atoin(str_from, 2);
+	time_and_date_to->Second = 0;
 }
 
 
@@ -850,22 +849,19 @@ void TimeAndDateSecAdd (TimeAndDate *time_and_date)
 
 u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit) 
 {
-      u16 hour_num;
+    u16 h;
      
-//    hour_transmit->Hour   = 0;
-//    hour_transmit->Day    = 1;
-//    hour_transmit->Month  = 1;
-//    hour_transmit->Year   = START_POINT_YEAR;
-    hour_num = 0;
+    h = 0;
     if (hour_transmit->Day < hour_cur->Day) {
-	    hour_num = (hour_cur->Day - hour_transmit->Day) * 24;
+	    h = (hour_cur->Day - hour_transmit->Day) * 24;
 	}
 
-    if (hour_transmit->Hour < (hour_num + hour_cur->Hour)) {
-	    hour_cur = hour_cur->Hour + hour_cur - hour_transmit->Hour;
+    if (hour_transmit->Hour < (h + hour_cur->Hour)) {
+	    h += hour_cur->Hour;
+		h -= hour_transmit->Hour;
 	}
 
-	return hour_cur;
+	return h;
 }
 
 
