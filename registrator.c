@@ -523,7 +523,13 @@ u08 make_data_type_m (u08 *to, s32 d)
 
     ltoa(d, (char *)to, 10);
 	len = strlen((char *)to);
-	len = set_point(to, 2, len);
+	if (*to == '-') {
+	    len = set_point((to + 1), 2, (len - 1));
+		len++;
+	}
+	else {
+	    len = set_point(to, 2, len);
+	}
     
 	to[len] = RDATA_SEPARATOR;
 	len++;
