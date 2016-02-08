@@ -205,7 +205,7 @@ void vCallback_BuzzerOff (xTimerHandle xTimer);
 
 void vCallback_ModemStart (xTimerHandle xTimer);
 
-void vCallback_TimerBlockChack (xTimerHandle xTimer);
+void vCallback_TimerBlockCheck (xTimerHandle xTimer);
 
 //void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex);
 
@@ -269,7 +269,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
     xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70+20, NULL, 2, NULL);         /*  70 */
 
     xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
     
@@ -285,7 +285,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
-	xTimer_TimeBlockChack = xTimerCreate((signed char *)"TBlck", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockChack);
+	xTimer_TimeBlockChack = xTimerCreate((signed char *)"TBlck", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockCheck);
 
 //  xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
@@ -365,7 +365,7 @@ void vCallback_ModemStart (xTimerHandle xTimer)
 }
 
 
-void vCallback_TimerBlockChack (xTimerHandle xTimer)
+void vCallback_TimerBlockCheck (xTimerHandle xTimer)
 {
     if (Fl_Send_HourBeforeBlock == 0) {
 	    Fl_Send_HourBeforeBlock = 1;
@@ -748,7 +748,8 @@ void vTask4( void *pvParameters )
 			     registrator_connect_prev = IsRegistratorConnect;
 	             registrator_state = WAIT_INIT;
   	         }    
-	         else if (IsRegistratorConnect) {
+	         else if (IsRegistratorConnect && !Fl_ManeyGet && !Fl_SellStart) { 
+
 			     if (Fl_Send_Sell_End == 1) {
 				     registrator_state = SEND_SELL_END;
 				 }
@@ -761,13 +762,9 @@ void vTask4( void *pvParameters )
 				 else if (Fl_Send_HourBeforeBlock == 1) {
 				     registrator_state = SEND_MODEM_STATUS_CHECK;
 				 }
-	         }
-	         else  if (!Fl_ManeyGet && !Fl_SellStart 
-			                        //&& !Fl_SellStop 
-			                        && (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE)
-									&& IsRegistratorConnect) {
-
-			     registrator_state = SEND_SELL_START;
+	             else  if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
+			         registrator_state = SEND_SELL_START;
+				 }
 			 }
 		     break;
 		}
@@ -814,7 +811,7 @@ void vTask4( void *pvParameters )
         case SEND_TIME_DATE_GET: {
 		 
 			 if ( RegistratorDataSet(RCMD_DATA_TIME_GET, NULL) ) {
-			     registrator_ansver_to = SEND_SELL_END;
+			     registrator_ansver_to = SEND_TIME_DATE_GET;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
@@ -824,7 +821,7 @@ void vTask4( void *pvParameters )
 			 pCUWB_RegistratorMsg->Data.Report.IsPrint = 0;          /* 0 - not print a report, 1 - print a report */
 
 			 if ( RegistratorDataSet(RCMD_MODEM_STATUS, (void **) &pCUWB_RegistratorMsg) ) {
-			     registrator_ansver_to = SEND_SELL_END;
+			     registrator_ansver_to = SEND_MODEM_STATUS_CHECK;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
@@ -836,7 +833,7 @@ void vTask4( void *pvParameters )
 			 pCUWB_RegistratorMsg->Data.Money.Quantity *= -1;                                      /* if number < 0 we have get out the data from registrator*/
 
              if ( RegistratorDataSet(RCMD_CASH_GET_PUT, (void **) &pCUWB_RegistratorMsg) ) {
-			     registrator_ansver_to = SEND_SELL_END;
+			     registrator_ansver_to = SEND_WITHDRAW_THE_CASH;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
