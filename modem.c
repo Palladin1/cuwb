@@ -130,25 +130,5 @@ unsigned char ModemSendData (const char *data_buff, unsigned long data_deluy_tim
 		data_deluy_time_ms--;
 	}
 
-return ModemAnsver;
-}
-
-void ModemSendPfoneNum (void) {
-  
-   	    rprintfChar('\"');
-		rprintfChar((u08)(*pfone_number_1 >> 8));
-	    rprintfChar((u08)(*pfone_number_1 & 0x00FF));
-	    rprintfChar((u08)(*pfone_number_2 >> 8));
-	    rprintfChar((u08)(*pfone_number_2 & 0x00FF));
-	    rprintfChar((u08)(*pfone_number_3 >> 8));
-	    rprintfChar((u08)(*pfone_number_3 & 0x00FF));
-	    rprintfChar((u08)(*pfone_number_4 >> 8));
-	    rprintfChar((u08)(*pfone_number_4 & 0x00FF));
-	    rprintfChar((u08)(*pfone_number_5 >> 8));
-	    rprintfChar((u08)(*pfone_number_5 & 0x00FF));
-        rprintfChar((u08)(*pfone_number_6 >> 8));
-        rprintfChar((u08)(*pfone_number_6 & 0x00FF));
-        rprintfChar((u08)(*pfone_number_7 >> 8));
-	    rprintfChar((u08)(*pfone_number_7 & 0x00FF));
-		rprintfChar('\"');
+    return ModemAnsver;
 }

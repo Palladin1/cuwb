@@ -26,7 +26,7 @@ void InitPortsIO (void) {
     EepromAdr = CostLitreCoefEEPROMAdr;													
 	eeprom_busy_wait();
 //	cli();
-	eeprom_read_block(EEPROM_DATA,(uint16_t *)*(&EepromAdr), 54);
+	eeprom_read_block(&EEPROM_DATA[0],(uint16_t *)*(&EepromAdr), 16);
 
 //	EepromAdr = 0;													
 //	eeprom_busy_wait();
@@ -43,25 +43,19 @@ void InitPortsIO (void) {
 
 	vodomat_number		 = (uint16_t *) &EEPROM_DATA[7];
 
-	pfone_number_1		 = (uint16_t *) &EEPROM_DATA[8];
-	pfone_number_2	     = (uint16_t *) &EEPROM_DATA[9];
-	pfone_number_3	     = (uint16_t *) &EEPROM_DATA[10];
-	pfone_number_4	     = (uint16_t *) &EEPROM_DATA[11];
-	pfone_number_5	     = (uint16_t *) &EEPROM_DATA[12];
-	pfone_number_6 	     = (uint16_t *) &EEPROM_DATA[13];
-	pfone_number_7	     = (uint16_t *) &EEPROM_DATA[14];
+    eeprom_read_block(&EEPROM_DATA[8],(uint16_t *)*(&EepromAdr), 24);
 
-	board_version	     = (uint16_t *) &EEPROM_DATA[15];
-    water_level_marck_min = (uint16_t *) &EEPROM_DATA[16];
+	board_version	      = (uint16_t *) &EEPROM_DATA[8];
+    water_level_marck_min = (uint16_t *) &EEPROM_DATA[9];
 
-	amount_water         = (uint32_t *) &EEPROM_DATA[17]; 
-	day_maney_cnt        = (uint32_t *) &EEPROM_DATA[19];
-    max_size_barrel      = (uint32_t *) &EEPROM_DATA[21]; 
-	ext_eepr_cur_adr     = (uint16_t *) &EEPROM_DATA[23];  
+	amount_water         = (uint32_t *) &EEPROM_DATA[10]; 
+	day_maney_cnt        = (uint32_t *) &EEPROM_DATA[12];
+    max_size_barrel      = (uint32_t *) &EEPROM_DATA[14]; 
+	ext_eepr_cur_adr     = (uint16_t *) &EEPROM_DATA[16];  
 
-	report_interval      = (uint16_t *) &EEPROM_DATA[24];
-    lower_report_limit   = (uint16_t *) &EEPROM_DATA[25];
-    upper_report_limit   = (uint16_t *) &EEPROM_DATA[26];
+	report_interval      = (uint16_t *) &EEPROM_DATA[17];
+    lower_report_limit   = (uint16_t *) &EEPROM_DATA[18];
+    upper_report_limit   = (uint16_t *) &EEPROM_DATA[19];
 
     EepromAdr = CollectionManeyEEPROMAdr;
     eeprom_read_block((u16 *)&CollectoinCountManey,(uint32_t *)*(&EepromAdr), 4);

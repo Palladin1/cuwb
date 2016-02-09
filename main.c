@@ -29,7 +29,6 @@ const char  SAVE_FLESH[] PROGMEM             = "AT&W\n";
 
 const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\"\n";        // Pfone book on sim
 //const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\",\"SM\",\"SM\"";
-const char  READ_PF_NUM[] PROGMEM	         = "CPBR=1\n";                // Read pfone namber from sim
 const char  CLEAR_SMS[] PROGMEM              = "AT+CMGD=1\n";         
 const char  CLEAR_ALL_SMS[] PROGMEM          = "AT+CMGD=1,4";         
 const char  INDICATION_NEW_SMS[] PROGMEM     = "AT+CNMI=2,1,0,0,0\n";   
@@ -40,9 +39,9 @@ const char  SEND_SMS[] PROGMEM		         = "AT+CMGS=";
 
 //GPRS Connection
 const char  SET_GPRS_FORMAT[] PROGMEM        = "AT+QIFGCNT=0\n"; 
-const char  SET_TYPE_CONNECTION[] PROGMEM    = "AT+QICSGP=1,";     // "1,APN","user","password"
-//const char  SET_GPRS_MODE[] PROGMEM        = "AT+QIMUX=0\n";     // "0" - non transparent "1" -transparent mode
-const char  CONNECT_DOMAIN_NAME[] PROGMEM    = "AT+QIDNSIP=1\n";    // "0" - use IP adress, "1" - use domain name
+const char  SET_TYPE_CONNECTION[] PROGMEM    = "AT+QICSGP=1,";       // "1,APN","user","password"
+//const char  SET_GPRS_MODE[] PROGMEM        = "AT+QIMUX=0\n";       // "0" - non transparent "1" -transparent mode
+const char  CONNECT_DOMAIN_NAME[] PROGMEM    = "AT+QIDNSIP=1\n";     // "0" - use IP adress, "1" - use domain name
 
 const char  CONNECT_STACKS[] PROGMEM         = "AT+QIREGAPP\n";    
 const char  ACTIVEATE_FGCNT[] PROGMEM        = "AT+QIACT\n"; 
@@ -63,29 +62,6 @@ const char  Data[] PROGMEM       = "?data=";
 const char  Pass[] PROGMEM       = "&pass=";
 const char  Host[] PROGMEM       = "Host: ";
 const char  Conn[] PROGMEM       = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
-
-// SMS Text
-const char  MESSAGE_EMPTY[] PROGMEM          = "Low signal quality. Available only SMS\32";
-const char  MESSAGE_NO_WATER[] PROGMEM       = "NET VODU\32";
-const char  MESSAGE_NO_POWER[] PROGMEM       = "NET NAPRAGENIA\32";
-const char  MESSAGE_TAKE_MANEY[] PROGMEM     = "INKASACIA\32";
-const char  MESSAGE_GET_MOVING[] PROGMEM     = "UDAR\32";
-const char  MESSAGE_LIM_WATER[] PROGMEM      = "MALO VODU\32";
-const char  MESSAGE_SEND_ANSVER[] PROGMEM    = "STATISTIKA\32";
-const char  MESSAGE_ERR_BILL[] PROGMEM       = "OSHUBKA KYPYROPRIEMNIKA\32";
-
-
-PGM_P SMS_TEXT[] PROGMEM = {
-
-    MESSAGE_EMPTY,
-	MESSAGE_NO_WATER,
-    MESSAGE_NO_POWER,
-    MESSAGE_TAKE_MANEY,
-    MESSAGE_GET_MOVING,
-    MESSAGE_LIM_WATER,
-    MESSAGE_SEND_ANSVER,
-    MESSAGE_ERR_BILL
-};
 
 
 #define  ACCELEROMETR_PERIOD   3000ul           //3000 * 100mS = 300S
@@ -1908,7 +1884,6 @@ void vTask5( void *pvParameters )
     		     vTaskDelay(200 / portTICK_RATE_MS);
 
                  ModemSendCom(SEND_SMS, 1);
-				 ModemSendPfoneNum();
 
 				 if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
 
@@ -1916,7 +1891,7 @@ void vTask5( void *pvParameters )
 	                 mashines_namber[4] = '-';
 	                 mashines_namber[5] = 0;
 					 ModemSendData((char *)mashines_namber, 1);
-					 ModemSendCom((char*)pgm_read_word(&(SMS_TEXT[num_event])), 2000);
+//					 ModemSendCom((char*)pgm_read_word(&(SMS_TEXT[num_event])), 2000);
 					 
 					 vTaskDelay(200 / portTICK_RATE_MS);
 //                     num_event = 0;
@@ -2169,7 +2144,6 @@ void custom_at_handler(u08 *pData)
 	else if (strncmp((char *)pData, "SEND FAIL", 9) == 0) {
         ModemAnsver = ACK_SEND_FAIL;
 	}
-
 	else if (strncmp((char *)pData, "CONNECT OK", 10) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}

@@ -19,7 +19,7 @@ volatile u08 CountPulseFault;
 volatile u08 Sygnal_Get_Axellerometr;
 
 u16 ADR_LAST_DATTA;
-u16	EEPROM_DATA[54];
+volatile u16 EEPROM_DATA[40];
 
 volatile u32 CollectoinCountManey;
 volatile u32 RegistratorSaveWater;
@@ -127,13 +127,6 @@ unsigned int		*bill_time_pulse_coef;
 unsigned int		*coin_time_pulse_coef;		
 unsigned int		*ext_eepr_data_adr;		
 unsigned int		*vodomat_number;
-unsigned int		*pfone_number_1;
-unsigned int		*pfone_number_2;
-unsigned int		*pfone_number_3;
-unsigned int		*pfone_number_4;
-unsigned int		*pfone_number_5;
-unsigned int		*pfone_number_6;
-unsigned int		*pfone_number_7;
 
 unsigned int		*board_version;
 unsigned int		*water_level_marck_min;

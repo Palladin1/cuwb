@@ -15,13 +15,8 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(CoinTimePulseCoefEEPROMAdr)] = 	0x372D,									//Coin Time Pulse Coef
 	[R_ADR(ExtEeprDataAdrEEPROMAdr)]    = 	0x7B00,									//Ext Eepr DataAdr
 	[R_ADR(VodomatNumberEEPROMAdr)]     = 	0x0001,									//Vodomat Number
-	[R_ADR(PfoneNumber1EEPROMAdr)]      =	0x2B33,									// |
-		                                    0x3830,									// |  
-		                                    0x3636,									// |
- 		                                    0x3735,									//  }  Pfone number for sending SMS	
-		                                    0x3730,									// |
-	                                     	0x3531,                                 // |   Pfone number for sending SMS 
-	                                    	0x3900,                                 // |
+
+
   	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
 	[R_ADR(SMSWaterLevelEEPROMAdr)]     = 	0x2710,                                 //value of water for send sms 100 Litre
 	[R_ADR(AmountWaterEEPROMAdr)]       = 	0x0000,                                 //qualiti of water
