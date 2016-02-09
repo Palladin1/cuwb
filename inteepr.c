@@ -15,7 +15,6 @@ void IntEeprWordWrite (unsigned int eepr_adr, unsigned int eepr_data) {
 unsigned int IntEeprWordRead (unsigned int eepr_adr) {
     
 	eeprom_busy_wait();
-
     return eeprom_read_word((uint16_t *)*(&eepr_adr));
 }
 
@@ -30,7 +29,6 @@ void IntEeprDwordWrite (unsigned int eepr_adr, unsigned long eepr_data) {
 unsigned long IntEeprDwordRead (unsigned int eepr_adr) {
     
     eeprom_busy_wait();
-    
     return eeprom_read_dword((uint32_t *)*(&eepr_adr));
 }
 

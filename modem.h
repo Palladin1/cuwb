@@ -33,6 +33,5 @@ unsigned char ModemSMSSend(unsigned char *number, unsigned char *text_sms);
 
 unsigned char ModemSendCom (const char *com_buff, unsigned long com_deluy_time_ms);
 unsigned char ModemSendData (const char *data_buff, unsigned long data_deluy_time_ms);
-void ModemSendPfoneNum (void);
 
 #endif //MODEM_H

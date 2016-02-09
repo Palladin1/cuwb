@@ -473,7 +473,12 @@ extern TimeAndDate Time_And_Date_System;
 		
 		portENTER_CRITICAL();												
 		eeprom_busy_wait();
-		eeprom_read_block (EEPROM_DATA,(uint16_t *)*(&EepromAdr), 54);
+		eeprom_read_block ((uint16_t *)(&EEPROM_DATA[0]),(uint16_t *)*(&EepromAdr), 16);
+        portEXIT_CRITICAL();
+
+		portENTER_CRITICAL();												
+		eeprom_busy_wait();
+		eeprom_read_block ((uint16_t *)(&EEPROM_DATA[8]),(uint16_t *)*(&EepromAdr), 24);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
