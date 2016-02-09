@@ -26,7 +26,11 @@ void InitPortsIO (void) {
     EepromAdr = CostLitreCoefEEPROMAdr;													
 	eeprom_busy_wait();
 //	cli();
+<<<<<<< HEAD
 	eeprom_read_block((uint16_t *)(&EEPROM_DATA[0]), (uint16_t *)*(&EepromAdr), 16);
+=======
+	eeprom_read_block(&EEPROM_DATA[0],(uint16_t *)*(&EepromAdr), 16);
+>>>>>>> 69d495efd22e10e5bcbc34b0576bb09799180ef1
 
 //	EepromAdr = 0;													
 //	eeprom_busy_wait();
@@ -43,7 +47,11 @@ void InitPortsIO (void) {
 
 	vodomat_number		 = (uint16_t *) &EEPROM_DATA[7];
 
+<<<<<<< HEAD
     eeprom_read_block((uint16_t *)(&EEPROM_DATA[8]),(uint16_t *)*(&EepromAdr), 24);
+=======
+    eeprom_read_block(&EEPROM_DATA[8],(uint16_t *)*(&EepromAdr), 24);
+>>>>>>> 69d495efd22e10e5bcbc34b0576bb09799180ef1
 
 	board_version	      = (uint16_t *) &EEPROM_DATA[8];
     water_level_marck_min = (uint16_t *) &EEPROM_DATA[9];
