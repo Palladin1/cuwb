@@ -407,12 +407,12 @@ void vTask2( void *pvParameters )
         /*Change price of water, NewPrice get from back messages from server to mgsm modem*/
  		if (NewPrice) {
 		    portENTER_CRITICAL();
-            *cost_litre_coef = NewPrice;
+            EEPR_LOCAL_COPY.cost_litre_coef = NewPrice;
 			NewPrice = 0;
 			portEXIT_CRITICAL();
 			
 			xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-    	    IntEeprWordWrite (CostLitreCoefEEPROMAdr, *cost_litre_coef);
+    	    IntEeprWordWrite (CostLitreCoefEEPROMAdr, EEPR_LOCAL_COPY.cost_litre_coef);
             xSemaphoreGive(xI2CMutex);
 		}
 		
@@ -447,10 +447,10 @@ void vTask2( void *pvParameters )
 				}
 			}
 
-            if ((0 == *lower_report_limit) && (0 == *upper_report_limit)) {
+            if ((0 == EEPR_LOCAL_COPY.lower_report_limit) && (0 == EEPR_LOCAL_COPY.upper_report_limit)) {
                 FlDayOrNight = SMS_FLAG_SEND_DISABLE;
 			}
-			else if ((DayOrNightTimer >= *lower_report_limit) && (DayOrNightTimer <= *upper_report_limit)) {
+			else if ((DayOrNightTimer >= EEPR_LOCAL_COPY.lower_report_limit) && (DayOrNightTimer <= EEPR_LOCAL_COPY.upper_report_limit)) {
                 FlDayOrNight = SMS_FLAG_DAY;
 			}
 			else {
@@ -461,7 +461,7 @@ void vTask2( void *pvParameters )
 
 			/*Send report*/
 			if (interval_for_send == 0) {
-		        interval_for_send = *report_interval;
+		        interval_for_send = EEPR_LOCAL_COPY.report_interval;
 				if (interval_for_send == 0) {
 			        interval_for_send = 1;
 				}
@@ -619,7 +619,7 @@ void vTask4( void *pvParameters )
 
     static u16 tmp_cnt_pulse = 0;
     
-    PumpTimeCoef = *pump_off_time_coef;
+    PumpTimeCoef = EEPR_LOCAL_COPY.pump_off_time_coef;
 
 	
 	static u08 Fl_RegistratorErr = 1;
@@ -764,7 +764,7 @@ void vTask4( void *pvParameters )
 		     
 		     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
              pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = *cost_litre_coef;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = EEPR_LOCAL_COPY.cost_litre_coef;
              
 		     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
 			     registrator_ansver_to = SEND_SELL_END;
@@ -1080,25 +1080,25 @@ void vTask4( void *pvParameters )
 
 						if (Fl_ManeyGet && ManeySave > 0) {
 					
-			                *day_maney_cnt += ManeySave;
+			                EEPR_LOCAL_COPY.day_maney_cnt += ManeySave;
 
 				            WaterSave = MoneyToWater(ManeySave);
 
 				            RegistratorSaveWater += WaterSave;                                     /* emount of water to transmit to registrator */
 
-                            if (*amount_water <= WaterSave) {                                      /* how many water left in the barrel */
-			                    *amount_water = 0;
+                            if (EEPR_LOCAL_COPY.amount_water <= WaterSave) {                                      /* how many water left in the barrel */
+			                    EEPR_LOCAL_COPY.amount_water = 0;
 			                }
 			                else {
-		                        *amount_water -= WaterSave;
+		                        EEPR_LOCAL_COPY.amount_water -= WaterSave;
 			                }
 
 
 							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
-			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
 
-			                IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
+			                IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.amount_water);
 
                             if (!is_service_mode) {
                                 IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
@@ -1226,16 +1226,16 @@ void vTask4( void *pvParameters )
 			
             if (ManeySave > 0) {
 
-			    *day_maney_cnt += ManeySave;
+			    EEPR_LOCAL_COPY.day_maney_cnt += ManeySave;
 				WaterSave = MoneyToWater(ManeySave);
 				
 				RegistratorSaveWater += WaterSave;                                      /* set data to transmit to registrator */
 
-			    if (*amount_water <= WaterSave) {
-			        *amount_water = 0;
+			    if (EEPR_LOCAL_COPY.amount_water <= WaterSave) {
+			        EEPR_LOCAL_COPY.amount_water = 0;
 			    }
 			    else {
-		            *amount_water -= WaterSave;
+		            EEPR_LOCAL_COPY.amount_water -= WaterSave;
 			    }
 
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);  
@@ -1243,9 +1243,9 @@ void vTask4( void *pvParameters )
 
 		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, coin_which_get_cntr, bill_which_get_cntr, 1);
 			    
-				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+				IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
 
-			    IntEeprDwordWrite(AmountWaterEEPROMAdr, *amount_water);
+			    IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.amount_water);
 
                 if (!is_service_mode) {
 				    IntEeprDwordWrite(RegistratorWaterEEPROMAdr, RegistratorSaveWater);
@@ -1260,11 +1260,11 @@ void vTask4( void *pvParameters )
 				ManeySave = WaterSave = 0;
 		    }
 
-            if (PumpTimeCoef <= (*pump_on_time_coef)) {
+            if (PumpTimeCoef <= (EEPR_LOCAL_COPY.pump_on_time_coef)) {
                 PumpTimeCoef = 0;
             }
 		    else {
-		        PumpTimeCoef = (PumpTimeCoef - (*pump_on_time_coef));
+		        PumpTimeCoef = (PumpTimeCoef - (EEPR_LOCAL_COPY.pump_on_time_coef));
 		    }
 				
             portENTER_CRITICAL();
@@ -1299,7 +1299,7 @@ void vTask4( void *pvParameters )
             CountPulse = 0;
 		    portEXIT_CRITICAL();
 
-		    PumpTimeCoef = *pump_off_time_coef;
+		    PumpTimeCoef = EEPR_LOCAL_COPY.pump_off_time_coef;
     	}
 
 
@@ -1342,8 +1342,8 @@ void vTask4( void *pvParameters )
 
                 u16 dattaH;
 		        u16 dattaL;
-		        dattaH = (u16) ((*day_maney_cnt) >> 16);
-		        dattaL = (u16) ((*day_maney_cnt) & 0x0000FFFF);
+		        dattaH = (u16) ((EEPR_LOCAL_COPY.day_maney_cnt) >> 16);
+		        dattaL = (u16) ((EEPR_LOCAL_COPY.day_maney_cnt) & 0x0000FFFF);
              
 			    TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
 
@@ -1351,9 +1351,9 @@ void vTask4( void *pvParameters )
                 SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
                 xSemaphoreGive(xI2CMutex);
 
-                CollectoinCountManey = *day_maney_cnt;
-                RegistratorCashClear = *day_maney_cnt;
-                *day_maney_cnt = 0;
+                CollectoinCountManey = EEPR_LOCAL_COPY.day_maney_cnt;
+                RegistratorCashClear = EEPR_LOCAL_COPY.day_maney_cnt;
+                EEPR_LOCAL_COPY.day_maney_cnt = 0;
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 				
@@ -1366,12 +1366,12 @@ void vTask4( void *pvParameters )
 					Fl_Send_Withdraw_The_Cash = 1;
 				}
 				
-				IntEeprDwordWrite(DayManeyCntEEPROMAdr, *day_maney_cnt);
+				IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
 
 #if 1
-                if (*amount_water < *max_size_barrel) {
-                    IntEeprDwordWrite (AmountWaterEEPROMAdr, *max_size_barrel);
-                    *amount_water = *max_size_barrel;
+                if (EEPR_LOCAL_COPY.amount_water < EEPR_LOCAL_COPY.max_size_barrel) {
+                    IntEeprDwordWrite (AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.max_size_barrel);
+                    EEPR_LOCAL_COPY.amount_water = EEPR_LOCAL_COPY.max_size_barrel;
 				}
 #endif
                 xSemaphoreGive(xI2CMutex);
@@ -1383,7 +1383,7 @@ void vTask4( void *pvParameters )
 			    }
 
 #if 0
-                if (*amount_water < *max_size_barrel) {                        /* Is the signal of buzzer to make remember to push the key "drain of water" */
+                if (EEPR_LOCAL_COPY.amount_water < EEPR_LOCAL_COPY.max_size_barrel) {                        /* Is the signal of buzzer to make remember to push the key "drain of water" */
     			    buzer_flag = 1;                                            /* which need after the  */
 				}
 #endif
@@ -1488,7 +1488,7 @@ void vTask4( void *pvParameters )
     
 /////// the sygnall set when bill can't get maney ////////////////////////////
 
-        if (Sygnal_Get_NoWrkBill && *board_version) {            // If board version the first we
+        if (Sygnal_Get_NoWrkBill && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
 
 	        if (!Fl_ErrRsvBill) {                                // can't get the right status 
 			    Fl_State_RsvBill = REPORT_FLAG_ERR;
@@ -1507,7 +1507,7 @@ void vTask4( void *pvParameters )
 
 //  ////////////////////////////////////////////////////////////////////////////////
  
-        if ((*amount_water <= ((u32)*water_level_marck_min))) {
+        if ((EEPR_LOCAL_COPY.amount_water <= ((u32)EEPR_LOCAL_COPY.water_level_marck_min))) {
 	        if (!Fl_ErrMinWater) {
 	            Fl_ErrMinWater = 1;	
 			    
@@ -1896,7 +1896,7 @@ void vTask5( void *pvParameters )
 
 				 if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
 
-                     itoan(*vodomat_number, mashines_namber, 4);
+                     itoan(EEPR_LOCAL_COPY.vodomat_number, mashines_namber, 4);
 	                 mashines_namber[4] = '-';
 	                 mashines_namber[5] = 0;
 					 ModemSendData((char *)mashines_namber, 1);
@@ -2218,7 +2218,7 @@ void custom_at_handler(u08 *pData)
         u08 len   = 0; 
         
 		p += 6;
-		len = strlen(p);
+		len = strlen((const char *)p);
         if (len != 4) {
             return;
 		}
@@ -2231,7 +2231,7 @@ void custom_at_handler(u08 *pData)
 
         price = atoin(p, 4);
 
-		if (*cost_litre_coef != price && 500 >= price) {
+		if (EEPR_LOCAL_COPY.cost_litre_coef != price && 500 >= price) {
 		    portENTER_CRITICAL();
             NewPrice = price;
 		    portEXIT_CRITICAL();
@@ -2243,8 +2243,8 @@ void custom_at_handler(u08 *pData)
 
 static inline u16 MoneyToWater (u16 money_quantity) 
 {
-	if (*cost_litre_coef > 0)
-	    return (u16)(((((u32)money_quantity * 200) / (*cost_litre_coef)) + 1) >> 1);
+	if (EEPR_LOCAL_COPY.cost_litre_coef > 0)
+	    return (u16)(((((u32)money_quantity * 200) / (EEPR_LOCAL_COPY.cost_litre_coef)) + 1) >> 1);
 
 	return 0;
 }
@@ -2252,17 +2252,17 @@ static inline u16 MoneyToWater (u16 money_quantity)
 
 static inline u16 MoneyToPulse (u16 money_quantity) 
 {
-	if ((*cost_litre_coef  > 0) && (*pulse_litre_coef > 0))
+	if ((EEPR_LOCAL_COPY.cost_litre_coef  > 0) && (EEPR_LOCAL_COPY.pulse_litre_coef > 0))
 //  CountPulse = (u16)((((((money * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
-        return (u16)(((((((u32)money_quantity << 10) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
+        return (u16)(((((((u32)money_quantity << 10) / (EEPR_LOCAL_COPY.cost_litre_coef)) * (EEPR_LOCAL_COPY.pulse_litre_coef)) >> 15) + 1) >> 1);
 	    
 	return 0;
 }
 
 static inline u16 PulseQuantityToMoney (u16 pulse_quantity) 
 {
-	if ((*pulse_litre_coef > 0) && (pulse_quantity > 0))
-        return (u16)(((((*cost_litre_coef) * 8388608) / (((*pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
+	if ((EEPR_LOCAL_COPY.pulse_litre_coef > 0) && (pulse_quantity > 0))
+        return (u16)(((((EEPR_LOCAL_COPY.cost_litre_coef) * 8388608) / (((EEPR_LOCAL_COPY.pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
 
 	return 0;
 }

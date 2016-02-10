@@ -18,45 +18,19 @@
 #include "gsm_buffer.h"
 #include "CUWBcfg.h"
 
+
 void InitPortsIO (void) {
 	
     u16 EepromAdr;
 //=====================================
-//		чтение EEPROM
+//	чтение EEPROM
     EepromAdr = CostLitreCoefEEPROMAdr;													
-//	eeprom_busy_wait();
-//	cli();
+	eeprom_busy_wait();
+    eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.cost_litre_coef), (uint16_t *)*(&EepromAdr), 16);
 
-	eeprom_read_block((uint16_t *)(&EEPROM_DATA[0]), (uint16_t *)*(&EepromAdr), 16);
-
-//	EepromAdr = 0;													
-//	eeprom_busy_wait();
-//	eeprom_read_word ((uint16_t *)*(&EepromAdr));
-//    sei();
-
-	cost_litre_coef    	 = (uint16_t *) &EEPROM_DATA[0];
-	pulse_litre_coef 	 = (uint16_t *) &EEPROM_DATA[1];
-	pump_on_time_coef	 = (uint16_t *) &EEPROM_DATA[2];		
-	pump_off_time_coef   = (uint16_t *) &EEPROM_DATA[3];
-	bill_time_pulse_coef = (uint16_t *) &EEPROM_DATA[4];		
-	coin_time_pulse_coef = (uint16_t *) &EEPROM_DATA[5];
-	ext_eepr_data_adr	 = (uint16_t *) &EEPROM_DATA[6];
-
-	vodomat_number		 = (uint16_t *) &EEPROM_DATA[7];
-
-    eeprom_read_block((uint16_t *)(&EEPROM_DATA[8]),(uint16_t *)*(&EepromAdr), 24);
-
-	board_version	      = (uint16_t *) &EEPROM_DATA[8];
-    water_level_marck_min = (uint16_t *) &EEPROM_DATA[9];
-
-	amount_water         = (uint32_t *) &EEPROM_DATA[10]; 
-	day_maney_cnt        = (uint32_t *) &EEPROM_DATA[12];
-    max_size_barrel      = (uint32_t *) &EEPROM_DATA[14]; 
-	ext_eepr_cur_adr     = (uint16_t *) &EEPROM_DATA[16];  
-
-	report_interval      = (uint16_t *) &EEPROM_DATA[17];
-    lower_report_limit   = (uint16_t *) &EEPROM_DATA[18];
-    upper_report_limit   = (uint16_t *) &EEPROM_DATA[19];
+	EepromAdr = SMSWaterLevelEEPROMAdr;													
+	eeprom_busy_wait();
+    eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.water_level_marck_min),(uint16_t *)*(&EepromAdr), 24);
 
     EepromAdr = CollectionManeyEEPROMAdr;
     eeprom_read_block((u16 *)&CollectoinCountManey,(uint32_t *)*(&EepromAdr), 4);
@@ -72,9 +46,9 @@ void InitPortsIO (void) {
 	u16 CurrSoftVer;
 	EepromAdr = SoftVersionEEPROMAdr;
     eeprom_read_block((u16 *)&CurrSoftVer,(uint16_t *)*(&EepromAdr), 2);
-    if (SOFTVARE_VERSION != CurrSoftVer)
+    if (SOFTVARE_VERSION != CurrSoftVer) {
 	    IntEeprDwordWrite(SoftVersionEEPROMAdr, SOFTVARE_VERSION);
-
+    }
 
 	
 //=====================================
@@ -123,7 +97,7 @@ PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 	DS1337Init();
 
 	// initialize the I2CEEPROM 24c512
-	ADR_LAST_DATTA = i2ceepromInit((*ext_eepr_data_adr));
+	ADR_LAST_DATTA = i2ceepromInit((EEPR_LOCAL_COPY.ext_eepr_data_adr));
 	if (ADR_LAST_DATTA == 0xFFFF) {
 		ADR_LAST_DATTA = 0x0000;
     }

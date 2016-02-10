@@ -136,20 +136,20 @@ void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, 
 	EventBuff[12] = event;
 
 //    Global_Time_Deluy(5);
-    if (*ext_eepr_data_adr < (*ext_eepr_cur_adr + EXT_EEPR_LINE_WRT_SIZE)) { 
-	    ADR_LAST_DATTA  = *ext_eepr_cur_adr;
-        *ext_eepr_cur_adr = 0x0000;
+    if (EEPR_LOCAL_COPY.ext_eepr_data_adr < (EEPR_LOCAL_COPY.ext_eepr_cur_adr + EXT_EEPR_LINE_WRT_SIZE)) { 
+	    ADR_LAST_DATTA  = EEPR_LOCAL_COPY.ext_eepr_cur_adr;
+        EEPR_LOCAL_COPY.ext_eepr_cur_adr = 0x0000;
 
 	    AdrEventBuff[0] = (u08)(ADR_LAST_DATTA >> 8);
 	    AdrEventBuff[1] = (u08)(ADR_LAST_DATTA & 0x00FF);
-	    i2ceepromWriteBloc(*ext_eepr_data_adr, AdrEventBuff, 2);
+	    i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_data_adr, AdrEventBuff, 2);
 		
     	Global_Time_Deluy(5);
 	}
    
-    i2ceepromWriteBloc(*ext_eepr_cur_adr, EventBuff, EXT_EEPR_LINE_WRT_SIZE);
-	*ext_eepr_cur_adr += 11;
-	IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, *ext_eepr_cur_adr);
+    i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_cur_adr, EventBuff, EXT_EEPR_LINE_WRT_SIZE);
+	EEPR_LOCAL_COPY.ext_eepr_cur_adr += 11;
+	IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, EEPR_LOCAL_COPY.ext_eepr_cur_adr);
 }
 
 
@@ -158,14 +158,14 @@ u16 KeySkan(u16 key_kode) {
 
 	if (COUNT_COIN) {
        
-        if (CntTmrCoin < (u08)((*coin_time_pulse_coef) >> 8)) {
+        if (CntTmrCoin < (u08)((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8)) {
 		    CntTmrCoin++;
         }
 	}
 	else {
 	    if (CntTmrCoin > 0) {
-	        u08 TimeMax = ((*coin_time_pulse_coef) >> 8);
-		    u08 TimeMin = ((*coin_time_pulse_coef) & 0x00FF);
+	        u08 TimeMax = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8);
+		    u08 TimeMin = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) & 0x00FF);
 			if ((CntTmrCoin > TimeMin) && (CntTmrCoin < TimeMax)) {
 				 key_kode |= (1 << 0);		    }
 			
@@ -179,14 +179,14 @@ u16 KeySkan(u16 key_kode) {
 
 	if (COUNT_BILL) {
         
-        if (CntTmrBill < (u08)((*bill_time_pulse_coef) >> 8)) {
+        if (CntTmrBill < (u08)((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8)) {
 		    CntTmrBill++;
         }
 	}
 	else {
 	    if (CntTmrBill > 0) {
-	        u08 TimeMax = ((*bill_time_pulse_coef) >> 8);
-		    u08 TimeMin = ((*bill_time_pulse_coef) & 0x00FF);
+	        u08 TimeMax = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8);
+		    u08 TimeMin = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) & 0x00FF);
 			if ((CntTmrBill > TimeMin) && (CntTmrBill < TimeMax)) {
 				key_kode |= (1 << 1);
 		    }
@@ -396,22 +396,22 @@ extern TimeAndDate Time_And_Date_System;
 	void READ_EXT_EEPROM (void) {
 
 		u16 start_memAddr_for_read = 0;
-	    u16 stop_memAddr_for_read = *ext_eepr_cur_adr; 
+	    u16 stop_memAddr_for_read = EEPR_LOCAL_COPY.ext_eepr_cur_adr; 
         u16 start_adr_uart_rx_buf = (((u16)get_cmd_buff[3]) << 8) + get_cmd_buff[2];
         u16 stop_adr_uart_rx_buf  = (((u16)get_cmd_buff[5]) << 8) + get_cmd_buff[4];
         
 	   	
-		if (start_adr_uart_rx_buf < (*ext_eepr_data_adr - EXT_EEPR_LINE_WRT_SIZE)) {
+		if (start_adr_uart_rx_buf < (EEPR_LOCAL_COPY.ext_eepr_data_adr - EXT_EEPR_LINE_WRT_SIZE)) {
 		    start_memAddr_for_read = start_adr_uart_rx_buf;
 		}
 
 
-        if ((stop_adr_uart_rx_buf < *ext_eepr_data_adr) && (stop_adr_uart_rx_buf != 0)) {
+        if ((stop_adr_uart_rx_buf < EEPR_LOCAL_COPY.ext_eepr_data_adr) && (stop_adr_uart_rx_buf != 0)) {
     	    stop_memAddr_for_read = stop_adr_uart_rx_buf;
 		}
 		else if ((ADR_LAST_DATTA != 0) && (start_memAddr_for_read == 0)) {
 
-            start_memAddr_for_read = *ext_eepr_cur_adr;
+            start_memAddr_for_read = EEPR_LOCAL_COPY.ext_eepr_cur_adr;
 								 
 		    while (start_memAddr_for_read < ADR_LAST_DATTA) {
 		
@@ -448,11 +448,11 @@ extern TimeAndDate Time_And_Date_System;
 
         get_cmd_buff[2] = 0;
 		get_cmd_buff[3] = 0;
-		i2ceepromWriteBloc(*ext_eepr_data_adr, (get_cmd_buff + 2), 2);
+		i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_data_adr, (get_cmd_buff + 2), 2);
 		ADR_LAST_DATTA = 0x0000;
-		*ext_eepr_cur_adr = 0x0000;
+		EEPR_LOCAL_COPY.ext_eepr_cur_adr = 0x0000;
 		portENTER_CRITICAL();
-		IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, *ext_eepr_cur_adr);
+		IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, EEPR_LOCAL_COPY.ext_eepr_cur_adr);
 		portENTER_CRITICAL();
 
 		get_cmd_buff[0] = 1;
@@ -462,7 +462,7 @@ extern TimeAndDate Time_And_Date_System;
 	void WRITE_INT_EEPROM (void) {
 
 		u16 EepromAdr;
-		u16 tmp_ext_eepr_data_adr = *ext_eepr_data_adr;
+		u16 tmp_ext_eepr_data_adr = EEPR_LOCAL_COPY.ext_eepr_data_adr;
 
 		eeprom_busy_wait();
 		portENTER_CRITICAL();
@@ -470,30 +470,30 @@ extern TimeAndDate Time_And_Date_System;
 		portEXIT_CRITICAL();
 			
 		EepromAdr = CostLitreCoefEEPROMAdr;	
-		
 		portENTER_CRITICAL();												
-		eeprom_busy_wait();
-		eeprom_read_block ((uint16_t *)(&EEPROM_DATA[0]),(uint16_t *)*(&EepromAdr), 16);
+    	eeprom_busy_wait();
+        eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.cost_litre_coef), (uint16_t *)*(&EepromAdr), 16);
         portEXIT_CRITICAL();
-
+		
+		EepromAdr = SMSWaterLevelEEPROMAdr;
 		portENTER_CRITICAL();												
 		eeprom_busy_wait();
-		eeprom_read_block ((uint16_t *)(&EEPROM_DATA[8]),(uint16_t *)*(&EepromAdr), 24);
+        eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.water_level_marck_min), (uint16_t *)*(&EepromAdr), 24);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
-        if (tmp_ext_eepr_data_adr != *ext_eepr_data_adr) {
+        if (tmp_ext_eepr_data_adr != EEPR_LOCAL_COPY.ext_eepr_data_adr) {
 
-            if ((*ext_eepr_data_adr - 1) >= ADR_LAST_DATTA ) {              
+            if ((EEPR_LOCAL_COPY.ext_eepr_data_adr - 1) >= ADR_LAST_DATTA ) {              
 			    get_cmd_buff[2] = (u08)(ADR_LAST_DATTA >> 8);
 	            get_cmd_buff[3] = (u08)(ADR_LAST_DATTA & 0x00FF);
-                i2ceepromWriteBloc(*ext_eepr_data_adr, (get_cmd_buff + 2), 2);
+                i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_data_adr, (get_cmd_buff + 2), 2);
 			}
 			else {
 			    ADR_LAST_DATTA = 0x0000;
 				get_cmd_buff[2] = (u08)(ADR_LAST_DATTA >> 8);
 	            get_cmd_buff[3] = (u08)(ADR_LAST_DATTA & 0x00FF);
-                i2ceepromWriteBloc(*ext_eepr_data_adr, (get_cmd_buff + 2), 2);
+                i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_data_adr, (get_cmd_buff + 2), 2);
 			}
 		}
 ///////////////////////////////////////////////////////////////
@@ -602,7 +602,7 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
 
 	    u08 cnt_buf = 0;
 
-        itoan(*vodomat_number, &report_buff[cnt_buf], 4); 
+        itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
 	
                                                                                /* Convert the date and time to ASCII */
         for (cnt_buf = 0; cnt_buf < 6; cnt_buf++) {
@@ -620,7 +620,7 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
 		    itoan((u32) MoneyToReturn, &report_buff[16+cnt_buf], 6);
 		}
 		else {
-		    itoan(*day_maney_cnt, &report_buff[16+cnt_buf], 6);
+		    itoan(EEPR_LOCAL_COPY.day_maney_cnt, &report_buff[16+cnt_buf], 6);
 		}
 
 		if (EventNamber == 2) {
@@ -628,10 +628,10 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
 			IsDataToReturnSent = 1;
 		}
 		else {
-            itoan(*amount_water, &report_buff[22+cnt_buf], 6);
+            itoan(EEPR_LOCAL_COPY.amount_water, &report_buff[22+cnt_buf], 6);
 		}
 	    
-		itoan(*cost_litre_coef, &report_buff[28+cnt_buf], 4);
+		itoan(EEPR_LOCAL_COPY.cost_litre_coef, &report_buff[28+cnt_buf], 4);
 
 /*
 ************************************************************ 

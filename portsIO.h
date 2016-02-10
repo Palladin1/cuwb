@@ -18,8 +18,31 @@ volatile u16 CountPulse;
 volatile u08 CountPulseFault;
 volatile u08 Sygnal_Get_Axellerometr;
 
-u16 ADR_LAST_DATTA;
-volatile u16 EEPROM_DATA[40];
+volatile u16 ADR_LAST_DATTA;
+
+//volatile u16 EEPROM_DATA[40];
+volatile struct EEPR_DATA_MAP {
+    unsigned int  cost_litre_coef;
+    unsigned int  pulse_litre_coef;
+    unsigned int  pump_on_time_coef;
+    unsigned int  pump_off_time_coef;
+    unsigned int  bill_time_pulse_coef;		
+    unsigned int  coin_time_pulse_coef;		
+    unsigned int  ext_eepr_data_adr;		
+    unsigned int  vodomat_number;
+
+    unsigned int  board_version;
+    unsigned int  water_level_marck_min;
+
+    unsigned long amount_water;
+    unsigned long day_maney_cnt;
+    unsigned long max_size_barrel;
+    unsigned int  ext_eepr_cur_adr;
+
+    unsigned int  report_interval;
+    unsigned int  lower_report_limit;
+    unsigned int  upper_report_limit;
+} EEPR_LOCAL_COPY;
 
 volatile u32 CollectoinCountManey;
 volatile u32 RegistratorSaveWater;
@@ -112,13 +135,13 @@ volatile u08 Fl_RxReciv;
 #define  COUNTER_PULSE_FRONT_MASK       0x0010
 #define  COUNTER_WATER_ACTIVITY_MASK    0x1000
 
-#define  IS_BOARD_VERSION_NEW            ((*board_version) & BOARD_VERSION_MASK)
-#define  IS_SERVICE_MODE                 ((*board_version) & SERVICE_MODE_MASK)
-#define  IS_COUNT_WATER_ONE_FRONT        ((*board_version) & COUNTER_PULSE_FRONT_MASK)   
-#define  IS_COUNTER_WATER_NOT_ACTIVE     ((*board_version) & COUNTER_WATER_ACTIVITY_MASK)   
+#define  IS_BOARD_VERSION_NEW            ((EEPR_LOCAL_COPY.board_version) & BOARD_VERSION_MASK)
+#define  IS_SERVICE_MODE                 ((EEPR_LOCAL_COPY.board_version) & SERVICE_MODE_MASK)
+#define  IS_COUNT_WATER_ONE_FRONT        ((EEPR_LOCAL_COPY.board_version) & COUNTER_PULSE_FRONT_MASK)   
+#define  IS_COUNTER_WATER_NOT_ACTIVE     ((EEPR_LOCAL_COPY.board_version) & COUNTER_WATER_ACTIVITY_MASK)   
 
 ////////////////////////////////////////////////////////////////////////////
-
+/*
 unsigned int		*cost_litre_coef;
 unsigned int		*pulse_litre_coef;
 unsigned int		*pump_on_time_coef;
@@ -139,8 +162,8 @@ unsigned int		*ext_eepr_cur_adr;
 unsigned int		*report_interval;
 unsigned int		*lower_report_limit;
 unsigned int		*upper_report_limit;
-
-unsigned int		*lock_param;
+*/
+//unsigned int		*lock_param;
 
 //unsigned long		*collection_maney;
 
@@ -155,13 +178,7 @@ unsigned int		*lock_param;
 #define             ExtEeprDataAdrEEPROMAdr			0x2c
 
 #define             VodomatNumberEEPROMAdr			0x2e
-#define             PfoneNumber1EEPROMAdr			0x30
-#define             PfoneNumber2EEPROMAdr			0x32
-#define             PfoneNumber3EEPROMAdr			0x34
-#define             PfoneNumber4EEPROMAdr			0x36
-#define             PfoneNumber5EEPROMAdr			0x38
-#define             PfoneNumber6EEPROMAdr			0x3a
-#define             PfoneNumber7EEPROMAdr			0x3c
+
 #define             BoardVersionEEPROMAdr			0x3e
 #define             SMSWaterLevelEEPROMAdr			0x40
 
