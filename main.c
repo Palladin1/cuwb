@@ -213,6 +213,15 @@ void custom_at_handler(u08 *pData);
 
 int main( void )
 {
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+CARRENT_STATE = STATE_MODEM_IDLE;
+custom_at_handler((u08 *)"+CSQ: 5,0");
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
     xEventsQueue = xQueueCreate(16, sizeof(u08 *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -245,7 +254,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
     xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70+20, NULL, 2, NULL);         /*  70 */
+	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
 
     xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
     
@@ -2044,7 +2053,8 @@ void vTask6( void *pvParameters )
 {
 
 //	u08 com_buff[200];
-    u08 com_buff[30];
+#define  COM_BUFF_LEN    30
+    u08 com_buff[COM_BUFF_LEN];
 	u08 cnt = 0;
 
 	BUZZER_ON;                                                                 /* buzzer will be turn off when timeer finnished */
@@ -2064,11 +2074,17 @@ void vTask6( void *pvParameters )
 
 		    if ((com_buff[cnt] == '\n') || (com_buff[cnt] == '>')) {
 		        cnt = 0; 
-				custom_at_handler(&com_buff[0]);
+				if (com_buff[cnt] == '>') {
+				    com_buff[cnt+1] = 0;
+				}
+				else {
+				    com_buff[cnt] = 0;
+				} 
+				custom_at_handler(com_buff);
 		    }
 			else {
 			    cnt++;
-				if(cnt == 30)
+				if(cnt == COM_BUFF_LEN - 1)
 				    cnt = 0;
 			}
 		}
@@ -2121,87 +2137,106 @@ void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE u
 /////////////////////////////////////////////////////////////////////////////////////
 
 void custom_at_handler(u08 *pData)
-{
-    
-    if (strncmp((char *)pData, "Call Ready", 10) == 0) {
+{ 
+    u08 *p;    
+
+    if (strcmp_PF((char *)pData, PSTR("Call Ready")) == 0) {
 		CARRENT_STATE = STATE_GPRS_CONNECT;
     }
-	else if (strncmp((char *)pData, ">", 1) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR(">")) == 0) {
         ModemAnsver = ACK_CAN_SEND;    
 	}
-	else if (strncmp((char *)pData, "200 OK", 6) == 0) {
+	else if (strstr_PF((char *)pData, PSTR("200 OK"))) {
         
 	}
-	else if (strncmp((char *)pData, "OK", 2) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("OK")) == 0) {
         ModemAnsver = ACK_OK;
 	}
-	else if (strncmp((char *)pData, "ERROR", 5) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("ERROR")) == 0) {
         ModemAnsver = ACK_ERROR;
 	}
-    else if (strncmp((char *)pData, "SEND OK", 7) == 0) {
+    else if (strcmp_PF((char *)pData, PSTR("SEND OK")) == 0) {
         ModemAnsver = ACK_SEND_OK;
 	}
-	else if (strncmp((char *)pData, "SEND FAIL", 9) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("SEND FAIL")) == 0) {
         ModemAnsver = ACK_SEND_FAIL;
 	}
-	else if (strncmp((char *)pData, "CONNECT OK", 10) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("CONNECT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strncmp((char *)pData, "STATE: CONNECT OK", 17) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("STATE: CONNECT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strncmp((char *)pData, "ALREADY CONNECT", 15) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("ALREADY CONNECT")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strncmp((char *)pData, "CLOSE OK", 8) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("CLOSE OK")) == 0) {
         CARRENT_STATE = STATE_SMS_PREPARE;
 	}
-	else if (strncmp((char *)pData, "CONNECT FAIL", 12) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("CONNECT FAIL")) == 0) {
         CARRENT_STATE = STATE_GPRS_FAIL;
 	}
-	else if (strncmp((char *)pData, "DEACT OK", 8) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("DEACT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_CONNECT;
 	}
-    else if (strncmp((char *)pData, "REQUEST DATA", 12) == 0) {
+    else if (strcmp_PF((char *)pData, PSTR("REQUEST DATA")) == 0) {
   		u08 tmp_event = 6;
         xQueueSend(xEventsQueue, &tmp_event, 0);
 	}
-	else if (strncmp((char *)pData, "CLOSED", 6) == 0) {
+	else if (strcmp_PF((char *)pData, PSTR("CLOSED")) == 0) {
 		CARRENT_STATE = STATE_SMS_PREPARE;
 	}
-	else if (strncmp((char *)pData, "+CSQ:", 5) == 0) {
-        u08 *p;
-        p = (u08 *)(strstr((char *)pData, "+CSQ:") + 6);
+	else if ( (p = (u08 *)strstr_PF((char *)pData, PSTR("+CSQ:")))) {
+        u08 quality = 0;
+        u08 *n_end;
+		
+		p += 6;
+		n_end = strstr_PF((const char *)p, PSTR(","));
+		if (!(n_end && n_end > p)) {
+			return;
+		}
 
-		if (p != NULL) {
-		    *p = (u08) atoin(p, 2);
-
-            if (*p == 99 || *p < 8) { 
-		        CARRENT_STATE = STATE_NET_QUALITY_LOW;
-		    }
-		    else {
-		        CARRENT_STATE = STATE_GPRS_CONNECT;    //
-		    }
-		}     
+		if ((n_end - p) == 2 && isdigit(*p) && isdigit(*(p+1))) {
+            quality = (u08)atoin(p, 2);
+		}
+		else if ((n_end - p) == 1 && isdigit(*p)) {
+            quality = (u08)atoin(p, 1);
+		}
+		else {
+		    return;
+		}
+		
+		if (quality == 99 || quality < 8) { 
+	        CARRENT_STATE = STATE_NET_QUALITY_LOW;
+	    }
+        else {
+	        CARRENT_STATE = STATE_GPRS_CONNECT;    //
+	    }
     }
-	else if (strncmp((char *)pData, "Price=", 6) == 0) {
-
-        u08 *p;
+	else if ( (p = (u08 *)strstr_PF((char *)pData, PSTR("Price=")))) {
         u16 price = 0;
-        p = (u08 *)(strstr((char *)pData, "Price=") + 6);
-  
-        if (p != NULL) {
-		    price = atoin(p, 4);
-
-		    if (*cost_litre_coef != price && 500 >= price) {
-			    portENTER_CRITICAL();
-                NewPrice = price;
-			    portEXIT_CRITICAL();
+        u08 len   = 0; 
+        
+		p += 6;
+		len = strlen(p);
+        if (len != 4) {
+            return;
+		}
+		
+		for (len = 0; len < 4; len++) {
+		    if (!isdigit(*(p+len))) {
+		        return;
 			}
-        }
-    }
+		}
 
-	
+        price = atoin(p, 4);
+
+		if (*cost_litre_coef != price && 500 >= price) {
+		    portENTER_CRITICAL();
+            NewPrice = price;
+		    portEXIT_CRITICAL();
+		}
+    }
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
