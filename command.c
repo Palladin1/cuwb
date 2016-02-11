@@ -421,7 +421,7 @@ extern TimeAndDate Time_And_Date_System;
 			    get_cmd_buff[0] = 12 + 2;
 			    
 			    uartSendBuf(0, &get_cmd_buff[0], EXT_EEPR_LINE_WRT_SIZE + 2);
-//		        _delay_ms(20);
+
                 Global_Time_Deluy(20);
     	    }
 			start_memAddr_for_read = 0;
@@ -435,7 +435,7 @@ extern TimeAndDate Time_And_Date_System;
 			get_cmd_buff[0] = 12;
 			
 			uartSendBuf(0, &get_cmd_buff[0], 13);
-//		    _delay_ms(20);
+
             Global_Time_Deluy(20);
     	}
 
@@ -449,11 +449,12 @@ extern TimeAndDate Time_And_Date_System;
         get_cmd_buff[2] = 0;
 		get_cmd_buff[3] = 0;
 		i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_data_adr, (get_cmd_buff + 2), 2);
-		ADR_LAST_DATTA = 0x0000;
-		EEPR_LOCAL_COPY.ext_eepr_cur_adr = 0x0000;
+		ADR_LAST_DATTA = 0;
+		EEPR_LOCAL_COPY.ext_eepr_cur_adr = 0;
+	
 		portENTER_CRITICAL();
 		IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, EEPR_LOCAL_COPY.ext_eepr_cur_adr);
-		portENTER_CRITICAL();
+		portEXIT_CRITICAL();
 
 		get_cmd_buff[0] = 1;
 		uartSendBuf(0, &get_cmd_buff[0], 2);
@@ -461,24 +462,19 @@ extern TimeAndDate Time_And_Date_System;
 
 	void WRITE_INT_EEPROM (void) {
 
-		u16 EepromAdr;
 		u16 tmp_ext_eepr_data_adr = EEPR_LOCAL_COPY.ext_eepr_data_adr;
 
-		eeprom_busy_wait();
 		portENTER_CRITICAL();
-		eeprom_write_word ((uint16_t*)*(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
+//		eeprom_write_word ((uint16_t*)*(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
+		IntEeprWordWrite((uint16_t)(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
 		portEXIT_CRITICAL();
 			
-		EepromAdr = CostLitreCoefEEPROMAdr;	
 		portENTER_CRITICAL();												
-    	eeprom_busy_wait();
-        eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.cost_litre_coef), (uint16_t *)*(&EepromAdr), 16);
+    	IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, 16);
         portEXIT_CRITICAL();
 		
-		EepromAdr = SMSWaterLevelEEPROMAdr;
 		portENTER_CRITICAL();												
-		eeprom_busy_wait();
-        eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.water_level_marck_min), (uint16_t *)*(&EepromAdr), 24);
+		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 24);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
@@ -504,9 +500,10 @@ extern TimeAndDate Time_And_Date_System;
 	void READ_INT_EEPROM (void) {
 		
 		portENTER_CRITICAL();		
-		eeprom_busy_wait();
-		((uint16_t*) get_cmd_buff)[2] = eeprom_read_word ((uint16_t *)*(&((uint16_t*) get_cmd_buff)[1]));
+//		((uint16_t*) get_cmd_buff)[2] = eeprom_read_word ((uint16_t *)*(&((uint16_t*) get_cmd_buff)[1]));
+		((uint16_t*) get_cmd_buff)[2] = IntEeprWordRead((uint16_t)&((uint16_t*)get_cmd_buff)[1]);
 		portEXIT_CRITICAL();
+
 		get_cmd_buff[0] = 5;
 				
 		uartSendBuf(0, &get_cmd_buff[0], 6);
@@ -568,33 +565,6 @@ extern TimeAndDate Time_And_Date_System;
 		default: 
 			break;
 	}
-}
-
-
-void Get_APN (u08 *apn_buff) {
-    
-	u16 EepromAdr;
-	EepromAdr = CostLitreCoefEEPROMAdr;													
-	eeprom_busy_wait();
-	eeprom_read_block (apn_buff, (uint16_t *)*(&EepromAdr), 15);
-}
-
-
-void Get_IP (u08 *ip_buff) {
-
-	u16 EepromAdr;    
-	EepromAdr = CostLitreCoefEEPROMAdr;													
-	eeprom_busy_wait();
-    eeprom_read_block (ip_buff, (uint16_t *)*(&EepromAdr), 8);
-}
-
-
-void Get_SCRIPT_PASS (u08 *script_pass_buff) {
-    
-	u16 EepromAdr;	
-	EepromAdr = CostLitreCoefEEPROMAdr;													
-	eeprom_busy_wait();
-	eeprom_read_block (script_pass_buff, (uint16_t *)*(&EepromAdr), 8);
 }
 
 

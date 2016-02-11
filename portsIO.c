@@ -21,33 +21,24 @@
 
 void InitPortsIO (void) {
 	
-    u16 EepromAdr;
+//    u16 EepromAdr;
 //=====================================
 //	чтение EEPROM
-    EepromAdr = CostLitreCoefEEPROMAdr;													
-	eeprom_busy_wait();
-    eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.cost_litre_coef), (uint16_t *)*(&EepromAdr), 16);
+    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, 16);
+    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 24);
+	
+	IntEeprBlockRead((uint16_t)(&CollectoinCountManey), CollectionManeyEEPROMAdr, 4);
 
-	EepromAdr = SMSWaterLevelEEPROMAdr;													
-	eeprom_busy_wait();
-    eeprom_read_block((uint16_t *)(&EEPR_LOCAL_COPY.water_level_marck_min),(uint16_t *)*(&EepromAdr), 24);
+	IntEeprBlockRead((uint16_t)(&RegistratorSaveWater), RegistratorWaterEEPROMAdr, 4);
 
-    EepromAdr = CollectionManeyEEPROMAdr;
-    eeprom_read_block((u16 *)&CollectoinCountManey,(uint32_t *)*(&EepromAdr), 4);
-
-	EepromAdr = RegistratorWaterEEPROMAdr;
-    eeprom_read_block((u16 *)&RegistratorSaveWater,(uint32_t *)*(&EepromAdr), 4);
-
-	EepromAdr = RegistratorCashEEPROMAdr;
-    eeprom_read_block((u16 *)&RegistratorCashClear,(uint32_t *)*(&EepromAdr), 4);
+	IntEeprBlockRead((uint16_t)(&RegistratorCashClear), RegistratorCashEEPROMAdr, 4);
 
 
 /* Check version of softvare and set if don't equal */    
 	u16 CurrSoftVer;
-	EepromAdr = SoftVersionEEPROMAdr;
-    eeprom_read_block((u16 *)&CurrSoftVer,(uint16_t *)*(&EepromAdr), 2);
+	CurrSoftVer = IntEeprWordRead(SoftVersionEEPROMAdr);
     if (SOFTVARE_VERSION != CurrSoftVer) {
-	    IntEeprDwordWrite(SoftVersionEEPROMAdr, SOFTVARE_VERSION);
+	    IntEeprWordWrite(SoftVersionEEPROMAdr, SOFTVARE_VERSION);
     }
 
 	

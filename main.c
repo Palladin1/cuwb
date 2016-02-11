@@ -217,9 +217,6 @@ int main( void )
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-CARRENT_STATE = STATE_MODEM_IDLE;
-custom_at_handler((u08 *)"+CSQ: 5,0");
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     xEventsQueue = xQueueCreate(16, sizeof(u08 *));
@@ -250,27 +247,27 @@ Uart0Enable(Uart0_Resiv,  19200);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask2, (signed char*) "Task_2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  40 */
+	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  40 */
 
-    xTaskCreate(vTask3, (signed char*) "Task_3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "Task_4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
+	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "Task_5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
     
-	xTaskCreate(vTask6, (signed char*) "Task_6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  80 */
+	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  80 */
  
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
     
-	xTimer_NoWaterBuzzerSignal = xTimerCreate((signed char *)"NoWtr", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterBuzzerSignal);
+	xTimer_NoWaterBuzzerSignal = xTimerCreate((signed char *)"W", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterBuzzerSignal);
     xTimerReset(xTimer_NoWaterBuzzerSignal, 0);
 
-	xTimer_BuzzerOff = xTimerCreate((signed char *)"SafeOp", 200 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_BuzzerOff);
+	xTimer_BuzzerOff = xTimerCreate((signed char *)"B", 200 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_BuzzerOff);
 
-	xTimer_ModemStart = xTimerCreate((signed char *)"MdStrt", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
+	xTimer_ModemStart = xTimerCreate((signed char *)"M", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
-	xTimer_TimeBlockChack = xTimerCreate((signed char *)"TBlck", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockCheck);
+	xTimer_TimeBlockChack = xTimerCreate((signed char *)"R", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockCheck);
 
 //  xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
@@ -2140,96 +2137,90 @@ void custom_at_handler(u08 *pData)
 { 
     u08 *p;    
 
-    if (strcmp_PF((char *)pData, PSTR("Call Ready")) == 0) {
+    if (strcmp_P((char *)pData, PSTR("Call Ready")) == 0) {
 		CARRENT_STATE = STATE_GPRS_CONNECT;
     }
-	else if (strcmp_PF((char *)pData, PSTR(">")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR(">")) == 0) {
         ModemAnsver = ACK_CAN_SEND;    
 	}
-	else if (strstr_PF((char *)pData, PSTR("200 OK"))) {
+	else if (strstr_P((char *)pData, PSTR("200 OK"))) {
         
 	}
-	else if (strcmp_PF((char *)pData, PSTR("OK")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("OK")) == 0) {
         ModemAnsver = ACK_OK;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("ERROR")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("ERROR")) == 0) {
         ModemAnsver = ACK_ERROR;
 	}
-    else if (strcmp_PF((char *)pData, PSTR("SEND OK")) == 0) {
+    else if (strcmp_P((char *)pData, PSTR("SEND OK")) == 0) {
         ModemAnsver = ACK_SEND_OK;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("SEND FAIL")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("SEND FAIL")) == 0) {
         ModemAnsver = ACK_SEND_FAIL;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("CONNECT OK")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("CONNECT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("STATE: CONNECT OK")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("STATE: CONNECT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("ALREADY CONNECT")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("ALREADY CONNECT")) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("CLOSE OK")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("CLOSE OK")) == 0) {
         CARRENT_STATE = STATE_SMS_PREPARE;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("CONNECT FAIL")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("CONNECT FAIL")) == 0) {
         CARRENT_STATE = STATE_GPRS_FAIL;
 	}
-	else if (strcmp_PF((char *)pData, PSTR("DEACT OK")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("DEACT OK")) == 0) {
         CARRENT_STATE = STATE_GPRS_CONNECT;
 	}
-    else if (strcmp_PF((char *)pData, PSTR("REQUEST DATA")) == 0) {
+    else if (strcmp_P((char *)pData, PSTR("REQUEST DATA")) == 0) {
   		u08 tmp_event = 6;
         xQueueSend(xEventsQueue, &tmp_event, 0);
 	}
-	else if (strcmp_PF((char *)pData, PSTR("CLOSED")) == 0) {
+	else if (strcmp_P((char *)pData, PSTR("CLOSED")) == 0) {
 		CARRENT_STATE = STATE_SMS_PREPARE;
 	}
-	else if ( (p = (u08 *)strstr_PF((char *)pData, PSTR("+CSQ:")))) {
-        u08 quality = 0;
-        u08 *n_end;
+	else if ( (p = (u08 *)strstr_P((char *)pData, PSTR("+CSQ:")))) {
+        u08 k = 0;
+        u08 *qend;
 		
 		p += 6;
-		n_end = strstr_PF((const char *)p, PSTR(","));
-		if (!(n_end && n_end > p)) {
+		qend = (u08 *)strstr_P((const char *)p, PSTR(","));
+		if (!(qend && qend > p)) {
 			return;
 		}
 
-		if ((n_end - p) == 2 && isdigit(*p) && isdigit(*(p+1))) {
-            quality = (u08)atoin(p, 2);
+        k = qend - p;
+		if (k != 2 && k != 1) {
+            return;
 		}
-		else if ((n_end - p) == 1 && isdigit(*p)) {
-            quality = (u08)atoin(p, 1);
-		}
-		else {
-		    return;
+
+	    k = (u08)atoin(p, k);
+		if (k == 0) {
+	        return;
 		}
 		
-		if (quality == 99 || quality < 8) { 
+		if (k == 99 || k < 8) { 
 	        CARRENT_STATE = STATE_NET_QUALITY_LOW;
 	    }
         else {
 	        CARRENT_STATE = STATE_GPRS_CONNECT;    //
 	    }
     }
-	else if ( (p = (u08 *)strstr_PF((char *)pData, PSTR("Price=")))) {
+	else if ( (p = (u08 *)strstr_P((char *)pData, PSTR("Price=")))) {
         u16 price = 0;
-        u08 len   = 0; 
         
 		p += 6;
-		len = strlen((const char *)p);
-        if (len != 4) {
+        if (strlen((const char *)p) != 4) {
             return;
 		}
 		
-		for (len = 0; len < 4; len++) {
-		    if (!isdigit(*(p+len))) {
-		        return;
-			}
+        if ((price = atoin(p, 4)) == 0) {
+		    return;
 		}
-
-        price = atoin(p, 4);
 
 		if (EEPR_LOCAL_COPY.cost_litre_coef != price && 500 >= price) {
 		    portENTER_CRITICAL();
