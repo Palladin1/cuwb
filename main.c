@@ -112,6 +112,25 @@ typedef enum {
   
 } CARRENT_STATE_CARRENT;
 
+
+/* The events which sends to server by GSM modem */
+enum {
+    Fl_Ev_NoWater               =  1,          
+    Fl_Ev_NoPower               =  2,
+    Fl_Ev_TakeManey             =  3,
+    Fl_Ev_GetMoving             =  4,
+    Fl_Ev_LimWater              =  5,
+    Fl_Ev_RequestData           =  6,
+    Fl_Ev_ErrorBill             =  7,
+	Fl_Ev_RegError              =  8,
+    Fl_Ev_JustAfterReset        =  9,
+	Fl_Ev_ServiceModeActivate   = 10,
+	Fl_Ev_ServiceModeDeactivate = 11,
+	Fl_Ev_ServiceOpening        = 12,  
+	Fl_Ev_WillBlocked           = 13,
+} SYSTEM_EVENTS;
+
+
 CARRENT_STATE_CARRENT CARRENT_STATE = STATE_MODEM_IDLE;
 
 //u08 LcdDatta[8];
@@ -372,6 +391,8 @@ void vTask2( void *pvParameters )
 
 	u16 TimeSendRequestCnt = 0;
 
+	u08 after_reset = 1;
+
 	for( ;; )
     {
  
@@ -463,9 +484,14 @@ void vTask2( void *pvParameters )
 			        interval_for_send = 1;
 				}
 				else {
+				    if (after_reset) {
+					    after_reset = 0;
+						SYSTEM_EVENTS = Fl_Ev_JustAfterReset;
+						xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+					}
 				    if (uxQueueMessagesWaiting(xEventsQueue) == 0) { 
-				        u08 tmp_event = 6;                          
-                        xQueueSend(xEventsQueue, &tmp_event, 0);
+				        SYSTEM_EVENTS = Fl_Ev_RequestData;
+                        xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 					}
 				}
 		    }
@@ -566,22 +592,6 @@ void vTask4( void *pvParameters )
 
 	static u08 Is_Registrator_Err_Gprs_Send = 0;
 	
-    /* The events which sends to server by GSM modem */
-	enum {
-        Fl_Ev_NoWater               =  1,          
-        Fl_Ev_NoPower               =  2,
-        Fl_Ev_TakeManey             =  3,
-        Fl_Ev_GetMoving             =  4,
-        Fl_Ev_LimWater              =  5,
-        Fl_Ev_RequestData           =  6,
-        Fl_Ev_ErrorBill             =  7,
-	    Fl_Ev_RegError              =  8,
-	    Fl_Ev_ServiceModeActivate   =  9,
-	    Fl_Ev_ServiceModeDeactivate = 10,
-		Fl_Ev_ServiceOpening        = 11,  
-		Fl_Ev_WillBlocked           = 12,
-	} SYSTEM_EVENTS;
-
 /*			
     const u08 Fl_Ev_NoWater              =  1;          
     const u08 Fl_Ev_NoPower              =  2;
@@ -2177,8 +2187,8 @@ void custom_at_handler(u08 *pData)
         CARRENT_STATE = STATE_GPRS_CONNECT;
 	}
     else if (strcmp_P((char *)pData, PSTR("REQUEST DATA")) == 0) {
-  		u08 tmp_event = 6;
-        xQueueSend(xEventsQueue, &tmp_event, 0);
+  		SYSTEM_EVENTS = Fl_Ev_RequestData;
+		xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 	}
 	else if (strcmp_P((char *)pData, PSTR("CLOSED")) == 0) {
 		CARRENT_STATE = STATE_SMS_PREPARE;
