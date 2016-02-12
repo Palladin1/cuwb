@@ -40,8 +40,6 @@ volatile struct EEPR_DATA_MAP {
     unsigned int  ext_eepr_cur_adr;
 
     unsigned int  report_interval;
-    unsigned int  lower_report_limit;
-    unsigned int  upper_report_limit;
 } EEPR_LOCAL_COPY;
 
 volatile u32 CollectoinCountManey;

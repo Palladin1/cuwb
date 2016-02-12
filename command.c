@@ -474,7 +474,7 @@ extern TimeAndDate Time_And_Date_System;
         portEXIT_CRITICAL();
 		
 		portENTER_CRITICAL();												
-		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 24);
+		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 22);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
@@ -568,73 +568,79 @@ extern TimeAndDate Time_And_Date_System;
 }
 
 
-inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber) {
+inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber) 
+{
 
-	    u08 cnt_buf = 0;
+    u08 cnt_buf;
+	u08 i;
 
-        itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
-	
-                                                                               /* Convert the date and time to ASCII */
-        for (cnt_buf = 0; cnt_buf < 6; cnt_buf++) {
-		    itoan(time_and_date_buf[cnt_buf], &report_buff[((cnt_buf * 2) + 4)], 2);
-		}
+    cnt_buf = 0;
+	     
+    itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
+    cnt_buf += 4;                                      
+										                                       /* Convert the date and time to ASCII */
+    for (i = 0; i < 10; i += 2) {
+	    itoan(time_and_date_buf[i+2], &report_buff[cnt_buf + i], 2);
+		cnt_buf += i;
+	}
+	cnt_buf += i;
 
-		cnt_buf = 0;
+    if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
+        itoan(CollectoinCountManey, &report_buff[cnt_buf], 6);
+        CollectoinCountManey = 0;
+        IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
+	}
+	else if (EventNamber == 2) {
+	    itoan((u32) MoneyToReturn, &report_buff[cnt_buf], 6);
+	}
+	else {
+	    itoan(EEPR_LOCAL_COPY.day_maney_cnt, &report_buff[cnt_buf], 6);
+	}
+	cnt_buf += 6;
 
-        if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
-            itoan(CollectoinCountManey, &report_buff[16+cnt_buf], 6);
-		    CollectoinCountManey = 0;
-            IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
-		}
-		else if (EventNamber == 2) {
-		    itoan((u32) MoneyToReturn, &report_buff[16+cnt_buf], 6);
-		}
-		else {
-		    itoan(EEPR_LOCAL_COPY.day_maney_cnt, &report_buff[16+cnt_buf], 6);
-		}
-
-		if (EventNamber == 2) {
-		    itoan((u32) WaterToReturn, &report_buff[22+cnt_buf], 6);
-			IsDataToReturnSent = 1;
-		}
-		else {
-            itoan(EEPR_LOCAL_COPY.amount_water, &report_buff[22+cnt_buf], 6);
-		}
+	if (EventNamber == 2) {
+	    itoan((u32) WaterToReturn, &report_buff[cnt_buf], 6);
+		IsDataToReturnSent = 1;
+	}
+	else {
+        itoan(EEPR_LOCAL_COPY.amount_water, &report_buff[cnt_buf], 6);
+	}
+	cnt_buf += 6;
 	    
-		itoan(EEPR_LOCAL_COPY.cost_litre_coef, &report_buff[28+cnt_buf], 4);
+	itoan(EEPR_LOCAL_COPY.cost_litre_coef, &report_buff[cnt_buf], 4);
+	cnt_buf += 4;
 
 /*
 ************************************************************ 
 *       Sets the flags of stats from board unit     
 ************************************************************
 */
-        if (Fl_State_Water  >= '0' && Fl_State_RsvBill >= '0' && Fl_State_Power >= '0' && Fl_State_WtrCnt >= '0') {
+    if (Fl_State_Water  >= '0' && Fl_State_RsvBill >= '0' 
+	                           && Fl_State_Power   >= '0' 
+							   && Fl_State_WtrCnt  >= '0'
+							   && Fl_State_RrState >= '0'
+							   && Fl_State_Reserve >= '0') {
 
-            report_buff[32+cnt_buf] = Fl_State_Water;
+        report_buff[cnt_buf++] = Fl_State_Water;
+        report_buff[cnt_buf++] = Fl_State_RsvBill;
+        report_buff[cnt_buf++] = Fl_State_Power;
+        report_buff[cnt_buf++] = Fl_State_WtrCnt;
+		report_buff[cnt_buf++] = Fl_State_RrState;
+		report_buff[cnt_buf++] = Fl_State_Reserve;
 
-            report_buff[33+cnt_buf] = Fl_State_RsvBill;
-
-            report_buff[34+cnt_buf] = Fl_State_Power;
-      
-            report_buff[35+cnt_buf] = Fl_State_WtrCnt;
+	}
+	else {
+	    for (i = 0; i < 5; i++) {
+	        report_buff[cnt_buf++] = '0';
 		}
-		else {
-		    report_buff[32+cnt_buf] = '0';
+	}
 
-            report_buff[33+cnt_buf] = '0';
-
-            report_buff[34+cnt_buf] = '0';
-      
-            report_buff[35+cnt_buf] = '0';
-		}
 /*
 ************************************************************ 
 *       End flags sets 
 ************************************************************
 */
-	    itoan(EventNamber, &report_buff[36+cnt_buf], 2);
-//		report_buff[38+cnt_buf] = 0x1A;
-//		report_buff[39+cnt_buf] = '\0';
+    itoan(EventNamber, &report_buff[cnt_buf], 2);
 }
 
 

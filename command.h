@@ -41,11 +41,12 @@ u16 WaterToReturn;
 
 u08 IsDataToReturnSent;
 
-u08 Fl_State_Water;
-u08 Fl_State_Power;
-u08 Fl_State_RsvBill;
-u08 Fl_State_WtrCnt;
-
+volatile u08 Fl_State_Water;
+volatile u08 Fl_State_Power;
+volatile u08 Fl_State_RsvBill;
+volatile u08 Fl_State_WtrCnt;
+volatile u08 Fl_State_RrState;
+volatile u08 Fl_State_Reserve;
 
 void SellingStart(void);
 void SellingStop(void);

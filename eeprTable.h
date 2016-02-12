@@ -27,8 +27,7 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 		                                    0x0001,                                 //
 	[R_ADR(ExtEeprCarAdrEEPROMAdr)]     = 	0x0000,                                 //overflow the external memory
 	[R_ADR(RepIntervalEEPROMAdr)]       =   0x0002,                                 //15 minut 
-	[R_ADR(LowRepLimitEEPROMAdr)]       = 	0x01e0,                                 //08.00
-	[R_ADR(UpRepLimitEEPROMAdr)]        = 	0x04b0,                                 //20.00   
+  
 
 	[R_ADR(ApnUserPassAdressEEPROMAdr)] = 	0x6922,                                 //"i
 		                                    0x746e,                                 //nt

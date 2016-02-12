@@ -30,8 +30,7 @@ const char  SAVE_FLESH[] PROGMEM             = "AT&W\n";
 const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\"\n";        // Pfone book on sim
 //const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\",\"SM\",\"SM\"";
 const char  CLEAR_SMS[] PROGMEM              = "AT+CMGD=1\n";         
-const char  CLEAR_ALL_SMS[] PROGMEM          = "AT+CMGD=1,4";         
-const char  INDICATION_NEW_SMS[] PROGMEM     = "AT+CNMI=2,1,0,0,0\n";   
+const char  INDICATION_NEW_SMS[] PROGMEM     = "AT+CNMI=1,0,0,0,0\n";   
 const char  SET_TEXT_MODE[] PROGMEM          = "AT+CMGF=1\n";
 const char  SET_FORMAT_1_SMS[] PROGMEM       = "AT+CSCS=\"GSM\"\n";
 const char  SET_FORMAT_2_SMS[] PROGMEM       = "AT+CSMP=17,200,0,25\n";
@@ -72,9 +71,6 @@ const char  Conn[] PROGMEM       = "Connection: Keep-Alive\n\n\32"; // \32 - Ctr
 #define  REPORT_FLAG_ERR          0x31   
 #define  REPORT_FLAG_OK           0x30
 
-#define  SMS_FLAG_DAY             0x01
-#define  SMS_FLAG_NIGHT           0x00
-#define  SMS_FLAG_SEND_DISABLE    0x02   
 
 #define  TIME_SEND_REGUEST    50ul   // 1 second = x * 100ms - is task sleep    
 
@@ -136,10 +132,9 @@ CARRENT_STATE_CARRENT CARRENT_STATE = STATE_MODEM_IDLE;
 //u08 LcdDatta[8];
 u08 gFlLedStateWater = 0;
 
-u08 WtrCntTimer;
-u16 AxellCntTimer;
+volatile u08 WtrCntTimer;
+volatile u16 AxellCntTimer;
 
-volatile u08 FlDayOrNight = SMS_FLAG_SEND_DISABLE;
 volatile u16 NewPrice = 0;
 
 
@@ -385,7 +380,7 @@ void vTask2( void *pvParameters )
 	
 	static u08 indicator_data_buf[8];
 
-	u16 DayOrNightTimer = MINUTES_IN_DAY;
+	u16 DayMinutesCounter = MINUTES_IN_DAY;
 
     u16 interval_for_send = 0;
 
@@ -449,8 +444,7 @@ void vTask2( void *pvParameters )
         if (min_counter == 0) {
 		    min_counter = 600;
 
-			if (DayOrNightTimer >= MINUTES_IN_DAY) {
-			    //DayOrNightTimer = MINUTES_IN_DAY;
+			if (DayMinutesCounter >= MINUTES_IN_DAY) {
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
                 if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set to default */
@@ -458,24 +452,14 @@ void vTask2( void *pvParameters )
                 } 
 				xSemaphoreGive(xI2CMutex); 
 
-    			DayOrNightTimer = GetTimeAsMinute(&Time_And_Date_System);
+    			DayMinutesCounter = GetTimeAsMinute(&Time_And_Date_System);
 
                 if (Fl_Send_TimeDateCurGet == 0) {
                     Fl_Send_TimeDateCurGet = 1;
 				}
 			}
 
-            if ((0 == EEPR_LOCAL_COPY.lower_report_limit) && (0 == EEPR_LOCAL_COPY.upper_report_limit)) {
-                FlDayOrNight = SMS_FLAG_SEND_DISABLE;
-			}
-			else if ((DayOrNightTimer >= EEPR_LOCAL_COPY.lower_report_limit) && (DayOrNightTimer <= EEPR_LOCAL_COPY.upper_report_limit)) {
-                FlDayOrNight = SMS_FLAG_DAY;
-			}
-			else {
-			    FlDayOrNight = SMS_FLAG_NIGHT;
-			}
-			
-            DayOrNightTimer++;
+            DayMinutesCounter++;
 
 			/*Send report*/
 			if (interval_for_send == 0) {
@@ -1550,9 +1534,6 @@ void vTask5( void *pvParameters )
 	u08 disconnect_count = 0; 
 	u08 err_conn_fail = 0;
 	
-	u08 mashines_namber[6];
-//	u08 tmp_net_quality = 1;          
-
     u08 *p_data_len = 0;      
 
 	Fl_State_Water   = REPORT_FLAG_OK; 
@@ -1723,9 +1704,7 @@ void vTask5( void *pvParameters )
 
                  ModemSendCom(INDICATION_NEW_SMS, 500);
 
-                 ModemSendCom(CLEAR_SMS, 1000);
-
-//                 ModemSendCom(CLEAR_ALL_SMS, 1000); //23.09.2012 - comented this, becouse it not work
+//                 ModemSendCom(CLEAR_SMS, 1000);
 
                  CARRENT_STATE = STATE_GPRS_CONNECT;
 
@@ -1738,6 +1717,8 @@ void vTask5( void *pvParameters )
             uartSendByte(0, '\n');
 #endif
                  u08 data_len = 0; 
+
+                 ModemSendCom(CLEAR_SMS, 3000);
 				 
 				 ModemSendCom(SET_GPRS_FORMAT, 500);
 
@@ -1871,48 +1852,11 @@ void vTask5( void *pvParameters )
 			}
 
             case STATE_SMS_PREPARE: {
-#if MODEM_DBG
-			uartSendByte(0, '9');
-			uartSendByte(0, '\n');
-#endif
-                 CARRENT_STATE = STATE_GPRS_FORMED_BUFF; 
-
-                 if (FlDayOrNight == SMS_FLAG_DAY) { 
-    			     if ((num_event == 2) || (num_event == 7)) {
-	    			     //    CARRENT_STATE = STATE_SMS_SEND_DATA;
-					 }
-				 }
-				 else if (FlDayOrNight == SMS_FLAG_NIGHT) {
-                     if ((num_event == 2) || (num_event == 3)) {
-    				     CARRENT_STATE = STATE_SMS_SEND_DATA;
-					 }
-				 }	     
+                 CARRENT_STATE = STATE_SMS_SEND_DATA;
                  break;
 			}
 
             case STATE_SMS_SEND_DATA: {
-#if MODEM_DBG
-			uartSendByte(0, '1');
-			uartSendByte(0, '0');
-			uartSendByte(0, '\n');
-#endif
-
-    		     vTaskDelay(200 / portTICK_RATE_MS);
-
-                 ModemSendCom(SEND_SMS, 1);
-
-				 if (ModemSendData("\r", 500) == ACK_CAN_SEND) {
-
-                     itoan(EEPR_LOCAL_COPY.vodomat_number, mashines_namber, 4);
-	                 mashines_namber[4] = '-';
-	                 mashines_namber[5] = 0;
-					 ModemSendData((char *)mashines_namber, 1);
-//					 ModemSendCom((char*)pgm_read_word(&(SMS_TEXT[num_event])), 2000);
-					 
-					 vTaskDelay(200 / portTICK_RATE_MS);
-//                     num_event = 0;
-                 } 
-
                  CARRENT_STATE = STATE_GPRS_FORMED_BUFF;               
 	             break;
 			}
