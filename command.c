@@ -19,7 +19,7 @@
 
 static u08 PumpShouldTurnOn = 0;
 
-static const u08 Days_In_Month_Buf[MONTH_MAX] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const u08 Days_In_Month_Buf[MONTH_MAX] PROGMEM = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 void SellingStart(void) {
 
@@ -579,9 +579,8 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
     itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
     cnt_buf += 4;                                      
 										                                       /* Convert the date and time to ASCII */
-    for (i = 0; i < 10; i += 2) {
-	    itoan(time_and_date_buf[i+2], &report_buff[cnt_buf + i], 2);
-		cnt_buf += i;
+    for (i = 0; i < 10; i++) {
+	    itoan(time_and_date_buf[i], &report_buff[cnt_buf + i * 2], 2);
 	}
 	cnt_buf += i;
 
@@ -853,7 +852,7 @@ inline static u08 days_in_curr_month (u08 mounth_current, u16 year_current)
 	
 	year_current += 2000;
 	
-	days_num = Days_In_Month_Buf[mounth_current-1];
+	days_num = pgm_read_byte(&Days_In_Month_Buf[mounth_current-1]);
 
 	if (mounth_current == 2) {
 	    days_num += ((year_current % 4 == 0 && year_current % 1000 != 0) || year_current % 400 == 0);

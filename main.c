@@ -1880,7 +1880,7 @@ void vTask5( void *pvParameters )
 					 memset(send_data_buff, 0x00, 60);
 
                      xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                     Create_Report_String((u08 *)&Time_And_Date_System, &send_data_buff[0], num_event);
+                     Create_Report_String((u08 *)&Time_And_Date_System.Minute, &send_data_buff[0], num_event);
                      xSemaphoreGive(xI2CMutex);  
 
                      ModemSendData((char *)&send_data_buff[0], 1);             //

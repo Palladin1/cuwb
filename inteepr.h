@@ -1,13 +1,14 @@
-#ifndef INTEEPR_H
-#define INTEEPR_H
+#ifndef    INTEEPR_H
+#define    INTEEPR_H
 
+unsigned int IntEeprWordRead (unsigned int eepr_adr);
+unsigned long IntEeprDwordRead (unsigned int eepr_adr);
 
 void IntEeprWordWrite (unsigned int eepr_adr, unsigned int eepr_data);
 void IntEeprDwordWrite (unsigned int eepr_adr, unsigned long err_data);
 
-unsigned int IntEeprWordRead(unsigned int eepr_adr);
-unsigned long IntEeprDwordRead(unsigned int eepr_adr);
+void IntEeprBlockRead (unsigned int buff_adr, unsigned int eepr_adr, unsigned char size);
 
-void IntEeprBlockRead(unsigned int buff_adr, unsigned int eepr_adr, unsigned char size);
+void IntEeprBlockWrite (unsigned int buff_adr, unsigned int eepr_adr, unsigned char size);
 
-#endif
+#endif    /* INTEEPR_H */

@@ -2,6 +2,17 @@
 #define COMMAND_H
 
 
+#define  START_POINT_YEAR    15u
+
+#define  SECONDS_MAX    60u
+#define  MINUTES_MAX    60u
+#define  HOURS_MAX      24u
+#define  MONTH_MAX      12u
+#define  YEAR_MAX       99u
+
+#define  EXT_EEPR_LINE_WRT_SIZE    15
+
+
 typedef struct {
     u08 Second;
     u08 Minute; 
@@ -12,15 +23,38 @@ typedef struct {
 } TimeAndDate;
 
 
-#define  START_POINT_YEAR    15u
+struct MONEY_EXTRACT_INFO {
+    u08 Pos;
+    u08 Minut; 
+    u08 Hour;
+    u08 Day;
+    u08 Month;
+    u08 Year;
+	u16 Bill;
+	u16 Coin;
+	u32 Sum;
+};
 
-#define  SECONDS_MAX    60u
-#define  MINUTES_MAX    60u
-#define  HOURS_MAX      24u
-#define  MONTH_MAX      12u
-#define  YEAR_MAX       99u
 
-#define  EXT_EEPR_LINE_WRT_SIZE    13
+struct MONEY_EXTRACT {
+    struct MONEY_EXTRACT_INFO Cur;
+    u16 *FirstAdress;
+	u08  Num;
+	void (* RecAdd) (struct MONEY_EXTRACT *);
+    void (* RecRemove) (u08 pos);
+} ;
+
+void RecordAdd (struct MONEY_EXTRACT_INFO *new_extract)
+{
+    new_extract.Cur.Pos
+    new_extract.Cur.Pos * sizeof(new_extract.Cur) + new_extract.FirstAdress
+    IntEeprBlockWrite(new_extract.Cur, new_extract.FirstAdress, sizeof(new_extract.Cur));
+}
+
+void RecordRemove (u08 pos)
+{
+;
+}
 
 
 u08 CntTmrBill;
