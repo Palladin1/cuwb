@@ -23,8 +23,7 @@ typedef struct {
 } TimeAndDate;
 
 
-struct MONEY_EXTRACT_INFO {
-    u08 Pos;
+typedef struct {  //ENCASHMENT_T {
     u08 Minut; 
     u08 Hour;
     u08 Day;
@@ -33,29 +32,16 @@ struct MONEY_EXTRACT_INFO {
 	u16 Bill;
 	u16 Coin;
 	u32 Sum;
-};
+} ENCASHMENT_T;
 
 
+/*
 struct MONEY_EXTRACT {
-    struct MONEY_EXTRACT_INFO Cur;
+    struct ENCASHMENT_T Cur;
     u16 *FirstAdress;
 	u08  Num;
-	void (* RecAdd) (struct MONEY_EXTRACT *);
-    void (* RecRemove) (u08 pos);
 } ;
-
-void RecordAdd (struct MONEY_EXTRACT_INFO *new_extract)
-{
-    new_extract.Cur.Pos
-    new_extract.Cur.Pos * sizeof(new_extract.Cur) + new_extract.FirstAdress
-    IntEeprBlockWrite(new_extract.Cur, new_extract.FirstAdress, sizeof(new_extract.Cur));
-}
-
-void RecordRemove (u08 pos)
-{
-;
-}
-
+*/
 
 u08 CntTmrBill;
 u08 CntTmrCoin;

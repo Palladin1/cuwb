@@ -907,3 +907,58 @@ u16 atoin (u08 *s, u08 n)
 
 	return ret;
 }
+
+#define  QUEUE_ENCASHMENT_LEN_MAX    3u
+
+struct QUEUE_ENCASHMENT_T {
+    u08 *EeprAdr;
+    u08 *Head;
+    u08 *Tail;
+    u08  LenMax; 
+    u08  Num;
+};
+
+struct QUEUE_ENCASHMENT_T QueueEncashment = {0};
+
+ENCASHMENT_T QueueEncashmentInit (void)
+{
+    ENCASHMENT_T cur = {0};
+    ENCASHMENT_T tmp = {0};
+	u08 i;
+
+	QueueEncashment.EeprAdr = (u08 *) EncashmentSaveEEPROMAdr;
+    QueueEncashment.LenMax = QUEUE_ENCASHMENT_LEN_MAX;
+
+    for (i = 0; i < QueueEncashment.LenMax; i++) {
+	    IntEeprBlockRead((unsigned int)&tmp, EncashmentSaveEEPROMAdr, sizeof(ENCASHMENT_T));
+		if (tmp.Minut > 0) {
+            QueueEncashment.Num++;
+		    cur = (cur < tmp) ? cur : tmp;
+		}
+    }
+
+
+	return cur;
+}
+
+
+void QueueEncashmentPut (ENCASHMENT_T *data)
+{
+    unsigned int adr;
+    
+	IntEeprBlockWrite(data, adr, sizeof(ENCASHMENT_T));
+}
+
+
+void QueueEncashmentPop (ENCASHMENT_T *data)
+{
+    unsigned int adr;
+
+    IntEeprBlockRead(data, adr, sizeof(ENCASHMENT_T));
+}
+
+
+void QueueEncashmentDel (void)
+{
+    ;
+}

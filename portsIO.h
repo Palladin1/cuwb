@@ -198,6 +198,8 @@ unsigned int		*upper_report_limit;
 #define             RegistratorWaterEEPROMAdr 		0xce
 #define             RegistratorCashEEPROMAdr 		0xd2
 
+#define             EncashmentSaveEEPROMAdr 		0xd6
+
 #define             LockParamEEPROMAdr              0xffc 
 #define             SoftVersionEEPROMAdr            0xffe
 
