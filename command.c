@@ -911,10 +911,12 @@ u16 atoin (u08 *s, u08 n)
 #define  QUEUE_ENCASHMENT_LEN_MAX    3u
 
 struct QUEUE_ENCASHMENT_T {
-    u08 *EeprAdr;
+    ENCASHMENT_T *StartAdr;
+	ENCASHMENT_T *EndAdr;
+//	u08  Step;
     u08 *Head;
     u08 *Tail;
-    u08  LenMax; 
+    u08  Len; 
     u08  Num;
 };
 
@@ -925,18 +927,26 @@ ENCASHMENT_T QueueEncashmentInit (void)
     ENCASHMENT_T cur = {0};
     ENCASHMENT_T tmp = {0};
 	u08 i;
+	u08 len;
 
-	QueueEncashment.EeprAdr = (u08 *) EncashmentSaveEEPROMAdr;
-    QueueEncashment.LenMax = QUEUE_ENCASHMENT_LEN_MAX;
+	QueueEncashment.StartAdr = (ENCASHMENT_T *) EncashmentSaveEEPROMAdr;
+	QueueEncashment.EndAdr   = EncashmentSaveEEPROMAdr + QUEUE_ENCASHMENT_LEN_MAX * sizeof(ENCASHMENT_T);
+    QueueEncashment.Len = QUEUE_ENCASHMENT_LEN_MAX;
 
-    for (i = 0; i < QueueEncashment.LenMax; i++) {
-	    IntEeprBlockRead((unsigned int)&tmp, EncashmentSaveEEPROMAdr, sizeof(ENCASHMENT_T));
+    len = sizeof(ENCASHMENT_T);
+    for (i = 0; i < QueueEncashment.Len; i++) {
+	    IntEeprBlockRead((unsigned int)&tmp, EncashmentSaveEEPROMAdr + (len * i), len);
 		if (tmp.Minut > 0) {
             QueueEncashment.Num++;
-		    cur = (cur < tmp) ? cur : tmp;
+//			if (cur < tmp) {
+//			    cur = tmp;
+				QueueEncashment.Tail = EncashmentSaveEEPROMAdr + (len * i);
+//			}
+//		    else if (cur >= tmp) {
+			    QueueEncashment.Head = EncashmentSaveEEPROMAdr + (len * i);
+//			}
 		}
     }
-
 
 	return cur;
 }
@@ -944,21 +954,78 @@ ENCASHMENT_T QueueEncashmentInit (void)
 
 void QueueEncashmentPut (ENCASHMENT_T *data)
 {
-    unsigned int adr;
-    
-	IntEeprBlockWrite(data, adr, sizeof(ENCASHMENT_T));
+    if (!data) {
+	    return;
+	}
+
+    IntEeprBlockWrite(data, QueueEncashment.Head, sizeof(ENCASHMENT_T));
+
+    QueueEncashment.Head++;
+		
+    if (QueueEncashment.Head == (QueueEncashment.StartAdr + QUEUE_ENCASHMENT_LEN_MAX)) {
+		    QueueEncashment.Head = QueueEncashment.StartAdr;
+	}
+     
+    if (QueueEncashment.Num >= QUEUE_ENCASHMENT_LEN_MAX) {
+        QueueEncashment.Tail++;
+		
+		if (QueueEncashment.Tail == (QueueEncashment.StartAdr + QUEUE_ENCASHMENT_LEN_MAX)) {
+		    QueueEncashment.Tail = QueueEncashment.StartAdr;
+	    }  
+	}
+	else {
+	    QueueEncashment.Num++;
+	}
+}
+
+
+void QueueEncashmentRead (ENCASHMENT_T *data)
+{
+    if (!data) {
+	    return;
+	}
+
+    if (QueueEncashment.Num > 0) {
+        IntEeprBlockRead(data, QueueEncashment.Tail, sizeof(ENCASHMENT_T));
+    }
 }
 
 
 void QueueEncashmentPop (ENCASHMENT_T *data)
 {
-    unsigned int adr;
+    if (!data) {
+	    return;
+	}
 
-    IntEeprBlockRead(data, adr, sizeof(ENCASHMENT_T));
+    if (QueueEncashment.Num > 0) {
+        IntEeprBlockRead(data, QueueEncashment.Tail, sizeof(ENCASHMENT_T));
+	    
+		QueueEncashment.Tail++;
+		
+		if (QueueEncashment.Tail == (QueueEncashment.StartAdr + QUEUE_ENCASHMENT_LEN_MAX)) {
+		    QueueEncashment.Tail = QueueEncashment.StartAdr;
+	    }  
+		
+		QueueEncashment.Num--;
+    }
 }
 
 
 void QueueEncashmentDel (void)
 {
-    ;
+	u08 i;
+
+    if (QueueEncashment.Num > 0) {
+	    for (i = 0; i < sizeof(ENCASHMENT_T); i++) {
+            IntEeprBlockWrite(0, QueueEncashment.Tail, 1);
+        }
+	    
+		QueueEncashment.Tail++;
+		
+		if (QueueEncashment.Tail == (QueueEncashment.StartAdr + QUEUE_ENCASHMENT_LEN_MAX)) {
+		    QueueEncashment.Tail = QueueEncashment.StartAdr;
+	    }  
+		
+		QueueEncashment.Num--;
+    }
 }

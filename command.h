@@ -106,5 +106,11 @@ void uartSendBuf (u08 num, u08 *s , u08 len);
 
 u16 atoin (u08 *s, u08 n);
 
+ENCASHMENT_T QueueEncashmentInit (void);
+void QueueEncashmentPut (ENCASHMENT_T *data);
+void QueueEncashmentRead (ENCASHMENT_T *data);
+void QueueEncashmentPop (ENCASHMENT_T *data);
+void QueueEncashmentDel (void);
+
 
 #endif    /* COMMAND_H */
