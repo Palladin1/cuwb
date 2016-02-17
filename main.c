@@ -229,33 +229,13 @@ int main( void )
 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef struct  {
-    ENCASHMENT_T *Head;
-	ENCASHMENT_T *Tail;
-	u08 Numb; 
-} ENCASHMENT_EEPR_ADDRESS_T;
-
-ENCASHMENT_EEPR_ADDRESS_T *eepradrr;
-//  = EncashmentSaveEEPROMAdr;
-
-eepradrr = (ENCASHMENT_EEPR_ADDRESS_T *)EncashmentSaveEEPROMAdr;
-int a = 0;
-     a = eepradrr;
-     a = &eepradrr->Head;
-     a = &eepradrr->Tail;
-     a = &(eepradrr->Numb);
-     a = sizeof(ENCASHMENT_EEPR_ADDRESS_T);
-
 	ENCASHMENT_T init_test = {24, 12, 16, 2, 16, 200, 55, 255};
- //   ENCASHMENT_T init_test_read = {0};
-/*	
-	while (QueueEncashmentNum()) {
-		QueueEncashmentDel();
-	}	
-*/	
-	int i;
+	ENCASHMENT_T init_test_read = QueueEncashmentInit();
+	
+	u08 i;
 	for (i = 0; i < 5; i++) {
-		init_test.DateTime.Minut += i;
+		init_test.DateTime.Minut++;
+		init_test.Sum++;
 		QueueEncashmentPut(&init_test);
 	}
 	
@@ -263,15 +243,11 @@ int a = 0;
     	while (1) ;
 	}
 	
-	ENCASHMENT_T init_test_read = QueueEncashmentInit();
+	init_test_read = QueueEncashmentInit();
 
 	if (init_test_read.DateTime.Minut == 26) {
 	    init_test_read.DateTime.Minut = 1;
 	}
-
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     xEventsQueue = xQueueCreate(16, sizeof(u08 *));

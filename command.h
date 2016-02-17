@@ -112,9 +112,7 @@ u16 atoin (u08 *s, u08 n);
 
 ENCASHMENT_T QueueEncashmentInit (void);
 void QueueEncashmentPut (ENCASHMENT_T *data);
-void QueueEncashmentRead (ENCASHMENT_T *data);
-void QueueEncashmentPop (ENCASHMENT_T *data);
-void QueueEncashmentDel (void);
+void QueueEncashmentGet (ENCASHMENT_T *data, u08 with_remove);
 u08 QueueEncashmentNum (void);
 
 
