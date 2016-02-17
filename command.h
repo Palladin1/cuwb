@@ -23,12 +23,16 @@ typedef struct {
 } TimeAndDate;
 
 
-typedef struct {  //ENCASHMENT_T {
+typedef struct {
     u08 Minut; 
     u08 Hour;
     u08 Day;
     u08 Month;
     u08 Year;
+} ENCASHMENT_DATETIME_T;
+
+typedef struct {  //ENCASHMENT_T {
+    ENCASHMENT_DATETIME_T DateTime;
 	u16 Bill;
 	u16 Coin;
 	u32 Sum;
@@ -111,6 +115,7 @@ void QueueEncashmentPut (ENCASHMENT_T *data);
 void QueueEncashmentRead (ENCASHMENT_T *data);
 void QueueEncashmentPop (ENCASHMENT_T *data);
 void QueueEncashmentDel (void);
+u08 QueueEncashmentNum (void);
 
 
 #endif    /* COMMAND_H */

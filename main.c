@@ -224,11 +224,52 @@ void custom_at_handler(u08 *pData);
 
 
 //u08 Counter_Test_Fag = 0; 
-
+extern s08 encashment_timedate_cmp (ENCASHMENT_DATETIME_T *first, ENCASHMENT_DATETIME_T *second);
 int main( void )
 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+typedef struct  {
+    ENCASHMENT_T *Head;
+	ENCASHMENT_T *Tail;
+	u08 Numb; 
+} ENCASHMENT_EEPR_ADDRESS_T;
+
+ENCASHMENT_EEPR_ADDRESS_T *eepradrr;
+//  = EncashmentSaveEEPROMAdr;
+
+eepradrr = (ENCASHMENT_EEPR_ADDRESS_T *)EncashmentSaveEEPROMAdr;
+int a = 0;
+     a = eepradrr;
+     a = &eepradrr->Head;
+     a = &eepradrr->Tail;
+     a = &(eepradrr->Numb);
+     a = sizeof(ENCASHMENT_EEPR_ADDRESS_T);
+
+	ENCASHMENT_T init_test = {24, 12, 16, 2, 16, 200, 55, 255};
+ //   ENCASHMENT_T init_test_read = {0};
+/*	
+	while (QueueEncashmentNum()) {
+		QueueEncashmentDel();
+	}	
+*/	
+	int i;
+	for (i = 0; i < 5; i++) {
+		init_test.DateTime.Minut += i;
+		QueueEncashmentPut(&init_test);
+	}
+	
+	if (QueueEncashmentNum() != 3) {
+    	while (1) ;
+	}
+	
+	ENCASHMENT_T init_test_read = QueueEncashmentInit();
+
+	if (init_test_read.DateTime.Minut == 26) {
+	    init_test_read.DateTime.Minut = 1;
+	}
+
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
