@@ -1,6 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include "portsIO.h"
+
 
 #define  START_POINT_YEAR    15u
 
@@ -31,11 +33,9 @@ typedef struct {
     u08 Year;
 } ENCASHMENT_DATETIME_T;
 
-typedef struct {  //ENCASHMENT_T {
+volatile typedef struct {  //ENCASHMENT_T {
     ENCASHMENT_DATETIME_T DateTime;
-	u16 Bill;
-	u16 Coin;
-	u32 Sum;
+	MONEY_COUNTER_T       Money;
 } ENCASHMENT_T;
 
 

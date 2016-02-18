@@ -16,14 +16,17 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(ExtEeprDataAdrEEPROMAdr)]    = 	0x7B00,									//Ext Eepr DataAdr
 	[R_ADR(VodomatNumberEEPROMAdr)]     = 	0x0001,									//Vodomat Number
 
+	[R_ADR(MoneyCounterEEPROMAdr)]     =	0x0000,                                 //
+		                                    0x0000,                                 //
+											0x0000,                                 //
+		                                    0x0000,                                 //
 
   	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
 	[R_ADR(SMSWaterLevelEEPROMAdr)]     = 	0x2710,                                 //value of water for send sms 100 Litre
-	[R_ADR(AmountWaterEEPROMAdr)]       = 	0x0000,                                 //qualiti of water
+	[R_ADR(AmountWaterEEPROMAdr)]       = 	0x0000,                                 //current quantity of water 
 		                                    0x0000,                                 //
-	[R_ADR(DayManeyCntEEPROMAdr)]       = 	0x0000,                                 //qualiti of maney
-		                                    0x0000,                                 //
-	[R_ADR(MaxSizeBarrelEEPROMAdr)]     = 	0x86A0,                                 //barrel for vater
+
+	[R_ADR(MaxSizeBarrelEEPROMAdr)]     = 	0x86A0,                                 //how meny a water can put into the barrel
 		                                    0x0001,                                 //
 	[R_ADR(ExtEeprCarAdrEEPROMAdr)]     = 	0x0000,                                 //overflow the external memory
 	[R_ADR(RepIntervalEEPROMAdr)]       =   0x0002,                                 //15 minut 
@@ -90,8 +93,7 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 		                                    0x0035,                                 //5
 		                                    0x0000,                                 //
 		                                    0x0000,                                 //
-	[R_ADR(CollectionManeyEEPROMAdr)]   =	0x0000,                                 //
-		                                    0x0000,                                 //
+
 
 	[R_ADR(RegistratorWaterEEPROMAdr)]  =	0x0000,                                 //
 		                                    0x0000,                                 //

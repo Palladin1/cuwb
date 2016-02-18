@@ -4,7 +4,7 @@
 
 #include "global.h"		// include our global settings
 #include "command.h"
-#include "portsIO.h"
+//#include "portsIO.h"
 #include "uart2.h"		// include uart function library
 #include "rprintf.h"	// include printf function library
 #include "DS1337.h"	    // include DS1337 function library
@@ -474,7 +474,7 @@ extern TimeAndDate Time_And_Date_System;
         portEXIT_CRITICAL();
 		
 		portENTER_CRITICAL();												
-		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 22);
+		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 18);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
@@ -579,15 +579,15 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
     itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
     cnt_buf += 4;                                      
 										                                       /* Convert the date and time to ASCII */
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 5; i++) {
 	    itoan(time_and_date_buf[i], &report_buff[cnt_buf + i * 2], 2);
 	}
 	cnt_buf += i;
 
     if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
-        itoan(CollectoinCountManey, &report_buff[cnt_buf], 6);
-        CollectoinCountManey = 0;
-        IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
+        itoan(MoneyCounterToSave.Sum, &report_buff[cnt_buf], 6);
+        MoneyCounterToSave.Sum = 0;
+        IntEeprDwordWrite(MoneyCounterEEPROMAdr, MoneyCounterToSave.Sum);
 	}
 	else if (EventNamber == 2) {
 	    itoan((u32) MoneyToReturn, &report_buff[cnt_buf], 6);
@@ -640,6 +640,8 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
 ************************************************************
 */
     itoan(EventNamber, &report_buff[cnt_buf], 2);
+	cnt_buf += 2;
+	report_buff[cnt_buf] = 0;
 }
 
 
@@ -918,30 +920,27 @@ struct QUEUE_ENCASHMENT_T {
 };
 
 
-static struct QUEUE_ENCASHMENT_T QueueEncashment = {0};
-static ENCASHMENT_T *EncashmantDataStartAdr = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment)); 
-static ENCASHMENT_T *EncashmantDataEndAdr   = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment) + sizeof(ENCASHMENT_T) * QUEUE_ENCASHMENT_LEN_MAX); 
-
-
-s08 encashment_datetime_cmp (ENCASHMENT_DATETIME_T *first, ENCASHMENT_DATETIME_T *second);
+static  struct QUEUE_ENCASHMENT_T QueueEncashment = {0};
+static  ENCASHMENT_T *QueueEncashmantDataStartAdr = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment)); 
+static  ENCASHMENT_T *QueueEncashmantDataEndAdr   = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment) + sizeof(ENCASHMENT_T) * QUEUE_ENCASHMENT_LEN_MAX); 
 
 
 ENCASHMENT_T QueueEncashmentInit (void)
 {
-    ENCASHMENT_T cur = {{0}, 0};
+    ENCASHMENT_T cur = {{0}, {0}};
 
     IntEeprBlockRead((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));
 
 	if (QueueEncashment.Num > 0 && QueueEncashment.Num  <= QUEUE_ENCASHMENT_LEN_MAX
-	                            && QueueEncashment.Tail >= EncashmantDataStartAdr
-								&& QueueEncashment.Tail <  EncashmantDataEndAdr
-	                            && QueueEncashment.Head >= EncashmantDataStartAdr
-								&& QueueEncashment.Head <  EncashmantDataEndAdr   ) {
+	                            && QueueEncashment.Tail >= QueueEncashmantDataStartAdr
+								&& QueueEncashment.Tail <  QueueEncashmantDataEndAdr
+	                            && QueueEncashment.Head >= QueueEncashmantDataStartAdr
+								&& QueueEncashment.Head <  QueueEncashmantDataEndAdr   ) {
 	    IntEeprBlockRead((unsigned int)&cur, (unsigned int)QueueEncashment.Tail, sizeof(ENCASHMENT_T));
 	}
 	else {
-	    QueueEncashment.Tail = EncashmantDataStartAdr;
-		QueueEncashment.Head = EncashmantDataStartAdr;
+	    QueueEncashment.Tail = QueueEncashmantDataStartAdr;
+		QueueEncashment.Head = QueueEncashmantDataStartAdr;
 		QueueEncashment.Num = 0;
 	}
 
@@ -963,14 +962,14 @@ void QueueEncashmentPut (ENCASHMENT_T *data)
 	else  if (QueueEncashment.Head == QueueEncashment.Tail) {
        
 	    QueueEncashment.Tail++;
-		if (QueueEncashment.Tail == EncashmantDataEndAdr) {
-		    QueueEncashment.Tail = EncashmantDataStartAdr;
+		if (QueueEncashment.Tail == QueueEncashmantDataEndAdr) {
+		    QueueEncashment.Tail = QueueEncashmantDataStartAdr;
 	    }
 	}
 
 	QueueEncashment.Head++;
-    if (QueueEncashment.Head == EncashmantDataEndAdr) {
-	    QueueEncashment.Head = EncashmantDataStartAdr;
+    if (QueueEncashment.Head == QueueEncashmantDataEndAdr) {
+	    QueueEncashment.Head = QueueEncashmantDataStartAdr;
 	}
 
 	IntEeprBlockWrite((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));
@@ -995,8 +994,8 @@ void QueueEncashmentGet (ENCASHMENT_T *data, u08 with_remove)
 			IntEeprBlockWrite((unsigned int)&clr, (unsigned int)(QueueEncashment.Tail), sizeof(ENCASHMENT_T));
 
 		    QueueEncashment.Tail++;
-            if (QueueEncashment.Tail == EncashmantDataEndAdr) {
-		        QueueEncashment.Tail = EncashmantDataStartAdr;
+            if (QueueEncashment.Tail == QueueEncashmantDataEndAdr) {
+		        QueueEncashment.Tail = QueueEncashmantDataStartAdr;
 	        }  
 
 			IntEeprBlockWrite((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));			
@@ -1008,31 +1007,4 @@ void QueueEncashmentGet (ENCASHMENT_T *data, u08 with_remove)
 u08 QueueEncashmentNum (void)
 {
 	return QueueEncashment.Num;
-}
-
-
-s08 encashment_datetime_cmp (ENCASHMENT_DATETIME_T *first, ENCASHMENT_DATETIME_T *second)
-{
-    u08 i;
-	s08 ret;
-
-    if (!first || !second) {
-	    return 0;  
-	}
-
-    ret  = 0;
-
-    i = sizeof(ENCASHMENT_DATETIME_T);
-	while (i--) {
-	    if (((u08 *)first)[i] < ((u08 *)second)[i]) {
-			ret = -1;
-			break;
-		} 
-		else if (((u08 *)first)[i] > ((u08 *)second)[i]) {
-			ret = 1;
-            break;
-		}
-	}
-    
-	return ret;
 }

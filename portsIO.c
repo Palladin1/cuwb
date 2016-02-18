@@ -25,9 +25,9 @@ void InitPortsIO (void) {
 //=====================================
 //	чтение EEPROM
     IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, 16);
-    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 22);
+    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 18);
 	
-	IntEeprBlockRead((uint16_t)(&CollectoinCountManey), CollectionManeyEEPROMAdr, 4);
+	IntEeprBlockRead((uint16_t)(&MoneyCounterToSave), MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 
 	IntEeprBlockRead((uint16_t)(&RegistratorSaveWater), RegistratorWaterEEPROMAdr, 4);
 

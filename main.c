@@ -1339,14 +1339,14 @@ void vTask4( void *pvParameters )
                 SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
                 xSemaphoreGive(xI2CMutex);
 
-                CollectoinCountManey = EEPR_LOCAL_COPY.day_maney_cnt;
+                MoneyCounterToSave.Sum = EEPR_LOCAL_COPY.day_maney_cnt;
                 RegistratorCashClear = EEPR_LOCAL_COPY.day_maney_cnt;
                 EEPR_LOCAL_COPY.day_maney_cnt = 0;
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 				
-				if (CollectoinCountManey != 0) {
-    			    IntEeprDwordWrite(CollectionManeyEEPROMAdr, CollectoinCountManey);
+				if (MoneyCounterToSave.Sum != 0) {
+    			    IntEeprDwordWrite(MoneyCounterEEPROMAdr, MoneyCounterToSave.Sum);
 				}
 
 				if (RegistratorCashClear != 0) {

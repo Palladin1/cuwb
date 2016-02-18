@@ -35,21 +35,28 @@ volatile struct EEPR_DATA_MAP {
     unsigned int  water_level_marck_min;
 
     unsigned long amount_water;
-    unsigned long day_maney_cnt;
     unsigned long max_size_barrel;
     unsigned int  ext_eepr_cur_adr;
 
     unsigned int  report_interval;
 } EEPR_LOCAL_COPY;
 
-volatile u32 CollectoinCountManey;
-volatile u32 RegistratorSaveWater;
-volatile u32 RegistratorCashClear;
+
+typedef struct {
+    u16 Bill;
+	u16 Coin;
+    u32 Sum;
+} MONEY_COUNTER_T;
+
+volatile  MONEY_COUNTER_T MoneyCounterToSave;
+volatile  u32 RegistratorSaveWater;
+volatile  u32 RegistratorCashClear;
 
 #define  MAX_RX_SIZE_BUFF 20
-volatile u08 BUF_UART_RX[MAX_RX_SIZE_BUFF];
-volatile u08 rx;
-volatile u08 Fl_RxReciv;
+
+volatile  u08 BUF_UART_RX[MAX_RX_SIZE_BUFF];
+volatile  u08 rx;
+volatile  u08 Fl_RxReciv;
 
 //==================================
 #define	read_maney_count		0x3a
@@ -177,11 +184,13 @@ unsigned int		*upper_report_limit;
 
 #define             VodomatNumberEEPROMAdr			0x2e
 
-#define             BoardVersionEEPROMAdr			0x3e
-#define             SMSWaterLevelEEPROMAdr			0x40
+#define             MoneyCounterEEPROMAdr   		0x30 
 
-#define             AmountWaterEEPROMAdr			0x42
-#define             DayManeyCntEEPROMAdr			0x46
+#define             BoardVersionEEPROMAdr			0x42  //0x3e
+#define             SMSWaterLevelEEPROMAdr			0x44  //0x42
+
+#define             AmountWaterEEPROMAdr			0x46  //0x
+//#define             DayManeyCntEEPROMAdr			0x46
 #define             MaxSizeBarrelEEPROMAdr			0x4a
 #define             ExtEeprCarAdrEEPROMAdr	    	0x4e
 
@@ -193,7 +202,7 @@ unsigned int		*upper_report_limit;
 #define             ServerNameEEPROMAdr 			0x92
 #define             ScriptNameEEPROMAdr 			0xb0
 #define             PasswordEEPROMAdr 	    		0xc0
-#define             CollectionManeyEEPROMAdr 		0xca
+
 
 #define             RegistratorWaterEEPROMAdr 		0xce
 #define             RegistratorCashEEPROMAdr 		0xd2
