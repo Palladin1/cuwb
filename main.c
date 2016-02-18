@@ -223,31 +223,11 @@ void custom_at_handler(u08 *pData);
 */
 
 
-//u08 Counter_Test_Fag = 0; 
-extern s08 encashment_timedate_cmp (ENCASHMENT_DATETIME_T *first, ENCASHMENT_DATETIME_T *second);
 int main( void )
 {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-	ENCASHMENT_T init_test = {24, 12, 16, 2, 16, 200, 55, 255};
-	ENCASHMENT_T init_test_read = QueueEncashmentInit();
-	
-	u08 i;
-	for (i = 0; i < 5; i++) {
-		init_test.DateTime.Minut++;
-		init_test.Sum++;
-		QueueEncashmentPut(&init_test);
-	}
-	
-	if (QueueEncashmentNum() != 3) {
-    	while (1) ;
-	}
-	
-	init_test_read = QueueEncashmentInit();
 
-	if (init_test_read.DateTime.Minut == 26) {
-	    init_test_read.DateTime.Minut = 1;
-	}
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     xEventsQueue = xQueueCreate(16, sizeof(u08 *));
@@ -1563,7 +1543,7 @@ void vTask5( void *pvParameters )
 	    CARRENT_STATE_CARRENT State_Change;
     } GSM_WAIT_STRUCT;
 
-	GSM_WAIT_STRUCT GSM_Timer;
+	GSM_WAIT_STRUCT GSM_Timer = {0};
 
 
     memset(Script_Name, 0x00, 16);

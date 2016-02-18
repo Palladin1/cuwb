@@ -918,7 +918,10 @@ struct QUEUE_ENCASHMENT_T {
 };
 
 
-struct QUEUE_ENCASHMENT_T QueueEncashment = {0};
+static struct QUEUE_ENCASHMENT_T QueueEncashment = {0};
+static ENCASHMENT_T *EncashmantDataStartAdr = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment)); 
+static ENCASHMENT_T *EncashmantDataEndAdr   = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment) + sizeof(ENCASHMENT_T) * QUEUE_ENCASHMENT_LEN_MAX); 
+
 
 s08 encashment_datetime_cmp (ENCASHMENT_DATETIME_T *first, ENCASHMENT_DATETIME_T *second);
 
@@ -929,12 +932,17 @@ ENCASHMENT_T QueueEncashmentInit (void)
 
     IntEeprBlockRead((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));
 
-	if (QueueEncashment.Num > 0) {
+	if (QueueEncashment.Num > 0 && QueueEncashment.Num  <= QUEUE_ENCASHMENT_LEN_MAX
+	                            && QueueEncashment.Tail >= EncashmantDataStartAdr
+								&& QueueEncashment.Tail <  EncashmantDataEndAdr
+	                            && QueueEncashment.Head >= EncashmantDataStartAdr
+								&& QueueEncashment.Head <  EncashmantDataEndAdr   ) {
 	    IntEeprBlockRead((unsigned int)&cur, (unsigned int)QueueEncashment.Tail, sizeof(ENCASHMENT_T));
 	}
 	else {
-	    QueueEncashment.Tail = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment));
-		QueueEncashment.Head = (ENCASHMENT_T *)(EncashmentSaveEEPROMAdr + sizeof(QueueEncashment));
+	    QueueEncashment.Tail = EncashmantDataStartAdr;
+		QueueEncashment.Head = EncashmantDataStartAdr;
+		QueueEncashment.Num = 0;
 	}
 
 	return cur;
@@ -947,23 +955,22 @@ void QueueEncashmentPut (ENCASHMENT_T *data)
 	    return;
 	}
 
-    IntEeprBlockWrite(data, QueueEncashment.Head, sizeof(ENCASHMENT_T));
+    IntEeprBlockWrite((unsigned int)data, (unsigned int)QueueEncashment.Head, sizeof(ENCASHMENT_T));
 
-    QueueEncashment.Head++;
-		
-    if (QueueEncashment.Head == (EncashmentSaveEEPROMAdr + sizeof(QueueEncashment)+ QUEUE_ENCASHMENT_LEN_MAX)) {
-		    QueueEncashment.Head = EncashmentSaveEEPROMAdr;
+    if (QueueEncashment.Num < QUEUE_ENCASHMENT_LEN_MAX) {
+        QueueEncashment.Num++;
 	}
-     
-    if (QueueEncashment.Num >= QUEUE_ENCASHMENT_LEN_MAX) {
-        QueueEncashment.Tail++;
-		
-		if (QueueEncashment.Tail == (EncashmentSaveEEPROMAdr + sizeof(QueueEncashment) + QUEUE_ENCASHMENT_LEN_MAX)) {
-		    QueueEncashment.Tail = EncashmentSaveEEPROMAdr;
-	    }  
+	else  if (QueueEncashment.Head == QueueEncashment.Tail) {
+       
+	    QueueEncashment.Tail++;
+		if (QueueEncashment.Tail == EncashmantDataEndAdr) {
+		    QueueEncashment.Tail = EncashmantDataStartAdr;
+	    }
 	}
-	else {
-	    QueueEncashment.Num++;
+
+	QueueEncashment.Head++;
+    if (QueueEncashment.Head == EncashmantDataEndAdr) {
+	    QueueEncashment.Head = EncashmantDataStartAdr;
 	}
 
 	IntEeprBlockWrite((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));
@@ -972,23 +979,27 @@ void QueueEncashmentPut (ENCASHMENT_T *data)
 
 void QueueEncashmentGet (ENCASHMENT_T *data, u08 with_remove)
 {
+    u08 tmp;
+	ENCASHMENT_T clr = {{0}};
     if (!data) {
 	    return;
 	}
 
     if (QueueEncashment.Num > 0) {
-        IntEeprBlockRead(data, QueueEncashment.Tail, sizeof(ENCASHMENT_T));
+        IntEeprBlockRead((unsigned int)data, (unsigned int)QueueEncashment.Tail, sizeof(ENCASHMENT_T));
 	    
 		if (with_remove) {
-		    QueueEncashment.Tail++;
-		
-		    if (QueueEncashment.Tail == (EncashmentSaveEEPROMAdr + sizeof(QueueEncashment) + QUEUE_ENCASHMENT_LEN_MAX)) {
-		        QueueEncashment.Tail = EncashmentSaveEEPROMAdr;
-	        }  
-		
-		    QueueEncashment.Num--;
 
-			IntEeprBlockWrite((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));
+		    QueueEncashment.Num--;
+            tmp = 0;
+			IntEeprBlockWrite((unsigned int)&clr, (unsigned int)(QueueEncashment.Tail), sizeof(ENCASHMENT_T));
+
+		    QueueEncashment.Tail++;
+            if (QueueEncashment.Tail == EncashmantDataEndAdr) {
+		        QueueEncashment.Tail = EncashmantDataStartAdr;
+	        }  
+
+			IntEeprBlockWrite((unsigned int)&QueueEncashment, EncashmentSaveEEPROMAdr, sizeof(QueueEncashment));			
 		}
     }
 }
