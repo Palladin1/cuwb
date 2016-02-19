@@ -81,7 +81,7 @@ const char  Conn[] PROGMEM       = "Connection: Keep-Alive\n\n\32"; // \32 - Ctr
 *********************************************************************************************************
 */
 
-TimeAndDate Time_And_Date_System = {0};
+TimeAndDate TimeAndDate_System = {0};
 
 typedef enum {
 	    
@@ -252,8 +252,8 @@ Uart0Enable(Uart0_Resiv,  19200);
 #endif
 
 
-    if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set default */
-        TimeAndDateDefaultSet(&Time_And_Date_System);
+    if (TimeAndDateRtcRead(&TimeAndDate_System) != 0) {                     /* if date and time don't read or correct it set default */
+        TimeAndDateDefaultSet(&TimeAndDate_System);
     } 
 	
 ////////////////////////////////////////////////////////////////////////////////////////////    
@@ -444,12 +444,12 @@ void vTask2( void *pvParameters )
 			if (DayMinutesCounter >= MINUTES_IN_DAY) {
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                if (TimeAndDateRtcRead(&Time_And_Date_System) != 0) {                     /* if date and time don't read or correct it set to default */
-                    TimeAndDateDefaultSet(&Time_And_Date_System);
+                if (TimeAndDateRtcRead(&TimeAndDate_System) != 0) {                     /* if date and time don't read or correct it set to default */
+                    TimeAndDateDefaultSet(&TimeAndDate_System);
                 } 
 				xSemaphoreGive(xI2CMutex); 
 
-    			DayMinutesCounter = GetTimeAsMinute(&Time_And_Date_System);
+    			DayMinutesCounter = GetTimeAsMinute(&TimeAndDate_System);
 
                 if (Fl_Send_TimeDateCurGet == 0) {
                     Fl_Send_TimeDateCurGet = 1;
@@ -485,7 +485,7 @@ void vTask2( void *pvParameters )
 
         if (sec_counter == 0) {
 		    sec_counter = 10;
-	        TimeAndDateSecAdd(&Time_And_Date_System);
+	        TimeAndDateSecAdd(&TimeAndDate_System);
 		}
 		else {
 		    sec_counter--;
@@ -619,8 +619,8 @@ void vTask4( void *pvParameters )
 
 	static u08 is_service_mode;
 
-	static u08 coin_which_get_cntr;
-	static u08 bill_which_get_cntr;
+	static u16 coin_which_get_cntr;
+	static u16 bill_which_get_cntr;
 
 	static u08 is_service_key_present;
 	
@@ -894,13 +894,13 @@ void vTask4( void *pvParameters )
                                if (request_data.len >= 10) {
 
 					               xSemaphoreTake(xI2CMutex, portMAX_DELAY);                               
-							       TimeAndDayFromRegStr(&Time_And_Date_System, (u08 *)request_data.dataptr);
-							       TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+							       TimeAndDayFromRegStr(&TimeAndDate_System, (u08 *)request_data.dataptr);
+							       TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
 							       TimeAndDateRtcWrite(&Time_And_Date_Bcd);
                                    xSemaphoreGive(xI2CMutex);
 
                                    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-							       TimeAndDateRtcRead(&Time_And_Date_System);
+							       TimeAndDateRtcRead(&TimeAndDate_System);
                                    xSemaphoreGive(xI2CMutex);
 
 								   Fl_Send_TimeDateCurGet = 0;
@@ -937,8 +937,8 @@ void vTask4( void *pvParameters )
 							   
 							       xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
 							       //u16 Hours_BeforeWorkStop;                              
-							       //Hours_BeforeWorkStop = HoursToBlocking(&Time_And_Date_System, &when_not_transmited);
-							       if (HoursToBlocking(&Time_And_Date_System, &when_not_transmited) > (72 - 60)) {
+							       //Hours_BeforeWorkStop = HoursToBlocking(&TimeAndDate_System, &when_not_transmited);
+							       if (HoursToBlocking(&TimeAndDate_System, &when_not_transmited) > (72 - 60)) {
 							           SYSTEM_EVENTS = Fl_Ev_WillBlocked;
 				                       xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 							       }
@@ -1048,7 +1048,7 @@ void vTask4( void *pvParameters )
 				            WaterToReturn = MoneyToWater(MoneyToReturn);
 
 							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-					        TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+					        TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
 
                             SaveEvent((u08 *)&Time_And_Date_Bcd, MoneyToReturn, WaterToReturn, 0, 0, EV_SAVE_NO_POWER);             /* save data to external eeprom */ 
 			                xSemaphoreGive(xI2CMutex);
@@ -1068,7 +1068,7 @@ void vTask4( void *pvParameters )
 
 						if (Fl_ManeyGet && ManeySave > 0) {
 					
-			                EEPR_LOCAL_COPY.day_maney_cnt += ManeySave;
+			                MoneyCounterToSave.Sum += ManeySave;
 
 				            WaterSave = MoneyToWater(ManeySave);
 
@@ -1084,7 +1084,7 @@ void vTask4( void *pvParameters )
 
 							xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 
-			                IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
+			                IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 
 			                IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.amount_water);
 
@@ -1183,7 +1183,7 @@ void vTask4( void *pvParameters )
 	    	    CountRManey += 25;
 		        ManeySave += 25;
 
-				coin_which_get_cntr++;
+				coin_which_get_cntr += 25;
             }
 			else {
     			Sygnal_Get_BillGet = 0;
@@ -1214,9 +1214,12 @@ void vTask4( void *pvParameters )
 			
             if (ManeySave > 0) {
 
-			    EEPR_LOCAL_COPY.day_maney_cnt += ManeySave;
-				WaterSave = MoneyToWater(ManeySave);
+			    MoneyCounterToSave.Sum += ManeySave;
+
+				MoneyCounterToSave.Coin += coin_which_get_cntr;
+				MoneyCounterToSave.Bill += bill_which_get_cntr;
 				
+				WaterSave = MoneyToWater(ManeySave);
 				RegistratorSaveWater += WaterSave;                                      /* set data to transmit to registrator */
 
 			    if (EEPR_LOCAL_COPY.amount_water <= WaterSave) {
@@ -1227,11 +1230,11 @@ void vTask4( void *pvParameters )
 			    }
 
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);  
-				TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+				TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
 
-		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, coin_which_get_cntr, bill_which_get_cntr, 1);
+		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, bill_which_get_cntr, coin_which_get_cntr, 1);
 			    
-				IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
+				IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 
 			    IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.amount_water);
 
@@ -1330,23 +1333,32 @@ void vTask4( void *pvParameters )
 
                 u16 dattaH;
 		        u16 dattaL;
-		        dattaH = (u16) ((EEPR_LOCAL_COPY.day_maney_cnt) >> 16);
-		        dattaL = (u16) ((EEPR_LOCAL_COPY.day_maney_cnt) & 0x0000FFFF);
+		        dattaH = (u16) ((MoneyCounterToSave.Sum) >> 16);
+		        dattaL = (u16) ((MoneyCounterToSave.Sum) & 0x0000FFFF);
              
-			    TimeAndDayToBcd(&Time_And_Date_Bcd, Time_And_Date_System);
+			    TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
 
+                ENCASHMENT_T encashment_data = {{0}, {0}};
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
                 SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
+				memcpy((u08 *)&encashment_data.DateTime, (const u08 *) &TimeAndDate_System.Minute, sizeof(encashment_data.DateTime));
                 xSemaphoreGive(xI2CMutex);
 
-                MoneyCounterToSave.Sum = EEPR_LOCAL_COPY.day_maney_cnt;
-                RegistratorCashClear = EEPR_LOCAL_COPY.day_maney_cnt;
-                EEPR_LOCAL_COPY.day_maney_cnt = 0;
+				
+				encashment_data.Money.Sum = MoneyCounterToSave.Sum;
+				encashment_data.Money.Bill = MoneyCounterToSave.Bill;
+				encashment_data.Money.Coin = MoneyCounterToSave.Coin;
+
+                RegistratorCashClear = MoneyCounterToSave.Sum;
 
 				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 				
-				if (MoneyCounterToSave.Sum != 0) {
-    			    IntEeprDwordWrite(MoneyCounterEEPROMAdr, MoneyCounterToSave.Sum);
+				if (encashment_data.Money.Sum != 0) {
+    			    QueueEncashmentPut(&encashment_data);
+					MoneyCounterToSave.Sum = 0;
+					MoneyCounterToSave.Bill = 0;
+					MoneyCounterToSave.Coin = 0;
+					IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 				}
 
 				if (RegistratorCashClear != 0) {
@@ -1354,8 +1366,6 @@ void vTask4( void *pvParameters )
 					Fl_Send_Withdraw_The_Cash = 1;
 				}
 				
-				IntEeprDwordWrite(DayManeyCntEEPROMAdr, EEPR_LOCAL_COPY.day_maney_cnt);
-
 #if 1
                 if (EEPR_LOCAL_COPY.amount_water < EEPR_LOCAL_COPY.max_size_barrel) {
                     IntEeprDwordWrite (AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.max_size_barrel);
@@ -1525,7 +1535,8 @@ void vTask5( void *pvParameters )
 	u08 Password[10];
 	u08 Dns_Name[30];
 	u08 Server_Name[30];
-	u08 num_event = 0;
+	
+	struct COLLECTION_DATA_TO_SERVER data;
 
 	u08 err_conn_cnt = 0;
 	u08 disconnect_count = 0; 
@@ -1538,12 +1549,12 @@ void vTask5( void *pvParameters )
 	Fl_State_RsvBill = REPORT_FLAG_OK; 
 	Fl_State_WtrCnt  = REPORT_FLAG_OK;
 
-    typedef struct {
+    struct GSM_WAIT_STRUCT {
         u16 Interval;
 	    CARRENT_STATE_CARRENT State_Change;
-    } GSM_WAIT_STRUCT;
+    } GSM_Timer = {0};
 
-	GSM_WAIT_STRUCT GSM_Timer = {0};
+//	GSM_WAIT_STRUCT ;
 
 
     memset(Script_Name, 0x00, 16);
@@ -1841,7 +1852,7 @@ void vTask5( void *pvParameters )
 
             case STATE_GPRS_FORMED_BUFF: {
 
-                if (xQueueReceive(xEventsQueue, &num_event, 200 / portTICK_RATE_MS) == pdPASS) {
+                if (xQueueReceive(xEventsQueue, &data.EventNum, 200 / portTICK_RATE_MS) == pdPASS) {
 				    
 					CARRENT_STATE = STATE_GPRS_CHECK;
                 } 
@@ -1877,8 +1888,28 @@ void vTask5( void *pvParameters )
 					 memset(send_data_buff, 0x00, 60);
 
                      xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                     Create_Report_String((u08 *)&Time_And_Date_System.Minute, &send_data_buff[0], num_event);
+					 if (data.EventNum == 3) {     //Fl_Ev_TakeManey = 3
+					     QueueEncashmentGet((ENCASHMENT_T *)&data.DateTime, 0);
+                     }
+					 else if (data.EventNum == 2) {
+	                     data.Money.Sum = MoneyToReturn;
+						 data.Money.Bill = MoneyCounterToSave.Bill;
+						 data.Money.Coin = MoneyCounterToSave.Coin;
+						 memcpy((u16 *)&data.DateTime, (u16 *)&TimeAndDate_System.Minute,  sizeof(data.DateTime)); 
+
+						 data.WaterQnt = (u32 *)&WaterToReturn;
+					 } 
+					 else {
+	                     data.Money.Sum = MoneyCounterToSave.Sum;
+						 data.Money.Bill = MoneyCounterToSave.Bill;
+						 data.Money.Coin = MoneyCounterToSave.Coin;
+						 memcpy((u16 *)&data.DateTime, (u16 *)&TimeAndDate_System, sizeof(data.DateTime)); 
+
+						 data.WaterQnt = (u32 *)&EEPR_LOCAL_COPY.amount_water;
+                     }
                      xSemaphoreGive(xI2CMutex);  
+                     
+					 Create_Report_String(&data, &send_data_buff[0]);
 
                      ModemSendData((char *)&send_data_buff[0], 1);             //
 //			         memset(send_data_buff, 0x00, 300);

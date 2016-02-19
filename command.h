@@ -39,6 +39,23 @@ volatile typedef struct {  //ENCASHMENT_T {
 } ENCASHMENT_T;
 
 
+struct COLLECTION_DATA_TO_SERVER {
+    u16 *AparatNum;
+    ENCASHMENT_DATETIME_T DateTime;
+	MONEY_COUNTER_T       Money;
+	u32 *WaterQnt;
+	u16 *Price;
+	u08 *TimeToBlock;
+	u08 *Flag1;
+	u08 *Flag2;
+	u08 *Flag3;
+	u08 *Flag4;
+	u08 *Flag5;
+	u08 *Flag6;
+	u08  EventNum;
+} ;
+
+
 /*
 struct MONEY_EXTRACT {
     struct ENCASHMENT_T Cur;
@@ -101,7 +118,7 @@ void TimeAndDayFromRegStr (TimeAndDate *time_and_date_to, u08 *str_from);
 u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit);
 
 void Get_Pfone_Number (u08 *phone_buff);
-void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber);
+void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_buff);
 
 void Uart1Enable (void);
 void Uart1Disable (void);

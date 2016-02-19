@@ -361,7 +361,7 @@ u16 KeySkan(u16 key_kode) {
 
 void GetCmd (unsigned char *get_cmd_buff) {
 
-extern TimeAndDate Time_And_Date_System;
+extern TimeAndDate TimeAndDate_System;
 
     void SET_THE_RTC (void) {
 
@@ -373,7 +373,7 @@ extern TimeAndDate Time_And_Date_System;
 //		portENTER_CRITICAL();
 		DS1337WriteDatta((get_cmd_buff+2));
 		
-		TimeAndDateRtcRead(&Time_And_Date_System);
+		TimeAndDateRtcRead(&TimeAndDate_System);
 //		portENTER_CRITICAL();
 		
 		get_cmd_buff[0] = 1;
@@ -383,10 +383,10 @@ extern TimeAndDate Time_And_Date_System;
 	void RAEAD_FROM_RTC (void) {
 
  //       portENTER_CRITICAL();
-	    TimeAndDateRtcRead(&Time_And_Date_System);
+	    TimeAndDateRtcRead(&TimeAndDate_System);
 //		portENTER_CRITICAL();
 		
-        TimeAndDayToBcd((TimeAndDate *)&get_cmd_buff[2], Time_And_Date_System);
+        TimeAndDayToBcd((TimeAndDate *)&get_cmd_buff[2], TimeAndDate_System);
 
 		get_cmd_buff[0] = 7;
 
@@ -568,45 +568,33 @@ extern TimeAndDate Time_And_Date_System;
 }
 
 
-inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 EventNamber) 
+void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_buff) 
 {
-
     u08 cnt_buf;
 	u08 i;
+	u08 *p = (u08 *)&data->DateTime;
+
+//	if ( !data || !report_buff) {
+//	    return;
+//	}
 
     cnt_buf = 0;
 	     
-    itoan(EEPR_LOCAL_COPY.vodomat_number, &report_buff[cnt_buf], 4); 
+    itoan(*data->AparatNum, &report_buff[cnt_buf], 4); 
     cnt_buf += 4;                                      
-										                                       /* Convert the date and time to ASCII */
-    for (i = 0; i < 5; i++) {
-	    itoan(time_and_date_buf[i], &report_buff[cnt_buf + i * 2], 2);
+		
+	for (i = 0; i < 5; i++) {
+	    itoan(p[i], &report_buff[cnt_buf + i * 2], 2);
 	}
 	cnt_buf += i;
 
-    if (EventNamber == 3) {     //Fl_Ev_TakeManey = 3
-        itoan(MoneyCounterToSave.Sum, &report_buff[cnt_buf], 6);
-        MoneyCounterToSave.Sum = 0;
-        IntEeprDwordWrite(MoneyCounterEEPROMAdr, MoneyCounterToSave.Sum);
-	}
-	else if (EventNamber == 2) {
-	    itoan((u32) MoneyToReturn, &report_buff[cnt_buf], 6);
-	}
-	else {
-	    itoan(EEPR_LOCAL_COPY.day_maney_cnt, &report_buff[cnt_buf], 6);
-	}
-	cnt_buf += 6;
+    itoan(data->Money.Sum, &report_buff[cnt_buf], 6);
+    cnt_buf += 6;
 
-	if (EventNamber == 2) {
-	    itoan((u32) WaterToReturn, &report_buff[cnt_buf], 6);
-		IsDataToReturnSent = 1;
-	}
-	else {
-        itoan(EEPR_LOCAL_COPY.amount_water, &report_buff[cnt_buf], 6);
-	}
+	itoan(*data->WaterQnt, &report_buff[cnt_buf], 6);
 	cnt_buf += 6;
 	    
-	itoan(EEPR_LOCAL_COPY.cost_litre_coef, &report_buff[cnt_buf], 4);
+	itoan(*data->Price, &report_buff[cnt_buf], 4);
 	cnt_buf += 4;
 
 /*
@@ -614,32 +602,17 @@ inline void Create_Report_String (u08 *time_and_date_buf, u08 *report_buff, u08 
 *       Sets the flags of stats from board unit     
 ************************************************************
 */
-    if (Fl_State_Water  >= '0' && Fl_State_RsvBill >= '0' 
-	                           && Fl_State_Power   >= '0' 
-							   && Fl_State_WtrCnt  >= '0'
-							   && Fl_State_RrState >= '0'
-							   && Fl_State_Reserve >= '0') {
-
-        report_buff[cnt_buf++] = Fl_State_Water;
-        report_buff[cnt_buf++] = Fl_State_RsvBill;
-        report_buff[cnt_buf++] = Fl_State_Power;
-        report_buff[cnt_buf++] = Fl_State_WtrCnt;
-		report_buff[cnt_buf++] = Fl_State_RrState;
-		report_buff[cnt_buf++] = Fl_State_Reserve;
-
+    for (i = 0; i < 6; i++) {
+	    report_buff[cnt_buf+i] = data->Flag1[i];
 	}
-	else {
-	    for (i = 0; i < 5; i++) {
-	        report_buff[cnt_buf++] = '0';
-		}
-	}
+	cnt_buf += i;
 
 /*
 ************************************************************ 
 *       End flags sets 
 ************************************************************
 */
-    itoan(EventNamber, &report_buff[cnt_buf], 2);
+    itoan(data->EventNum, &report_buff[cnt_buf], 2);
 	cnt_buf += 2;
 	report_buff[cnt_buf] = 0;
 }
