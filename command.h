@@ -64,30 +64,21 @@ struct MONEY_EXTRACT {
 } ;
 */
 
-u08 CntTmrBill;
-u08 CntTmrCoin;
-u08 CntNoWater;
-u08 CntNoPower1;
-u08 CntNoPower2;
-u08 CntDoorOpn;
-u08 CntStart;
-u08 CntStop;
-u08 CntReset;
-u16 CntNoWrkBill;
-u08 CntRegPresent;
-u08 CntReserv1Press;
-
-u16 MoneyToReturn;
-u16 WaterToReturn;
+volatile struct {
+    u16 Money;
+    u16 Water;
+} ShouldReturnToBuyer;
 
 u08 IsDataToReturnSent;
 
-volatile u08 Fl_State_Water;
-volatile u08 Fl_State_Power;
-volatile u08 Fl_State_RsvBill;
-volatile u08 Fl_State_WtrCnt;
-volatile u08 Fl_State_RrState;
-volatile u08 Fl_State_Reserve;
+volatile struct {
+    u08 Water;
+    u08 Power;
+    u08 RsvBill;
+    u08 WtrCnt;
+    u08 RrState;
+    u08 Reserve;
+} Fl_State;
 
 void SellingStart(void);
 void SellingStop(void);

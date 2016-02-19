@@ -17,6 +17,22 @@
 //#include  <time.h>
 
 
+static struct {
+    u08 TmrBill;
+    u08 TmrCoin;
+    u08 NoWater;
+    u08 NoPower1;
+    u08 NoPower2;
+    u08 DoorOpn;
+    u08 Start;
+    u08 Stop;
+    u08 Reset;
+    u16 NoWrkBill;
+    u08 RegPresent;
+    u08 Reserv1Press;
+} Cntr;
+
+
 static u08 PumpShouldTurnOn = 0;
 
 static const u08 Days_In_Month_Buf[MONTH_MAX] PROGMEM = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -158,36 +174,36 @@ u16 KeySkan(u16 key_kode) {
 
 	if (COUNT_COIN) {
        
-        if (CntTmrCoin < (u08)((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8)) {
-		    CntTmrCoin++;
+        if (Cntr.TmrCoin < (u08)((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8)) {
+		    Cntr.TmrCoin++;
         }
 	}
 	else {
-	    if (CntTmrCoin > 0) {
+	    if (Cntr.TmrCoin > 0) {
 	        u08 TimeMax = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8);
 		    u08 TimeMin = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) & 0x00FF);
-			if ((CntTmrCoin > TimeMin) && (CntTmrCoin < TimeMax)) {
+			if ((Cntr.TmrCoin > TimeMin) && (Cntr.TmrCoin < TimeMax)) {
 				 key_kode |= (1 << 0);		    }
 			
 		}
 		else {
 			key_kode &= ~(1 << 0);
 	    }
-		CntTmrCoin = 0;
+		Cntr.TmrCoin = 0;
 	}
 
 
 	if (COUNT_BILL) {
         
-        if (CntTmrBill < (u08)((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8)) {
-		    CntTmrBill++;
+        if (Cntr.TmrBill < (u08)((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8)) {
+		    Cntr.TmrBill++;
         }
 	}
 	else {
-	    if (CntTmrBill > 0) {
+	    if (Cntr.TmrBill > 0) {
 	        u08 TimeMax = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8);
 		    u08 TimeMin = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) & 0x00FF);
-			if ((CntTmrBill > TimeMin) && (CntTmrBill < TimeMax)) {
+			if ((Cntr.TmrBill > TimeMin) && (Cntr.TmrBill < TimeMax)) {
 				key_kode |= (1 << 1);
 		    }
 			
@@ -195,161 +211,161 @@ u16 KeySkan(u16 key_kode) {
 		else {
 			key_kode &= ~(1 << 1);
 		}
-		CntTmrBill = 0;
+		Cntr.TmrBill = 0;
 	}
     
 //=================================
 	
 	if (!(WATER_PRESENT)) {	
- 	    if (CntNoWater == 20) {
+ 	    if (Cntr.NoWater == 20) {
             key_kode |= (1 << 2);
-			CntNoWater = 30;
+			Cntr.NoWater = 30;
 		}    
-        else if (CntNoWater < 20) {
-		    CntNoWater++;
+        else if (Cntr.NoWater < 20) {
+		    Cntr.NoWater++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 2);
-	    CntNoWater = 0;
+	    Cntr.NoWater = 0;
 	}
 //=================================	
 
 	if (STATUS_PWR_12V) {		      
-        if (CntNoPower1 == 20) {
+        if (Cntr.NoPower1 == 20) {
 			key_kode |= (1 << 3);
-			CntNoPower1 = 30;
+			Cntr.NoPower1 = 30;
 		}    
-        else if (CntNoPower1 < 20) {
-		    CntNoPower1++;
+        else if (Cntr.NoPower1 < 20) {
+		    Cntr.NoPower1++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 3);
-	    CntNoPower1 = 0;
+	    Cntr.NoPower1 = 0;
 	}
 //=================================
 
 	if (STATUS_PWR_5V) {		      
-        if (CntNoPower2 == 20) {
+        if (Cntr.NoPower2 == 20) {
 			key_kode |= (1 << 4);
-			CntNoPower2 = 30;
+			Cntr.NoPower2 = 30;
 		}    
-        else if (CntNoPower2 < 20) {
-		    CntNoPower2++;
+        else if (Cntr.NoPower2 < 20) {
+		    Cntr.NoPower2++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 4);
-	    CntNoPower2 = 0;
+	    Cntr.NoPower2 = 0;
 	}
 //=================================	
 
 	if (!(BTN_DOOR)) {				  
-	    if (CntDoorOpn == 20) {
+	    if (Cntr.DoorOpn == 20) {
 			key_kode |= (1 << 5);
-			CntDoorOpn = 30;
+			Cntr.DoorOpn = 30;
 		}    
-        else if (CntDoorOpn < 20) {
-		    CntDoorOpn++;
+        else if (Cntr.DoorOpn < 20) {
+		    Cntr.DoorOpn++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 5);   
-	    CntDoorOpn = 0;
+	    Cntr.DoorOpn = 0;
 	}
 //=================================
    	
 	if (!(BTN_START)) {
-	    if (CntStart == 20) {
+	    if (Cntr.Start == 20) {
 			key_kode |= (1 << 6);
-			CntStart = 30;
+			Cntr.Start = 30;
 		}    
-        else if (CntStart < 20) {
-		    CntStart++;
+        else if (Cntr.Start < 20) {
+		    Cntr.Start++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 6);
-	    CntStart = 0;
+	    Cntr.Start = 0;
 	}
 //=================================
 
 	if (!(BTN_STOP)) {
-        if (CntStop == 20) {
+        if (Cntr.Stop == 20) {
 			key_kode |= (1 << 7);
-			CntStop = 30;
+			Cntr.Stop = 30;
 		}    
-        else if (CntStop < 20) {
-		    CntStop++;
+        else if (Cntr.Stop < 20) {
+		    Cntr.Stop++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 7);
-	    CntStop = 0;
+	    Cntr.Stop = 0;
 	}
 //=================================
 
 	if (BTN_RESET) {
- 	    if (CntReset == 20) {
+ 	    if (Cntr.Reset == 20) {
 			key_kode |= (1 << 8);
-			CntReset = 30;
+			Cntr.Reset = 30;
 		}    
-        else if (CntReset < 20) {
-		    CntReset++;
+        else if (Cntr.Reset < 20) {
+		    Cntr.Reset++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 8);
-	    CntReset = 0;
+	    Cntr.Reset = 0;
 	}
 	
 //=================================
 
 	if (STATUS_COUNT_BILL) {
-	    if (CntNoWrkBill == 25000) {
+	    if (Cntr.NoWrkBill == 25000) {
 			key_kode |= (1 << 9);
-			CntNoWrkBill = 25000 + 10;
+			Cntr.NoWrkBill = 25000 + 10;
 		}    
-        else if (CntNoWrkBill < 25000) {
-		    CntNoWrkBill++;
+        else if (Cntr.NoWrkBill < 25000) {
+		    Cntr.NoWrkBill++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 9);
-	    CntNoWrkBill = 0;
+	    Cntr.NoWrkBill = 0;
 	}
 	
 //=================================
 
 	if (!BTN_REGISTRATOR_PRESENT) {
-	    if (CntRegPresent == 20) {
+	    if (Cntr.RegPresent == 20) {
 			key_kode |= (1 << 10);
-			CntRegPresent = 30;
+			Cntr.RegPresent = 30;
 		}    
-        else if (CntRegPresent < 20) {
-		    CntRegPresent++;
+        else if (Cntr.RegPresent < 20) {
+		    Cntr.RegPresent++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 10);
-	    CntRegPresent = 0;
+	    Cntr.RegPresent = 0;
 	}
 
 //=================================
 
 	if (!BTN_RESERV1) {
-	    if (CntReserv1Press == 20) {
+	    if (Cntr.Reserv1Press == 20) {
 			key_kode |= (1 << 11);
-			CntReserv1Press = 30;
+			Cntr.Reserv1Press = 30;
 		}    
-        else if (CntReserv1Press < 20) {
-		    CntReserv1Press++;
+        else if (Cntr.Reserv1Press < 20) {
+		    Cntr.Reserv1Press++;
         }
 	}
 	else {
 		key_kode &= ~(1 << 11);
-	    CntReserv1Press = 0;
+	    Cntr.Reserv1Press = 0;
 	}
 	
 
@@ -603,7 +619,7 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
 ************************************************************
 */
     for (i = 0; i < 6; i++) {
-	    report_buff[cnt_buf+i] = data->Flag1[i];
+	    report_buff[cnt_buf+i] = data->Flag1[i] + '0';
 	}
 	cnt_buf += i;
 
