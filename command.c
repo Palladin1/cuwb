@@ -14,7 +14,7 @@
 #include "portmacro.h"
 
 #include  "indicator.h"
-//#include  <time.h>
+#include  <string.h>
 
 
 static struct {
@@ -123,16 +123,18 @@ void StartGetManey(void) {
 	EN_ESCROW_BILL_OFF;
 }
 
-void StopGetManey(void) {
+void StopGetManey(void)
+{
 	
 	INHIBIT_COIN_ON;
 	INHIBIT_BILL_ON;
 }
 
 
-void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, const u08 coin_cntr, const u08 bill_cntr, u08 event) {
+void SaveEvent (u08 *time_and_date_buf, const u16 cntr_money, const u16 cntr_water, const u16 cntr_bill, const u16 cntr_coin, u08 event)
+{
 
-    u08 EventBuff[13];
+    u08 EventBuff[EXT_EEPR_LINE_WRT_SIZE];
 	u08 AdrEventBuff[2];
 	u08 i;
 		
@@ -141,15 +143,17 @@ void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, 
 		EventBuff[i] = time_and_date_buf[i];
 	}
 	
-	EventBuff[6] = (cntmaney >> 8);
-	EventBuff[7] = (cntmaney & 0x00FF);
-	EventBuff[8] = (cntwater >> 8);
-	EventBuff[9] = (cntwater & 0x00FF);
-/*	EventBuff[10] = event;*/
+	EventBuff[6] = (cntr_money >> 8);
+	EventBuff[7] = (cntr_money & 0x00FF);
+	EventBuff[8] = (cntr_water >> 8);
+	EventBuff[9] = (cntr_water & 0x00FF);
 
-	EventBuff[10] = coin_cntr;
-	EventBuff[11] = bill_cntr;
-	EventBuff[12] = event;
+	EventBuff[10] = (cntr_bill >> 8);
+	EventBuff[11] = (cntr_bill & 0x00FF);
+	EventBuff[12] = (cntr_coin >> 8);
+	EventBuff[13] = (cntr_coin & 0x00FF);
+
+	EventBuff[14] = event;
 
 //    Global_Time_Deluy(5);
     if (EEPR_LOCAL_COPY.ext_eepr_data_adr < (EEPR_LOCAL_COPY.ext_eepr_cur_adr + EXT_EEPR_LINE_WRT_SIZE)) { 
@@ -164,7 +168,7 @@ void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, 
 	}
    
     i2ceepromWriteBloc(EEPR_LOCAL_COPY.ext_eepr_cur_adr, EventBuff, EXT_EEPR_LINE_WRT_SIZE);
-	EEPR_LOCAL_COPY.ext_eepr_cur_adr += 11;
+	EEPR_LOCAL_COPY.ext_eepr_cur_adr += EXT_EEPR_LINE_WRT_SIZE;
 	IntEeprWordWrite(ExtEeprCarAdrEEPROMAdr, EEPR_LOCAL_COPY.ext_eepr_cur_adr);
 }
 
@@ -434,7 +438,7 @@ extern TimeAndDate TimeAndDate_System;
 		    	i2ceepromReadBloc(start_memAddr_for_read, (get_cmd_buff+2), EXT_EEPR_LINE_WRT_SIZE);
 	
 			    start_memAddr_for_read += EXT_EEPR_LINE_WRT_SIZE;
-			    get_cmd_buff[0] = 12 + 2;
+			    get_cmd_buff[0] = EXT_EEPR_LINE_WRT_SIZE + 1;
 			    
 			    uartSendBuf(0, &get_cmd_buff[0], EXT_EEPR_LINE_WRT_SIZE + 2);
 
@@ -445,12 +449,12 @@ extern TimeAndDate TimeAndDate_System;
 		
 		while (start_memAddr_for_read < stop_memAddr_for_read) {
 		
-			i2ceepromReadBloc(start_memAddr_for_read, (get_cmd_buff+2), 11);
+			i2ceepromReadBloc(start_memAddr_for_read, (get_cmd_buff + 2), EXT_EEPR_LINE_WRT_SIZE);
 	
-			start_memAddr_for_read += 11;
-			get_cmd_buff[0] = 12;
+			start_memAddr_for_read += EXT_EEPR_LINE_WRT_SIZE;
+			get_cmd_buff[0] = EXT_EEPR_LINE_WRT_SIZE + 1;
 			
-			uartSendBuf(0, &get_cmd_buff[0], 13);
+			uartSendBuf(0, &get_cmd_buff[0], EXT_EEPR_LINE_WRT_SIZE + 2);
 
             Global_Time_Deluy(20);
     	}
@@ -596,7 +600,7 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
 
     cnt_buf = 0;
 	     
-    itoan(*data->AparatNum, &report_buff[cnt_buf], 4); 
+    itoan(*data->ApparatNum, &report_buff[cnt_buf], 4); 
     cnt_buf += 4;                                      
 		
 	for (i = 0; i < 5; i++) {

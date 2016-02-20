@@ -40,7 +40,7 @@ volatile typedef struct {  //ENCASHMENT_T {
 
 
 struct COLLECTION_DATA_TO_SERVER {
-    u16 *AparatNum;
+    u16 *ApparatNum;
     ENCASHMENT_DATETIME_T DateTime;
 	MONEY_COUNTER_T       Money;
 	u32 *WaterQnt;
@@ -85,8 +85,7 @@ void SellingStop(void);
 
 void StartGetManey(void);
 void StopGetManey(void);
-
-void SaveEvent (u08 *time_and_date_buf, const u16 cntmaney, const u16 cntwater, const u08 coin_cntr, const u08 bill_cntr, u08 event);
+void SaveEvent (u08 *time_and_date_buf, const u16 cntr_money, const u16 cntr_water, const u16 cntr_bill, const u16 cntr_coin, u08 event);
 
 u16 KeySkan (u16 key_kode);
 

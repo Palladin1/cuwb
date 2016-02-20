@@ -22,45 +22,46 @@
 *                                             LOCAL DEFINES
 *********************************************************************************************************
 */
-const char  AT[] PROGMEM       	             = "AT\n";
-const char  ECHO_OFF[] PROGMEM 	             = "ATE0\n";                  
-const char  SET_BAUD[] PROGMEM               = "AT+IPR=19200\n";	      
-const char  SAVE_FLESH[] PROGMEM             = "AT&W\n";		          
+const char  AT[]                      PROGMEM = "AT\n";
+const char  ECHO_OFF[] 	              PROGMEM = "ATE0\n";                  
+const char  SET_BAUD[]                PROGMEM = "AT+IPR=19200\n";	      
+const char  SAVE_FLESH[]              PROGMEM = "AT&W\n";		          
 
-const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\"\n";        // Pfone book on sim
-//const char  PFONE_BOOK[] PROGMEM             = "AT+CPBS=\"SM\",\"SM\",\"SM\"";
-const char  CLEAR_SMS[] PROGMEM              = "AT+CMGD=1\n";         
-const char  INDICATION_NEW_SMS[] PROGMEM     = "AT+CNMI=1,0,0,0,0\n";   
-const char  SET_TEXT_MODE[] PROGMEM          = "AT+CMGF=1\n";
-const char  SET_FORMAT_1_SMS[] PROGMEM       = "AT+CSCS=\"GSM\"\n";
-const char  SET_FORMAT_2_SMS[] PROGMEM       = "AT+CSMP=17,200,0,25\n";
-const char  SEND_SMS[] PROGMEM		         = "AT+CMGS=";
+const char  PFONE_BOOK[]              PROGMEM = "AT+CPBS=\"SM\"\n";        // Pfone book on sim
+//const char  PFONE_BOOK[]            PROGMEM = "AT+CPBS=\"SM\",\"SM\",\"SM\"";
+const char  CLEAR_SMS[]               PROGMEM = "AT+CMGD=1\n";         
+const char  INDICATION_NEW_SMS[]      PROGMEM = "AT+CNMI=1,0,0,0,0\n";   
+const char  SET_TEXT_MODE[]           PROGMEM = "AT+CMGF=1\n";
+const char  SET_FORMAT_1_SMS[]        PROGMEM = "AT+CSCS=\"GSM\"\n";
+const char  SET_FORMAT_2_SMS[]        PROGMEM = "AT+CSMP=17,200,0,25\n";
+const char  SEND_SMS[] 	              PROGMEM = "AT+CMGS=";
 
 //GPRS Connection
-const char  SET_GPRS_FORMAT[] PROGMEM        = "AT+QIFGCNT=0\n"; 
-const char  SET_TYPE_CONNECTION[] PROGMEM    = "AT+QICSGP=1,";       // "1,APN","user","password"
-//const char  SET_GPRS_MODE[] PROGMEM        = "AT+QIMUX=0\n";       // "0" - non transparent "1" -transparent mode
-const char  CONNECT_DOMAIN_NAME[] PROGMEM    = "AT+QIDNSIP=1\n";     // "0" - use IP adress, "1" - use domain name
+const char  SET_GPRS_FORMAT[]         PROGMEM = "AT+QIFGCNT=0\n"; 
+const char  SET_TYPE_CONNECTION[]     PROGMEM = "AT+QICSGP=1,";       // "1,APN","user","password"
+//const char  SET_GPRS_MODE[]         PROGMEM = "AT+QIMUX=0\n";       // "0" - non transparent "1" -transparent mode
+const char  CONNECT_BY_DOMAIN_NAME[]  PROGMEM = "AT+QIDNSIP=1\n";     // "0" - use IP adress, "1" - use domain name
+const char  CONNECT_BY_IP_ADDRESS[]   PROGMEM = "AT+QIDNSIP=0\n";     // "0" - use IP adress, "1" - use domain name
 
-const char  CONNECT_STACKS[] PROGMEM         = "AT+QIREGAPP\n";    
-const char  ACTIVEATE_FGCNT[] PROGMEM        = "AT+QIACT\n"; 
-const char  QUERY_IP[] PROGMEM               = "AT+QILOCIP\n";    
-const char  CONNECT_TO_SERVER[] PROGMEM      = "AT+QIOPEN=\"TCP\",";
-const char  SEND_GPRS_DATA[] PROGMEM         = "AT+QISEND\n";
-const char  CHECK_STATUS_CONNECTION[] PROGMEM= "AT+QISTAT\n";
+const char  CONNECT_STACKS[]          PROGMEM = "AT+QIREGAPP\n";    
+const char  ACTIVEATE_FGCNT[]         PROGMEM = "AT+QIACT\n"; 
+const char  QUERY_IP[]                PROGMEM = "AT+QILOCIP\n";    
+const char  CONNECT_TO_SERVER[]       PROGMEM = "AT+QIOPEN=\"TCP\",";
+const char  SEND_GPRS_DATA[]          PROGMEM = "AT+QISEND\n";
+const char  CHECK_STATUS_CONNECTION[] PROGMEM = "AT+QISTAT\n";
 
-const char  DISCONNECT_SESSION[] PROGMEM     = "AT+QICLOSE\n";
-const char  DISCONNECT_GPRS[] PROGMEM        = "AT+QIDEACT\n";
-const char  GET_QUALITY_OF_NET[] PROGMEM     = "AT+CSQ\n";
+const char  DISCONNECT_SESSION[]      PROGMEM = "AT+QICLOSE\n";
+const char  DISCONNECT_GPRS[]         PROGMEM = "AT+QIDEACT\n";
+const char  GET_QUALITY_OF_NET[]      PROGMEM = "AT+CSQ\n";
 
-//const char  VISUAL_DIAL_NUM[] PROGMEM        = "AT+CLIP=1\n";
+//const char  VISUAL_DIAL_NUM[]       PROGMEM = "AT+CLIP=1\n";
 
-const char  Get[] PROGMEM        = "GET /";
-const char  Http[] PROGMEM       = " HTTP/1.1\n";
-const char  Data[] PROGMEM       = "?data=";
-const char  Pass[] PROGMEM       = "&pass=";
-const char  Host[] PROGMEM       = "Host: ";
-const char  Conn[] PROGMEM       = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
+const char  Get[]  PROGMEM = "GET /";
+const char  Http[] PROGMEM = " HTTP/1.1\n";
+const char  Data[] PROGMEM = "?data=";
+const char  Pass[] PROGMEM = "&pass=";
+const char  Host[] PROGMEM = "Host: ";
+const char  Conn[] PROGMEM = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
 
 
 #define  ACCELEROMETR_PERIOD   3000ul           //3000 * 100mS = 300S
@@ -160,14 +161,16 @@ xTimerHandle xTimer_TimeBlockChack;
 
 volatile u08 buzer_flag = 0;
 
-volatile static u08 IsRegistratorConnect = 0;
-
 static u16 ExtSignalStatus = 0;
+
+volatile static u08 IsRegistratorConnect = 0;
 
 static u16 Tmr_For_Init_Rr = 600; /* need time in Sec = Tmr_For_Init_Rr * 100ms, 600 * 100 = 60 S  */
 
 volatile u08 Fl_Send_HourBeforeBlock = 0;
 volatile u08 Fl_Send_TimeDateCurGet = 0;
+
+volatile u08 Hours_BeforeApparatBlock = 0;
 
 #if CHECK_STACK
 #define TASK_NUMBER    5
@@ -243,6 +246,8 @@ int main( void )
     RegistratorInit();
 
 	IndicatorInit();
+
+	QueueEncashmentInit();
 
 #if MODEM_DBG
 //Uart0Disable();
@@ -570,7 +575,9 @@ void vTask4( void *pvParameters )
 	    u08 WtrCntrErr    : 1;
 	    u08 ServiceOpened : 1;
 		u08 MoneyGet      : 1;
+		u08 AppBlock      : 1;
 	} Fl;
+
 	
 	static struct {
 	    u08 NoWater    : 1;
@@ -647,9 +654,9 @@ void vTask4( void *pvParameters )
 	REGISTRATOR_STATE_COMMUNICATE  registrator_ansver_to;
  
 	enum event_to_ext_eeprom {
-	    EV_SAVE_SELL_START = 1,
+	    EV_SAVE_SELL_START      = 1,
 		EV_SAVE_CASH_COLLECTION = 3,
-		EV_SAVE_NO_POWER
+		EV_SAVE_NO_POWER        = 4
 	};
 
 	static RegistratorReceivedData err_data;
@@ -939,15 +946,24 @@ void vTask4( void *pvParameters )
                                    TimeAndDate when_not_transmited;
 
                                    TimeAndDayFromRegStr(&when_not_transmited, (u08 *)(strstr((const char *)request_data.dataptr, ";") + 1));
-							   
-							       xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
-							       //u16 Hours_BeforeWorkStop;                              
-							       //Hours_BeforeWorkStop = HoursToBlocking(&TimeAndDate_System, &when_not_transmited);
-							       if (HoursToBlocking(&TimeAndDate_System, &when_not_transmited) > (72 - 60)) {
+
+								   xSemaphoreTake(xI2CMutex, portMAX_DELAY); 
+                                   u16 h;
+								   if ((h = HoursToBlocking(&TimeAndDate_System, &when_not_transmited)) > 72) {
+								       h = 72;
+								   }
+								   xSemaphoreGive(xI2CMutex);
+
+                                   Hours_BeforeApparatBlock = h;
+							       if (!Fl.AppBlock && Hours_BeforeApparatBlock > (72 - 60)) {
+								       Fl.AppBlock = 1;
 							           SYSTEM_EVENTS = Fl_Ev_WillBlocked;
 				                       xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 							       }
-                                   xSemaphoreGive(xI2CMutex);
+								   else {
+								       Fl.AppBlock = 0;
+								   }
+                                   
 
 								   Fl_Send_HourBeforeBlock = 0;
                                }
@@ -1237,7 +1253,7 @@ void vTask4( void *pvParameters )
                 xSemaphoreTake(xI2CMutex, portMAX_DELAY);  
 				TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
 
-		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, bill_which_get_cntr, coin_which_get_cntr, 1);
+		        SaveEvent((u08 *)&Time_And_Date_Bcd, ManeySave, WaterSave, bill_which_get_cntr, coin_which_get_cntr, EV_SAVE_SELL_START);
 			    
 				IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 
@@ -1330,54 +1346,57 @@ void vTask4( void *pvParameters )
         if (Sygnal_Get.Reset && !Sygnal_Get.ServiceKey) {
        
 	        if (!Fl.SeifOpened) { 
-                StopGetManey();
+			    ENCASHMENT_T encashment_data;
+				u16 dattaH;
+		        u16 dattaL;
+             
+			    StopGetManey();
 		        Fl.SeifOpened = 1;
 			    //Fl_Ev_TakeManey = 1;
-				SYSTEM_EVENTS = Fl_Ev_TakeManey;
-				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 
-                u16 dattaH;
-		        u16 dattaL;
-		        dattaH = (u16) ((MoneyCounterToSave.Sum) >> 16);
-		        dattaL = (u16) ((MoneyCounterToSave.Sum) & 0x0000FFFF);
-             
-			    TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
-
-                ENCASHMENT_T encashment_data = {{0}, {0}};
-				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-                SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, 0, 0, 3);
-				memcpy((u08 *)&encashment_data.DateTime, (const u08 *) &TimeAndDate_System.Minute, sizeof(encashment_data.DateTime));
-                xSemaphoreGive(xI2CMutex);
-
-				
-				encashment_data.Money.Sum = MoneyCounterToSave.Sum;
-				encashment_data.Money.Bill = MoneyCounterToSave.Bill;
-				encashment_data.Money.Coin = MoneyCounterToSave.Coin;
-
-                RegistratorCashClear = MoneyCounterToSave.Sum;
-
-				xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-				
 				if (encashment_data.Money.Sum != 0) {
-    			    QueueEncashmentPut(&encashment_data);
+
+                    dattaH = (u16) ((MoneyCounterToSave.Sum) >> 16);
+		            dattaL = (u16) ((MoneyCounterToSave.Sum) & 0x0000FFFF);
+
+				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+				    TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
+                    SaveEvent((u08 *)&Time_And_Date_Bcd, dattaH, dattaL, MoneyCounterToSave.Bill, MoneyCounterToSave.Coin, EV_SAVE_CASH_COLLECTION);
+				    memcpy((u08 *)&encashment_data.DateTime, (const u08 *) &TimeAndDate_System.Minute, sizeof(encashment_data.DateTime));
+                    xSemaphoreGive(xI2CMutex);
+
+				
+		    		encashment_data.Money.Sum = MoneyCounterToSave.Sum;
+	    			encashment_data.Money.Bill = MoneyCounterToSave.Bill;
+    				encashment_data.Money.Coin = MoneyCounterToSave.Coin;
+  
+                    RegistratorCashClear = MoneyCounterToSave.Sum;
+   
+
+				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+					QueueEncashmentPut(&encashment_data);
 					MoneyCounterToSave.Sum = 0;
 					MoneyCounterToSave.Bill = 0;
 					MoneyCounterToSave.Coin = 0;
 					IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
-				}
 
-				if (RegistratorCashClear != 0) {
 				    IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
 					Fl_Send_Withdraw_The_Cash = 1;
+			        xSemaphoreGive(xI2CMutex);
+
+					SYSTEM_EVENTS = Fl_Ev_TakeManey;
+				    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 				}
 				
 #if 1
                 if (EEPR_LOCAL_COPY.amount_water < EEPR_LOCAL_COPY.max_size_barrel) {
-                    IntEeprDwordWrite (AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.max_size_barrel);
+			    	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+                    IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.max_size_barrel);
+					xSemaphoreGive(xI2CMutex);
                     EEPR_LOCAL_COPY.amount_water = EEPR_LOCAL_COPY.max_size_barrel;
 				}
 #endif
-                xSemaphoreGive(xI2CMutex);
+                
                                  				
 				BUZZER_ON;
 				xTimerChangePeriod(xTimer_BuzzerOff, (200 / portTICK_RATE_MS), 0);
@@ -1540,6 +1559,8 @@ void vTask5( void *pvParameters )
 	u08 Password[10];
 	u08 Dns_Name[30];
 	u08 Server_Name[30];
+
+	u08 is_domain_name = 1;
 	
 	struct COLLECTION_DATA_TO_SERVER data;
 
@@ -1553,11 +1574,11 @@ void vTask5( void *pvParameters )
 	memset((u08 *)&Fl_State, REPORT_FLAG_OK, sizeof(Fl_State));
 
     
-    data.AparatNum   = (u16 *) &EEPR_LOCAL_COPY.vodomat_number;
+    data.ApparatNum  = (u16 *) &EEPR_LOCAL_COPY.vodomat_number;
 	data.WaterQnt    = (u32 *) &EEPR_LOCAL_COPY.amount_water;
 	data.Price       = (u16 *) &EEPR_LOCAL_COPY.cost_litre_coef;
 
-	data.TimeToBlock = 0;
+	data.TimeToBlock = (u08 *) &Hours_BeforeApparatBlock;
 	
 	data.Flag1    = (u08 *) &Fl_State.Water;
 	data.Flag2    = (u08 *) &Fl_State.Power;
@@ -1599,6 +1620,10 @@ void vTask5( void *pvParameters )
 	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 	IntEeprBlockRead((u16)&Server_Name[0], ServerNameEEPROMAdr, 30);
 	xSemaphoreGive(xI2CMutex);
+
+/* TODO: There is can chack going to connect by domain name or ip address */
+/* for example: scan Server_Name if the all data is digit except an point then connect by ip otherwise by domain name */
+/* while start the is_domain_name set to 1, if need connect by ip need to set the value to 0  */
 
     static u08 len;
 	len = strnlen((char*)&Server_Name[0], 30); 
@@ -1755,7 +1780,11 @@ void vTask5( void *pvParameters )
 				 
 				 ModemSendCom(SET_GPRS_FORMAT, 500);
 
-				 ModemSendCom(CONNECT_DOMAIN_NAME, 500);
+                 if (is_domain_name) {
+				     ModemSendCom(CONNECT_BY_DOMAIN_NAME, 500);
+				 } else {
+				     ModemSendCom(CONNECT_BY_IP_ADDRESS, 500);
+				 }
 
 				 ModemSendCom(SET_TYPE_CONNECTION, 1);
 
@@ -1913,10 +1942,12 @@ void vTask5( void *pvParameters )
 					 memset(send_data_buff, 0x00, 60);
 
                      xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-					 if (data.EventNum == 3) {     //Fl_Ev_TakeManey = 3
+					 if (data.EventNum == Fl_Ev_TakeManey && QueueEncashmentNum()) {
 					     QueueEncashmentGet((ENCASHMENT_T *)&data.DateTime, 0);
+
+						 data.WaterQnt = (u32 *)&EEPR_LOCAL_COPY.amount_water;
                      }
-					 else if (data.EventNum == 2) {
+					 else if (data.EventNum == Fl_Ev_NoPower) {
 	                     data.Money.Sum = ShouldReturnToBuyer.Money;
 						 data.Money.Bill = MoneyCounterToSave.Bill;
 						 data.Money.Coin = MoneyCounterToSave.Coin;
