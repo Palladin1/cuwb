@@ -50,6 +50,10 @@ const char  CONNECT_TO_SERVER[]       PROGMEM = "AT+QIOPEN=\"TCP\",";
 const char  SEND_GPRS_DATA[]          PROGMEM = "AT+QISEND\n";
 const char  CHECK_STATUS_CONNECTION[] PROGMEM = "AT+QISTAT\n";
 
+const char  MODE_SERVER_OR_CLIENT[]   PROGMEM = "AT+QISRVC?\n";
+const char  MODE_SERVER_SET[]         PROGMEM = "AT+QISRVC=2\n";
+const char  MODE_CLIENT_SET[]         PROGMEM = "AT+QISRVC=1\n";
+
 const char  DISCONNECT_SESSION[]      PROGMEM = "AT+QICLOSE\n";
 const char  DISCONNECT_GPRS[]         PROGMEM = "AT+QIDEACT\n";
 const char  GET_QUALITY_OF_NET[]      PROGMEM = "AT+CSQ\n";
@@ -2266,6 +2270,14 @@ void custom_at_handler(u08 *pData)
 		    portEXIT_CRITICAL();
 		}
     }
+	else if ((p = (u08 *)strstr_P((char *)pData, PSTR("+QISRVC=")))) {
+         
+         if (atoin((p + 8), 1) == 2) {                                         /* chack current service server is 2, client is 1*/
+		     ;
+		 } else {
+             ;		 
+ 		 }
+	}
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
