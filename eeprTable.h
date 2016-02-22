@@ -11,8 +11,8 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(PulseLitreCoefEEPROMAdr)]    =  	0x2b80,									//Pulse Litre Coef
 	[R_ADR(PumpOnTimeCoefEEPROMAdr)]    = 	0x0006,									//Pump On Time Coef
 	[R_ADR(PumpOffTimeCoefEEPROMAdr)]   = 	0x000B,									//Pump Off Time Coef
-	[R_ADR(BillTimePulseCoefEEPROMAdr)] = 	0x372D,									//Bill Time Pulse Coef
-	[R_ADR(CoinTimePulseCoefEEPROMAdr)] = 	0x372D,									//Coin Time Pulse Coef
+	[R_ADR(BillTimePulseCoefEEPROMAdr)] = 	0x190F,									//Bill Time Pulse Coef
+	[R_ADR(CoinTimePulseCoefEEPROMAdr)] = 	0x190F,									//Coin Time Pulse Coef
 	[R_ADR(ExtEeprDataAdrEEPROMAdr)]    = 	0x7B00,									//Ext Eepr DataAdr
 	[R_ADR(VodomatNumberEEPROMAdr)]     = 	0x0001,									//Vodomat Number
 

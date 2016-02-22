@@ -39,11 +39,14 @@ const char  SEND_SMS[] 	              PROGMEM = "AT+CMGS=";
 //GPRS Connection
 const char  SET_GPRS_FORMAT[]         PROGMEM = "AT+QIFGCNT=0\n"; 
 const char  SET_TYPE_CONNECTION[]     PROGMEM = "AT+QICSGP=1,";       // "1,APN","user","password"
-//const char  SET_GPRS_MODE[]         PROGMEM = "AT+QIMUX=0\n";       // "0" - non transparent "1" -transparent mode
+const char  TRANSPARENT_MODE[]        PROGMEM = "AT+QIMODE=1\n";       // 
+const char  NON_TRANSPARENT_MODE[]    PROGMEM = "AT+QIMODE=0\n";       //
+const char  MULTIPLE_CONNECTION[]     PROGMEM = "AT+QIMUX=1\n";       // 
+const char  SINGLE_CONNECTION[]       PROGMEM = "AT+QIMUX=0\n";
 const char  CONNECT_BY_DOMAIN_NAME[]  PROGMEM = "AT+QIDNSIP=1\n";     // "0" - use IP adress, "1" - use domain name
 const char  CONNECT_BY_IP_ADDRESS[]   PROGMEM = "AT+QIDNSIP=0\n";     // "0" - use IP adress, "1" - use domain name
 
-const char  CONNECT_STACKS[]          PROGMEM = "AT+QIREGAPP\n";    
+const char  TCPIP_STACK_CONNECT[]    PROGMEM = "AT+QIREGAPP\n";    
 const char  ACTIVEATE_FGCNT[]         PROGMEM = "AT+QIACT\n"; 
 const char  QUERY_IP[]                PROGMEM = "AT+QILOCIP\n";    
 const char  CONNECT_TO_SERVER[]       PROGMEM = "AT+QIOPEN=\"TCP\",";
@@ -105,9 +108,10 @@ typedef enum {
     STATE_GPRS_DEACTIVATE,
 	STATE_GPRS_DISCONNECT,
     STATE_GPRS_FORMED_BUFF,
-	STATE_SMS_PREPARE,
-	STATE_SMS_SEND_DATA,
+	STATE_HTTP_SERVER_200_OK,
     STATE_GPRS_SEND_DATA
+
+	
   
 } CARRENT_STATE_CARRENT;
 
@@ -132,7 +136,7 @@ enum {
 
 CARRENT_STATE_CARRENT CARRENT_STATE = STATE_MODEM_IDLE;
 
-//u08 LcdDatta[8];
+
 u08 gFlLedStateWater = 0;
 
 volatile u08 WtrCntTimer;
@@ -157,10 +161,6 @@ xTimerHandle xTimer_BuzzerOff;
 xTimerHandle xTimer_ModemStart;
 
 xTimerHandle xTimer_TimeBlockChack;
-
-
-//u08 Trace_Buffer[300];
-//u08 send_data_buff[300];
 
 
 volatile u08 buzer_flag = 0;
@@ -1036,7 +1036,8 @@ void vTask4( void *pvParameters )
 ///////////////////////////////////////////////////////////////////////////////////////
       
         Fl.SellEnable = 1;	     
-	     
+
+     
 		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
 
             Sygnal_Get.CoinGet   = ExtSignalStatus & 1;
@@ -1566,7 +1567,7 @@ void vTask5( void *pvParameters )
 
 	u08 is_domain_name = 1;
 	
-	struct COLLECTION_DATA_TO_SERVER data;
+	static struct COLLECTION_DATA_TO_SERVER data;
 
 	u08 err_conn_cnt = 0;
 	u08 disconnect_count = 0; 
@@ -1773,6 +1774,7 @@ void vTask5( void *pvParameters )
 			     break;
 			} 
 
+            //case STATE_TCP_IP_CONFIG: {  
 			case STATE_GPRS_CONNECT: {
 #if MODEM_DBG
 			uartSendByte(0, '5');
@@ -1784,11 +1786,6 @@ void vTask5( void *pvParameters )
 				 
 				 ModemSendCom(SET_GPRS_FORMAT, 500);
 
-                 if (is_domain_name) {
-				     ModemSendCom(CONNECT_BY_DOMAIN_NAME, 500);
-				 } else {
-				     ModemSendCom(CONNECT_BY_IP_ADDRESS, 500);
-				 }
 
 				 ModemSendCom(SET_TYPE_CONNECTION, 1);
 
@@ -1817,31 +1814,40 @@ void vTask5( void *pvParameters )
 				 }
 
 				 if (ModemSendData((char *)&send_data_buff[0], 1000) == ACK_OK) {
-
 				     CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 
-				     if (ModemSendCom(CONNECT_STACKS, 1000) != ACK_OK) {
-                         //CARRENT_STATE = STATE_GPRS_DEACTIVATE; 
-				     }	
-                     if (ModemSendCom(ACTIVEATE_FGCNT, 10000) != ACK_OK) {
-                         //CARRENT_STATE = STATE_GPRS_DEACTIVATE;
-				     }
-					 ModemSendCom(QUERY_IP, 500);                  // add 23.09.2012, becouse without this command modem
-                                                                   // won't connecteeng to the server
+
+				 if (is_domain_name) {
+				     ModemSendCom(CONNECT_BY_DOMAIN_NAME, 500);
+				 } else {
+				     ModemSendCom(CONNECT_BY_IP_ADDRESS, 500);
 				 }
-				 else {
+
+				 ModemSendCom(SINGLE_CONNECTION, 500);
+
+				 ModemSendCom(NON_TRANSPARENT_MODE, 500);
+
+				 if (ModemSendCom(TCPIP_STACK_CONNECT, 1000) != ACK_OK) {
+                     //CARRENT_STATE = STATE_GPRS_DEACTIVATE; 
+				 }	
+                 
+				 if (ModemSendCom(ACTIVEATE_FGCNT, 10000) != ACK_OK) {
+                     //CARRENT_STATE = STATE_GPRS_DEACTIVATE;
+				 }
+				
+				 ModemSendCom(QUERY_IP, 500);
+
+				 } else {
 				     GSM_Timer.State_Change = STATE_GPRS_CONNECT;
-					 GSM_Timer.Interval = 100; 
-					 CARRENT_STATE = STATE_SOME_WAIT;
-						     
+				 	 GSM_Timer.Interval = 100; 
+				 	 CARRENT_STATE = STATE_SOME_WAIT;
 				 }
 				 
 				 if (err_conn_cnt == 3) {
 				     err_conn_cnt = 0;
-					 //CARRENT_STATE = STATE_MODEM_OFF;
-				     CARRENT_STATE = STATE_NET_STATUS;			 
-				 }
-				 else {
+					 CARRENT_STATE = STATE_MODEM_OFF;
+				     //CARRENT_STATE = STATE_NET_STATUS;			 
+				 } else {
 				     err_conn_cnt++;
 				 }
 				 
@@ -1878,12 +1884,7 @@ void vTask5( void *pvParameters )
 
 				 ModemSendCom(CONNECT_TO_SERVER, 3);
                  
-//    			 strcpy(Server_Name, "\"92.49.248.31\",10050\0");
-//               uartSendBuffer(0, &Server_Name[0], 21);
-
                  ModemSendData((char *)&Server_Name[0], 2000);
-                 
-     			 //ModemSendData((char *)&send_data_buff[0], 1000);
                  
 				 break;
 			}
@@ -1903,7 +1904,7 @@ void vTask5( void *pvParameters )
 				     CARRENT_STATE = STATE_GPRS_DEACTIVATE;
 				 }
 				 else {
-				     CARRENT_STATE = STATE_SMS_PREPARE;
+				     CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 				 }
 				 break;
 			}
@@ -1911,20 +1912,13 @@ void vTask5( void *pvParameters )
             case STATE_GPRS_FORMED_BUFF: {
 
                 if (xQueueReceive(xEventsQueue, &data.EventNum, 200 / portTICK_RATE_MS) == pdPASS) {
-				    
+				   CARRENT_STATE = STATE_GPRS_CHECK;
+
+			    } else if (QueueEncashmentNum()) {
+                    data.EventNum = Fl_Ev_TakeManey;
 					CARRENT_STATE = STATE_GPRS_CHECK;
-                } 
+				}
 			    break;
-			}
-
-            case STATE_SMS_PREPARE: {
-                 CARRENT_STATE = STATE_SMS_SEND_DATA;
-                 break;
-			}
-
-            case STATE_SMS_SEND_DATA: {
-                 CARRENT_STATE = STATE_GPRS_FORMED_BUFF;               
-	             break;
 			}
 
 			case STATE_GPRS_SEND_DATA: {
@@ -1985,18 +1979,30 @@ void vTask5( void *pvParameters )
 /////////////////////////////////////////////////////////
 
 					 CARRENT_STATE = STATE_SOME_WAIT;
-                     GSM_Timer.State_Change = STATE_SMS_PREPARE;
-                     GSM_Timer.Interval = 500;
+                     GSM_Timer.State_Change = STATE_GPRS_FORMED_BUFF;
+                     GSM_Timer.Interval = 5000;
 
 					 if (ModemSendCom(Conn, 5000) == ACK_SEND_OK) {
-
-						 vTaskDelay(10000 / portTICK_RATE_MS);
+						 //vTaskDelay(10000 / portTICK_RATE_MS);
 					 }
 			     } 
                  else {
 				     CARRENT_STATE = STATE_GPRS_DEACTIVATE;
 				 } 
                  break;
+			}
+
+			case STATE_HTTP_SERVER_200_OK: {
+				 
+				 CARRENT_STATE = STATE_SOME_WAIT;
+                 GSM_Timer.State_Change = STATE_GPRS_DISCONNECT;
+                 GSM_Timer.Interval = 10000;
+
+			     if (data.EventNum == Fl_Ev_TakeManey && QueueEncashmentNum()) {
+				     QueueEncashmentGet((ENCASHMENT_T *)&data.DateTime, 1);
+				 }
+				 
+				 break;
 			}
 
 			case STATE_GPRS_DISCONNECT: {
@@ -2186,7 +2192,7 @@ void custom_at_handler(u08 *pData)
         ModemAnsver = ACK_CAN_SEND;    
 	}
 	else if (strstr_P((char *)pData, PSTR("200 OK"))) {
-        
+        CARRENT_STATE = STATE_HTTP_SERVER_200_OK;
 	}
 	else if (strcmp_P((char *)pData, PSTR("OK")) == 0) {
         ModemAnsver = ACK_OK;
@@ -2210,7 +2216,7 @@ void custom_at_handler(u08 *pData)
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
 	else if (strcmp_P((char *)pData, PSTR("CLOSE OK")) == 0) {
-        CARRENT_STATE = STATE_SMS_PREPARE;
+        CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 	}
 	else if (strcmp_P((char *)pData, PSTR("CONNECT FAIL")) == 0) {
         CARRENT_STATE = STATE_GPRS_FAIL;
@@ -2223,7 +2229,7 @@ void custom_at_handler(u08 *pData)
 		xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 	}
 	else if (strcmp_P((char *)pData, PSTR("CLOSED")) == 0) {
-		CARRENT_STATE = STATE_SMS_PREPARE;
+		CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 	}
 	else if ( (p = (u08 *)strstr_P((char *)pData, PSTR("+CSQ:")))) {
         u08 k = 0;

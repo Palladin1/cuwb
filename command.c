@@ -494,7 +494,7 @@ extern TimeAndDate TimeAndDate_System;
         portEXIT_CRITICAL();
 		
 		portENTER_CRITICAL();												
-		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.water_level_marck_min), SMSWaterLevelEEPROMAdr, 18);
+		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.board_version), BoardVersionEEPROMAdr, 16);
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
