@@ -267,13 +267,13 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  40 */
 
-    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  70 */
 
 	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 280 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 230 */
     
-	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  80 */
+	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
  
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
@@ -523,7 +523,7 @@ void vTask2( void *pvParameters )
 
 void vTask3( void *pvParameters )
 {
-    u08 rx_data_buff[20];
+    u08 rx_data_buff[MAX_RX_SIZE_BUFF];
 
     xSemaphoreTake(xUart_RX_Semaphore, 0);
 	
@@ -533,9 +533,9 @@ void vTask3( void *pvParameters )
 
 		if (xSemaphoreTake(xUart_RX_Semaphore, 0) == pdTRUE) { 
 		
-            memset(&rx_data_buff[0], 0x0, 20); 
-            memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], 20);
-		    memset((char *)&BUF_UART_RX[0], 0x0, 20);
+            memset(&rx_data_buff[0], 0x0, MAX_RX_SIZE_BUFF); 
+            memcpy(&rx_data_buff[0], (char *)&BUF_UART_RX[0], MAX_RX_SIZE_BUFF);
+		    memset((char *)&BUF_UART_RX[0], 0x0, MAX_RX_SIZE_BUFF);
         
 		    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 	        GetCmd(&rx_data_buff[0]);
@@ -700,24 +700,23 @@ void vTask4( void *pvParameters )
 
 	for( ;; )
     {
-//////////////////////////////////////////////////////////////////////////
+
     wdt_reset();
 		
 		
-///////////////////////////////////////////////////////////////////////////////////////		
     switch (registrator_state) {
 
 	    case WAIT_INIT: {
 		     if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
                  
 				 if (IsRegistratorConnect && !is_service_mode) {
-//                   Uart0Disable();
+
  		             Uart0Enable(RegistratorCharPut, 9600);
 
 					 registrator_state = SEND_SELL_START;
                  }
 		         else {
-//		             Uart0Disable();
+
 		             Uart0Enable(Uart0_Resiv,  19200);
 
 					 registrator_state = (is_service_mode) ? SERVICE_MODE: IDLE_STATE;
@@ -847,6 +846,7 @@ void vTask4( void *pvParameters )
 					      case RR_ERR_NO: {
 					           Fl_RegistratorErr = 0;
 						       registrator_state = IDLE_STATE;
+							   //registrator_state = SEND_SELL_CANCEL;
 							   break;
 					      }
 					      case RR_ERR_STATE_NOT_RIGHT: {
@@ -1165,12 +1165,14 @@ void vTask4( void *pvParameters )
 
         if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
 		    if (!Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
+			    Fl_State.RrState = REPORT_FLAG_ERR;
 			    SYSTEM_EVENTS = Fl_Ev_RegError;
 		        xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 			    Is_Registrator_Err_Gprs_Send = 1;
 			}
 		}
 		else if (Is_Registrator_Err_Gprs_Send) {
+		    Fl_State.RrState = REPORT_FLAG_OK;
 			Is_Registrator_Err_Gprs_Send = 0;
 		}
 
@@ -2011,8 +2013,15 @@ void vTask5( void *pvParameters )
 			uartSendByte(0, '2');
 			uartSendByte(0, '\n');
 #endif
-				 
-				 ModemSendCom(DISCONNECT_SESSION, 500);
+                 
+				 CARRENT_STATE = STATE_SOME_WAIT;
+                 GSM_Timer.State_Change = STATE_GPRS_DEACTIVATE;
+                 GSM_Timer.Interval = 500;
+
+				 if (ModemSendCom(DISCONNECT_SESSION, 300) == ACK_ERROR) {
+				     CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
+				 }
+
 				 break;
 			}
 			
@@ -2116,21 +2125,28 @@ void vTask6( void *pvParameters )
 			uartSendByte(0, com_buff[cnt]);
 			uartSendByte(0, '\n');
 #endif
-
-		    if ((com_buff[cnt] == '\n') || (com_buff[cnt] == '>')) {
-		        cnt = 0; 
+            
+			if (cnt == 0 && !isprint(com_buff[cnt])) {
+			
+			}
+		    else if ((com_buff[cnt] == '\n') || (com_buff[cnt] == '>')) {
 				if (com_buff[cnt] == '>') {
 				    com_buff[cnt+1] = 0;
 				}
 				else {
 				    com_buff[cnt] = 0;
 				} 
-				custom_at_handler(com_buff);
+			
+				//if (com_buff[cnt] == '>' || cnt > 1)
+				    custom_at_handler(com_buff);
+				
+				cnt = 0;
 		    }
 			else {
 			    cnt++;
-				if(cnt == COM_BUFF_LEN - 1)
+				if(cnt == COM_BUFF_LEN - 1) {
 				    cnt = 0;
+				}
 			}
 		}
 
@@ -2185,50 +2201,50 @@ void custom_at_handler(u08 *pData)
 { 
     u08 *p;    
 
-    if (strcmp_P((char *)pData, PSTR("Call Ready")) == 0) {
+    if (strncmp_P((char *)pData, PSTR("Call Ready"), sizeof("Call Ready") - 1) == 0) {
 		CARRENT_STATE = STATE_GPRS_CONNECT;
     }
-	else if (strcmp_P((char *)pData, PSTR(">")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR(">"), sizeof(">") - 1) == 0) {
         ModemAnsver = ACK_CAN_SEND;    
 	}
 	else if (strstr_P((char *)pData, PSTR("200 OK"))) {
         CARRENT_STATE = STATE_HTTP_SERVER_200_OK;
 	}
-	else if (strcmp_P((char *)pData, PSTR("OK")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("OK"), sizeof("OK") - 1) == 0) {
         ModemAnsver = ACK_OK;
 	}
-	else if (strcmp_P((char *)pData, PSTR("ERROR")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("ERROR"), sizeof("ERROR") - 1) == 0) {
         ModemAnsver = ACK_ERROR;
 	}
-    else if (strcmp_P((char *)pData, PSTR("SEND OK")) == 0) {
+    else if (strncmp_P((char *)pData, PSTR("SEND OK"), sizeof("SEND OK") - 1) == 0) {
         ModemAnsver = ACK_SEND_OK;
 	}
-	else if (strcmp_P((char *)pData, PSTR("SEND FAIL")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("SEND FAIL"), sizeof("SEND FAIL") - 1) == 0) {
         ModemAnsver = ACK_SEND_FAIL;
 	}
-	else if (strcmp_P((char *)pData, PSTR("CONNECT OK")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("CONNECT OK"), sizeof("CONNECT OK") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_P((char *)pData, PSTR("STATE: CONNECT OK")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("STATE: CONNECT OK"), sizeof("STATE: CONNECT OK") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_P((char *)pData, PSTR("ALREADY CONNECT")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("ALREADY CONNECT"), sizeof("ALREADY CONNECT") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
 	}
-	else if (strcmp_P((char *)pData, PSTR("CLOSE OK")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("CLOSE OK"), sizeof("CLOSE OK") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 	}
-	else if (strcmp_P((char *)pData, PSTR("CONNECT FAIL")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("CONNECT FAIL"), sizeof("CONNECT FAIL") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_FAIL;
 	}
-	else if (strcmp_P((char *)pData, PSTR("DEACT OK")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("DEACT OK"), sizeof("DEACT OK") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_CONNECT;
 	}
-    else if (strcmp_P((char *)pData, PSTR("REQUEST DATA")) == 0) {
+    else if (strncmp_P((char *)pData, PSTR("REQUEST DATA"), sizeof("REQUEST DATA") - 1) == 0) {
   		SYSTEM_EVENTS = Fl_Ev_RequestData;
 		xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 	}
-	else if (strcmp_P((char *)pData, PSTR("CLOSED")) == 0) {
+	else if (strncmp_P((char *)pData, PSTR("CLOSED"), sizeof("CLOSED") - 1) == 0) {
 		CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
 	}
 	else if ( (p = (u08 *)strstr_P((char *)pData, PSTR("+CSQ:")))) {
@@ -2262,7 +2278,7 @@ void custom_at_handler(u08 *pData)
         u16 price = 0;
         
 		p += 6;
-        if (strlen((const char *)p) != 4) {
+        if (strlen((const char *)p) < 4) {
             return;
 		}
 		

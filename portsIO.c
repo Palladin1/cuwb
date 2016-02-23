@@ -24,8 +24,8 @@ void InitPortsIO (void) {
 //    u16 EepromAdr;
 //=====================================
 //	чтение EEPROM
-    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, 16);
-    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.board_version), BoardVersionEEPROMAdr, 16);
+    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, sizeof(EEPR_LOCAL_COPY));
+
 	
 	IntEeprBlockRead((uint16_t)(&MoneyCounterToSave), MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 

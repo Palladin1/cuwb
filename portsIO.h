@@ -20,7 +20,6 @@ volatile u08 Sygnal_Get_Axellerometr;
 
 volatile u16 ADR_LAST_DATTA;
 
-//volatile u16 EEPROM_DATA[40];
 volatile struct EEPR_DATA_MAP {
     unsigned int  cost_litre_coef;
     unsigned int  pulse_litre_coef;
@@ -184,19 +183,19 @@ unsigned int		*upper_report_limit;
 
 #define             VodomatNumberEEPROMAdr			0x2e
 
-#define             MoneyCounterEEPROMAdr   		0x30 
 
-#define             BoardVersionEEPROMAdr			0x42  //0x3e
-#define             SMSWaterLevelEEPROMAdr			0x44  //0x42
+#define             BoardVersionEEPROMAdr			0x30
+#define             SMSWaterLevelEEPROMAdr			0x32
 
-#define             AmountWaterEEPROMAdr			0x46  //0x
-//#define             DayManeyCntEEPROMAdr			0x46
-#define             MaxSizeBarrelEEPROMAdr			0x4a
-#define             ExtEeprCarAdrEEPROMAdr	    	0x4e
+#define             AmountWaterEEPROMAdr			0x34
+#define             MaxSizeBarrelEEPROMAdr			0x38
+#define             ExtEeprCarAdrEEPROMAdr	    	0x3c
 
-#define             RepIntervalEEPROMAdr	        0x50
-#define             LowRepLimitEEPROMAdr            0x52
-#define             UpRepLimitEEPROMAdr		        0x54
+#define             RepIntervalEEPROMAdr	        0x3e
+
+
+#define             MoneyCounterEEPROMAdr   		0x40
+
 
 #define             ApnUserPassAdressEEPROMAdr   	0x56
 #define             ServerNameEEPROMAdr 			0x92
@@ -207,10 +206,9 @@ unsigned int		*upper_report_limit;
 #define             RegistratorWaterEEPROMAdr 		0xce
 #define             RegistratorCashEEPROMAdr 		0xd2
 
-//#define             EncashmentHeadEEPROMAdr 		0xd6
-//#define             EncashmentTailEEPROMAdr 		0xd8
-//#define             EncashmentNumEEPROMAdr  		0xda
+
 #define             EncashmentSaveEEPROMAdr 		0xd6
+
 
 #define             LockParamEEPROMAdr              0xffc 
 #define             SoftVersionEEPROMAdr            0xffe

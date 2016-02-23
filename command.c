@@ -485,16 +485,11 @@ extern TimeAndDate TimeAndDate_System;
 		u16 tmp_ext_eepr_data_adr = EEPR_LOCAL_COPY.ext_eepr_data_adr;
 
 		portENTER_CRITICAL();
-//		eeprom_write_word ((uint16_t*)*(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
-		IntEeprWordWrite((uint16_t)(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
+		IntEeprWordWrite((uint16_t)*(&((uint16_t*) get_cmd_buff)[1]), ((uint16_t*)get_cmd_buff)[2]);
 		portEXIT_CRITICAL();
 			
 		portENTER_CRITICAL();												
-    	IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, 16);
-        portEXIT_CRITICAL();
-		
-		portENTER_CRITICAL();												
-		IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.board_version), BoardVersionEEPROMAdr, 16);
+        IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, sizeof(EEPR_LOCAL_COPY));
         portEXIT_CRITICAL();
 
 ///////////////////////////////////////////////////////////////
@@ -520,8 +515,7 @@ extern TimeAndDate TimeAndDate_System;
 	void READ_INT_EEPROM (void) {
 		
 		portENTER_CRITICAL();		
-//		((uint16_t*) get_cmd_buff)[2] = eeprom_read_word ((uint16_t *)*(&((uint16_t*) get_cmd_buff)[1]));
-		((uint16_t*) get_cmd_buff)[2] = IntEeprWordRead((uint16_t)&((uint16_t*)get_cmd_buff)[1]);
+		((uint16_t*) get_cmd_buff)[2] = IntEeprWordRead((uint16_t)*(&((uint16_t*)get_cmd_buff)[1]));
 		portEXIT_CRITICAL();
 
 		get_cmd_buff[0] = 5;
@@ -606,7 +600,7 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
 	for (i = 0; i < 5; i++) {
 	    itoan(p[i], &report_buff[cnt_buf + i * 2], 2);
 	}
-	cnt_buf += i;
+	cnt_buf += 10;
 
     itoan(data->Money.Sum, &report_buff[cnt_buf], 6);
     cnt_buf += 6;
@@ -617,6 +611,14 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
 	itoan(*data->Price, &report_buff[cnt_buf], 4);
 	cnt_buf += 4;
 
+    itoan(*data->TimeToBlock, &report_buff[cnt_buf], 2);
+	cnt_buf += 2;
+
+	itoan(data->Money.Bill, &report_buff[cnt_buf], 4);
+    cnt_buf += 4;
+	
+	itoan(data->Money.Bill, &report_buff[cnt_buf], 4);
+    cnt_buf += 4;
 /*
 ************************************************************ 
 *       Sets the flags of stats from board unit     

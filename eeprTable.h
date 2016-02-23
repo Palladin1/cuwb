@@ -16,12 +16,7 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(ExtEeprDataAdrEEPROMAdr)]    = 	0x7B00,									//Ext Eepr DataAdr
 	[R_ADR(VodomatNumberEEPROMAdr)]     = 	0x0001,									//Vodomat Number
 
-	[R_ADR(MoneyCounterEEPROMAdr)]     =	0x0000,                                 //
-		                                    0x0000,                                 //
-											0x0000,                                 //
-		                                    0x0000,                                 //
-
-  	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
+	[R_ADR(BoardVersionEEPROMAdr)]      = 	0x0001,									//Board version
 	[R_ADR(SMSWaterLevelEEPROMAdr)]     = 	0x2710,                                 //value of water for send sms 100 Litre
 	[R_ADR(AmountWaterEEPROMAdr)]       = 	0x0000,                                 //current quantity of water 
 		                                    0x0000,                                 //
@@ -31,6 +26,11 @@ uint16_t EEMEM SOFT_VER[(0x1000/2)]  =
 	[R_ADR(ExtEeprCarAdrEEPROMAdr)]     = 	0x0000,                                 //overflow the external memory
 	[R_ADR(RepIntervalEEPROMAdr)]       =   0x0002,                                 //15 minut 
   
+    [R_ADR(MoneyCounterEEPROMAdr)]     =	0x0000,                                 //
+		                                    0x0000,                                 //
+											0x0000,                                 //
+		                                    0x0000,                                 //
+
 
 	[R_ADR(ApnUserPassAdressEEPROMAdr)] = 	0x6922,                                 //"i
 		                                    0x746e,                                 //nt
