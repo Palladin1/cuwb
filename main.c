@@ -109,6 +109,8 @@ typedef enum {
 	STATE_GPRS_DISCONNECT,
     STATE_GPRS_FORMED_BUFF,
 	STATE_HTTP_SERVER_200_OK,
+	STATE_STACK_MODE_CHACK,
+	STATE_STACK_MODE_CHANGE,
     STATE_GPRS_SEND_DATA
 
 	
@@ -1872,6 +1874,29 @@ void vTask5( void *pvParameters )
 				 break;
 			}
 
+			case STATE_STACK_MODE_CHACK: {
+			     
+				 GSM_Timer.State_Change = STATE_GPRS_DEACTIVATE;
+				 GSM_Timer.Interval = 500; 
+				 CARRENT_STATE = STATE_SOME_WAIT;
+				 if (ModemSendCom(MODE_SERVER_OR_CLIENT, 300) != ACK_OK) {
+				     CARRENT_STATE = STATE_GPRS_CHECK;
+				 }
+				 
+				 break;
+			}
+
+			case STATE_STACK_MODE_CHANGE: {
+
+                 GSM_Timer.State_Change = STATE_GPRS_CHECK;
+				 GSM_Timer.Interval = 500; 
+				 CARRENT_STATE = STATE_SOME_WAIT;
+                 if (ModemSendCom(MODE_CLIENT_SET, 300) == ACK_OK) {
+				     CARRENT_STATE = STATE_GPRS_SEND_DATA;    
+				 }
+                 break;
+            }
+
 			case STATE_GPRS_OPEN: {
 #if MODEM_DBG
 			uartSendByte(0, '7');
@@ -1881,7 +1906,7 @@ void vTask5( void *pvParameters )
 			//     vTaskDelay(10000 / portTICK_RATE_MS);
                  
 				 GSM_Timer.State_Change = STATE_GPRS_DEACTIVATE;
-				 GSM_Timer.Interval = 2000; 
+				 GSM_Timer.Interval = 65000; 
 				 CARRENT_STATE = STATE_SOME_WAIT;
 
 				 ModemSendCom(CONNECT_TO_SERVER, 3);
@@ -2223,13 +2248,19 @@ void custom_at_handler(u08 *pData)
         ModemAnsver = ACK_SEND_FAIL;
 	}
 	else if (strncmp_P((char *)pData, PSTR("CONNECT OK"), sizeof("CONNECT OK") - 1) == 0) {
-        CARRENT_STATE = STATE_GPRS_SEND_DATA;
+        CARRENT_STATE = STATE_STACK_MODE_CHACK;
 	}
 	else if (strncmp_P((char *)pData, PSTR("STATE: CONNECT OK"), sizeof("STATE: CONNECT OK") - 1) == 0) {
-        CARRENT_STATE = STATE_GPRS_SEND_DATA;
+        CARRENT_STATE = STATE_STACK_MODE_CHACK;
 	}
 	else if (strncmp_P((char *)pData, PSTR("ALREADY CONNECT"), sizeof("ALREADY CONNECT") - 1) == 0) {
+        CARRENT_STATE = STATE_STACK_MODE_CHACK;
+	}
+	else if (strncmp_P((char *)pData, PSTR("+QISRVC: 1"), sizeof("+QISRVC: 1") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_SEND_DATA;
+	}
+    else if (strncmp_P((char *)pData, PSTR("+QISRVC: 2"), sizeof("+QISRVC: 2") - 1) == 0) {
+        CARRENT_STATE = STATE_STACK_MODE_CHANGE;
 	}
 	else if (strncmp_P((char *)pData, PSTR("CLOSE OK"), sizeof("CLOSE OK") - 1) == 0) {
         CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
