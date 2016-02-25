@@ -742,18 +742,38 @@ void vTask4( void *pvParameters )
 
 			     if (Fl_Send_Sell_End == 1) {
 				     registrator_state = SEND_SELL_END;
+				     
+					 if (registrator_ansver_to != SEND_SELL_START) {
+				         registrator_state = SEND_SELL_START;
+					 }
 				 }
 				 else if (Fl_Send_Withdraw_The_Cash == 1) {
 				     registrator_state = SEND_WITHDRAW_THE_CASH;
+
+					 if (registrator_ansver_to == SEND_SELL_START) {
+				         registrator_state = SEND_SELL_CANCEL;    
+					 }
 				 }
 				 else if (Fl_Send_TimeDateCurGet == 1) {
 				     registrator_state = SEND_TIME_DATE_GET;
+
+					 if (registrator_ansver_to == SEND_SELL_START) {
+				         registrator_state = SEND_SELL_CANCEL;    
+					 }
 				 }
 				 else if (Fl_Send_HourBeforeBlock == 1) {
 				     registrator_state = SEND_MODEM_STATUS_CHECK;
+				     
+					 if (registrator_ansver_to == SEND_SELL_START) {
+				         registrator_state = SEND_SELL_CANCEL;    
+					 }
 				 }
 	             else  if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
-			         registrator_state = SEND_SELL_START;
+				     registrator_state = SEND_SELL_START;
+				     
+					 if (registrator_ansver_to == SEND_SELL_START) {
+				         registrator_state = SEND_SELL_CANCEL;
+					 }
 				 }
 			 }
 		     break;
@@ -1027,7 +1047,7 @@ void vTask4( void *pvParameters )
 				 break;
 			 }
 
-			 registrator_ansver_to = 0;
+//			 registrator_ansver_to = 0;
 			 break;
 		}
 //		default : {
