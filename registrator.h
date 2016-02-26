@@ -12,7 +12,7 @@
 #define  RCMD_SELL_CANCELL   0x6B 
 #define  RCMD_DATA_TIME_GET  0x21                                    /* Get the date and time without seconds */
 #define  RCMD_DATA_TIMES_GET 0x3B                                    /* Get the date and time with seconds */  
-#define  RCMD_CASH_GET_PUT   0x77
+#define  RCMD_CASH_GET_PUT   0xA1//0x77
 #define  RCMD_MODEM_STATUS   0xEA
 
 #define  RANSVER_NAK    0x15
@@ -83,7 +83,7 @@ typedef enum {
 struct RegistratorDataFinishSale {
     u32 Number;
     u32 Quantity;
-    u32 Prise;	
+    u32 Price;	
 };
 
 struct RegistratorDataCancelSale {

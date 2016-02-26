@@ -273,7 +273,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 230 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 240, NULL, 1, NULL);         /* 230 */
     
 	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
  
@@ -676,7 +676,7 @@ void vTask4( void *pvParameters )
 
     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
     pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = 0;
-    pCUWB_RegistratorMsg->Data.ProductInfo.Prise = 0;
+    pCUWB_RegistratorMsg->Data.ProductInfo.Price = 0;
 
 
     xSemaphoreTake(xTimeSendRequestSem, 0);
@@ -789,7 +789,7 @@ void vTask4( void *pvParameters )
 		     
 		     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
              pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Prise = EEPR_LOCAL_COPY.cost_litre_coef;
+             pCUWB_RegistratorMsg->Data.ProductInfo.Price = EEPR_LOCAL_COPY.cost_litre_coef;
              
 		     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
 			     registrator_ansver_to = SEND_SELL_END;
@@ -799,7 +799,7 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_CANCEL: {
 			 
-#if CHECK_STACK
+#if (CHECK_STACK == 1)
 			     //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
                  static u08 i = 0;
                  DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
@@ -808,7 +808,9 @@ void vTask4( void *pvParameters )
                  if(i >= TASK_NUMBER) {
                      i = 0;
 				 }
-#else
+#elif (CHECK_STACK == 2)
+             DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
+#else 
              pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif /* CHECK_STACK */
 
@@ -2009,6 +2011,24 @@ void vTask5( void *pvParameters )
 						 data.WaterQnt = (u32 *)&EEPR_LOCAL_COPY.amount_water;
                      }
                      xSemaphoreGive(xI2CMutex);  
+ 
+#if (CHECK_STACK == 1)
+			         DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
+#elif (CHECK_STACK == 2)
+             
+			 		//unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
+                    static u08 i = 0;
+                    static u16 z = 0;
+                    DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
+                    data.Price =  &DebugBuff[i++];
+					z = i;
+					data.ApparatNum = &z;
+             
+                    if(i >= TASK_NUMBER) {
+                        i = 0;
+					}
+
+#endif /* CHECK_STACK */ 
                      
 					 Create_Report_String(&data, &send_data_buff[0]);
 
@@ -2138,10 +2158,6 @@ void vTask5( void *pvParameters )
 
 //        vTaskDelay(500 / portTICK_RATE_MS);
 
-#if CHECK_STACK
-    DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
-#endif //CHECK_STACK
-
 	}
 
     vTaskDelete(NULL);
@@ -2206,39 +2222,6 @@ void vTask6( void *pvParameters )
     vTaskDelete(NULL);
 }
 
-
-/*
-void vCoRoutineBuzerControll (xCoRoutineHandle xHandle, unsigned portBASE_TYPE uxIndex)
-{
-    static u16 buzer_timer = BUZER_TIME;
-
-    crSTART(xHandle);
-    
-    for( ;; ) {
-
-		if (buzer_flag == 1) {
-		    BUZZER_ON;
-            crDELAY(xHandle, 300 / portTICK_RATE_MS);
-		    BUZZER_OFF;
-	        crDELAY(xHandle, 1700 / portTICK_RATE_MS);
-        
-		    if (buzer_timer == 0) {
-	        
-			    buzer_flag = 0;
-			    buzer_timer = BUZER_TIME;
-            }
-            else {
-		        buzer_timer--;
-		    }
-		}
-		else {
-		    crDELAY(xHandle, 2000 / portTICK_RATE_MS);
-		}
-    }
-
-    crEND();
-}
-*/
 
 /////////////////////////////////////////////////////////////////////////////////////
 

@@ -206,16 +206,19 @@ u08 RegistratorDataGet (RegistratorReceivedData * received_data, RECEIVED_DATA_T
 u08 RegistratorDataSet (u08 cmd, void *data[]) 
 {
     u08 offset;
+	RegistratorMsg *msg  = *data;
     
     if ( (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED) && (RegistratorStatusGet() != RR_CONNECTION_OK) ) {
 	    return (0);
 	}
 
 	send_message.cmd = cmd;
+//    memset(send_message.data, 0, R_SEND_DATA_LEN);
     
     switch (cmd) {
         case RCMD_SELL_START: {
 //             send_message.cmd = RCMD_SELL_START;
+             send_message.data[0] = '\0';
 			 send_message.data_len = 0;
                 
              should_send_data = 1;
@@ -225,10 +228,14 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
         case RCMD_SELL_END: {
  //            send_message.cmd = RCMD_SELL_END;
 
-			 if (data != NULL) {
-                 offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-                 offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
-                 offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[2]);
+			 if (data != NULL && *data != NULL) {
+                 //offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
+                 //offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
+                 //offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[2]);
+
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.ProductInfo.Number);
+                 offset += make_data_type_q(&send_message.data[offset], msg->Data.ProductInfo.Quantity);
+				 offset += make_data_type_m(&send_message.data[offset], msg->Data.ProductInfo.Price);
 
                  send_message.data_len = offset;
 			 }
@@ -244,14 +251,14 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
         case RCMD_SELL_CANCELL: {
 //             send_message.cmd = RCMD_SELL_CANCELL;
              
-			 if (data != NULL) {
-			     offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+			 if (data != NULL && *data != NULL) {
+			     //offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
 
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.OperationNum.Operation);
                  send_message.data_len = offset;
 			 }
              else {
 			     send_message.data[0] = '\0';
-
                  send_message.data_len = 0;
 			 }
 
@@ -260,6 +267,7 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
 		case RCMD_DATA_TIME_GET: {
+		     send_message.data[0] = '\0';
 			 send_message.data_len = 0;
                 
              should_send_data = 1;
@@ -267,9 +275,13 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
 		case RCMD_CASH_GET_PUT: {
-			 if (data != NULL) {
-                 offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-                 offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[1]);
+			 if (data != NULL && *data != NULL) {
+                // offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
+                // offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[1]);
+
+				
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.Money.DataCode);
+                 //offset += make_data_type_m(&send_message.data[offset], msg->Data.Money.Quantity);
 
                  send_message.data_len = offset;
 			 }
@@ -283,14 +295,15 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
 		case RCMD_MODEM_STATUS: {
-			 if (data != NULL) {
-			     offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+			 if (data != NULL && *data != NULL) {
+			     //offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.Report.IsPrint);
 
                  send_message.data_len = offset;
 			 }
              else {
 			     send_message.data[0] = '\0';
-
                  send_message.data_len = 0;
 			 }
                 
