@@ -202,64 +202,48 @@ u08 RegistratorDataGet (RegistratorReceivedData * received_data, RECEIVED_DATA_T
 
     return (1);		
 }
+	
 			
-u08 RegistratorDataSet (u08 cmd, void *data[]) 
+u08  RegistratorDataSet (u08 cmd, RegistratorMsg * msg) 
 {
     u08 offset;
-	RegistratorMsg *msg  = *data;
     
     if ( (RegistratorStatusGet() != RR_CONNECTION_NOT_DEFINED) && (RegistratorStatusGet() != RR_CONNECTION_OK) ) {
 	    return (0);
 	}
 
 	send_message.cmd = cmd;
-//    memset(send_message.data, 0, R_SEND_DATA_LEN);
+
+	send_message.data[0] = 0;
+	send_message.data_len = 0;
     
     switch (cmd) {
         case RCMD_SELL_START: {
-//             send_message.cmd = RCMD_SELL_START;
-             send_message.data[0] = '\0';
-			 send_message.data_len = 0;
                 
              should_send_data = 1;
 			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
         case RCMD_SELL_END: {
- //            send_message.cmd = RCMD_SELL_END;
 
-			 if (data != NULL && *data != NULL) {
-                 //offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-                 //offset += make_data_type_q(&send_message.data[offset], (*(u32**)data)[1]);
-                 //offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[2]);
+			 if (msg != NULL) {
 
 				 offset = make_data_type_n(&send_message.data[0], msg->Data.ProductInfo.Number);
                  offset += make_data_type_q(&send_message.data[offset], msg->Data.ProductInfo.Quantity);
 				 offset += make_data_type_m(&send_message.data[offset], msg->Data.ProductInfo.Price);
-
                  send_message.data_len = offset;
 			 }
-			 else {
-			     send_message.data[0] = '\0';
-                 send_message.data_len = 0;
-			 }
-             
+
              should_send_data = 1;
 			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
         case RCMD_SELL_CANCELL: {
-//             send_message.cmd = RCMD_SELL_CANCELL;
              
-			 if (data != NULL && *data != NULL) {
-			     //offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+			 if (msg != NULL) {
 
 				 offset = make_data_type_n(&send_message.data[0], msg->Data.OperationNum.Operation);
                  send_message.data_len = offset;
-			 }
-             else {
-			     send_message.data[0] = '\0';
-                 send_message.data_len = 0;
 			 }
 
              should_send_data = 1;
@@ -267,27 +251,16 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
 		case RCMD_DATA_TIME_GET: {
-		     send_message.data[0] = '\0';
-			 send_message.data_len = 0;
                 
              should_send_data = 1;
 			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
-		case RCMD_CASH_GET_PUT: {
-			 if (data != NULL && *data != NULL) {
-                // offset = make_data_type_n(&send_message.data[0], (*(u32**)data)[0]);
-                // offset += make_data_type_m(&send_message.data[offset], (*(s32**)data)[1]);
+		case RCMD_DAY_REPORT_PRINT: {
 
-				
-				 offset = make_data_type_n(&send_message.data[0], msg->Data.Money.DataCode);
-                 //offset += make_data_type_m(&send_message.data[offset], msg->Data.Money.Quantity);
-
+			 if (msg != NULL) {
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.Report.Type);
                  send_message.data_len = offset;
-			 }
-			 else {
-			     send_message.data[0] = '\0';
-                 send_message.data_len = 0;
 			 }
                 
              should_send_data = 1;
@@ -295,16 +268,10 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
              break;
         }
 		case RCMD_MODEM_STATUS: {
-			 if (data != NULL && *data != NULL) {
-			     //offset = make_data_type_n(&send_message.data[0], *(u32 *)data[0]);
+			 if (msg != NULL) {
 
-				 offset = make_data_type_n(&send_message.data[0], msg->Data.Report.IsPrint);
-
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.ReportPrint.IsPrint);
                  send_message.data_len = offset;
-			 }
-             else {
-			     send_message.data[0] = '\0';
-                 send_message.data_len = 0;
 			 }
                 
              should_send_data = 1;
@@ -323,19 +290,9 @@ u08 RegistratorDataSet (u08 cmd, void *data[])
 
 REGISTRATOR_ERROR_CODE RegistratorErrorCode (RegistratorReceivedData *rr_err)
 {
-/*
-    u08 i;
-	RR_ERROR_CODE code;
-    
-	code = 0;
-	for (i = 0; i < rr_err->len; i++) {
-	    code += rr_err->dataptr[i];
-	}
-    return  code;
-*/
-
     return  (rr_err->dataptr[0] + rr_err->dataptr[1] + rr_err->dataptr[2] + rr_err->dataptr[3]);
 }
+
 
 u08 registrator_frame_get (u08 c) 
 {
@@ -530,6 +487,7 @@ u08 make_data_type_n (u08 *to, u32 d)
     return len;
 }
 
+
 u08 make_data_type_m (u08 *to, s32 d)
 {
     u08 len;
@@ -549,6 +507,7 @@ u08 make_data_type_m (u08 *to, s32 d)
     
 	return len;
 }
+
 
 u08 make_data_type_q (u08 *to, u32 d)
 {
@@ -594,6 +553,7 @@ u08 set_point (u08 *s, u08 pos, u08 len_cur)
 	return i;
 } 
  
+
 void makecrc (u08 * crc, u16 bcc_cnt) 
 {
     u08 i;
@@ -604,19 +564,3 @@ void makecrc (u08 * crc, u16 bcc_cnt)
         bcc_cnt /= 16;
     }
 }
-
-
-/*
-u08 is_should_send_flag (void)
-{
-    u08 ret = should_send_flag;
-    should_send_flag = 0;
-    return ret; 
-}
-
-void set_should_send_flag (void)
-{
-    while (should_send_flag)
-        should_send_flag = 1;
-}
-*/

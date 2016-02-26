@@ -650,7 +650,7 @@ void vTask4( void *pvParameters )
 		SEND_SELL_CANCEL,
 		SEND_TIME_DATE_GET, 
 		SEND_MODEM_STATUS_CHECK, 
-		SEND_WITHDRAW_THE_CASH,
+		SEND_RESET_THE_TAPE,
 		REGISTRATOR_ANSVER_GET,
 		REGISTRATOR_ANSVER_WAIT,
 		SERVICE_MODE
@@ -669,16 +669,11 @@ void vTask4( void *pvParameters )
 	static RegistratorReceivedData request_data;
 	
 	static RegistratorMsg CUWB_RegistratorMsg;
-	static RegistratorMsg *pCUWB_RegistratorMsg = &CUWB_RegistratorMsg;
 
     registrator_state = WAIT_INIT;
 	registrator_ansver_to = IDLE_STATE;
 
-    pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
-    pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = 0;
-    pCUWB_RegistratorMsg->Data.ProductInfo.Price = 0;
-
-
+    
     xSemaphoreTake(xTimeSendRequestSem, 0);
 	xSemaphoreTake(xExtSignalStatusSem, 0);
 
@@ -748,7 +743,7 @@ void vTask4( void *pvParameters )
 					 }
 				 }
 				 else if (Fl_Send_Withdraw_The_Cash == 1) {
-				     registrator_state = SEND_WITHDRAW_THE_CASH;
+				     registrator_state = SEND_RESET_THE_TAPE;
 
 					 if (registrator_ansver_to == SEND_SELL_START) {
 				         registrator_state = SEND_SELL_CANCEL;    
@@ -787,11 +782,11 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_SELL_END: {
 		     
-		     pCUWB_RegistratorMsg->Data.ProductInfo.Number = 0;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
-             pCUWB_RegistratorMsg->Data.ProductInfo.Price = EEPR_LOCAL_COPY.cost_litre_coef;
+		     CUWB_RegistratorMsg.Data.ProductInfo.Number = 0;
+             CUWB_RegistratorMsg.Data.ProductInfo.Quantity = RegistratorSaveWater * 10;
+             CUWB_RegistratorMsg.Data.ProductInfo.Price = EEPR_LOCAL_COPY.cost_litre_coef;
              
-		     if ( RegistratorDataSet(RCMD_SELL_END, (void **) &pCUWB_RegistratorMsg) ) {
+		     if ( RegistratorDataSet(RCMD_SELL_END, &CUWB_RegistratorMsg) ) {
 			     registrator_ansver_to = SEND_SELL_END;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
@@ -803,18 +798,19 @@ void vTask4( void *pvParameters )
 			     //unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );
                  static u08 i = 0;
                  DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
-                 pCUWB_RegistratorMsg->Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
+                 CUWB_RegistratorMsg.Data.OperationNum.Operation = ((i+1) * 1000 + DebugBuff[i++]);
              
                  if(i >= TASK_NUMBER) {
                      i = 0;
 				 }
 #elif (CHECK_STACK == 2)
              DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
+			 CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #else 
-             pCUWB_RegistratorMsg->Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
+             CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif /* CHECK_STACK */
 
-             if ( RegistratorDataSet(RCMD_SELL_CANCELL, (void **) &pCUWB_RegistratorMsg) ) {
+             if ( RegistratorDataSet(RCMD_SELL_CANCELL, &CUWB_RegistratorMsg) ) {
                  registrator_ansver_to = SEND_SELL_CANCEL;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
      		 }
@@ -830,22 +826,20 @@ void vTask4( void *pvParameters )
 		}
 		case SEND_MODEM_STATUS_CHECK: {
 
-			 pCUWB_RegistratorMsg->Data.Report.IsPrint = 0;          /* 0 - not print a report, 1 - print a report */
+			 CUWB_RegistratorMsg.Data.ReportPrint.IsPrint = 0;          /* 0 - not print a report, 1 - print a report */
 
-			 if ( RegistratorDataSet(RCMD_MODEM_STATUS, (void **) &pCUWB_RegistratorMsg) ) {
+			 if ( RegistratorDataSet(RCMD_MODEM_STATUS, &CUWB_RegistratorMsg) ) {
 			     registrator_ansver_to = SEND_MODEM_STATUS_CHECK;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
 		}
-        case SEND_WITHDRAW_THE_CASH: {
+        case SEND_RESET_THE_TAPE: {
 			 
-			 pCUWB_RegistratorMsg->Data.Money.DataCode = 0;                                        /* 0 -  national currency */
-             pCUWB_RegistratorMsg->Data.Money.Quantity = RegistratorCashClear;                     /* current emount money which need put or get out from registrator */
-			 pCUWB_RegistratorMsg->Data.Money.Quantity *= -1;                                      /* if number < 0 we have get out the data from registrator*/
+			 CUWB_RegistratorMsg.Data.Report.Type = RZREPORT_WITH_TAPE_RESET;                                        /* 0 -  national currency */
 
-             if ( RegistratorDataSet(RCMD_CASH_GET_PUT, (void **) &pCUWB_RegistratorMsg) ) {
-			     registrator_ansver_to = SEND_WITHDRAW_THE_CASH;
+             if ( RegistratorDataSet(RCMD_DAY_REPORT_PRINT, &CUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_RESET_THE_TAPE;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
@@ -1012,12 +1006,12 @@ void vTask4( void *pvParameters )
 				     }
 					 break;
 				 }
-				 case SEND_WITHDRAW_THE_CASH: {
+				 case SEND_RESET_THE_TAPE: {
                       RegistratorDataGet(&err_data, ERROR_CODE);
 
 					  switch ( RegistratorErrorCode(&err_data) ) {
 					      case RR_ERR_NO: {
-						  //   RegistratorDataGet(&request_data, DATA);
+
 					           Fl_RegistratorErr = 0;
 
 						       RegistratorCashClear = 0;
@@ -1028,7 +1022,6 @@ void vTask4( void *pvParameters )
                                xSemaphoreGive(xI2CMutex);
 
 					           Fl_Send_Withdraw_The_Cash = 0;
-
 							   registrator_state = IDLE_STATE;
 							   break;
 					      }
@@ -1652,9 +1645,8 @@ void vTask5( void *pvParameters )
 	IntEeprBlockRead((u16)&Server_Name[0], ServerNameEEPROMAdr, 30);
 	xSemaphoreGive(xI2CMutex);
 
-/* TODO: There is can chack going to connect by domain name or ip address */
-/* for example: scan Server_Name if the all data is digit except an point then connect by ip otherwise by domain name */
-/* while start the is_domain_name set to 1, if need connect by ip need to set the value to 0  */
+    is_domain_name = DomainNameOrIpChack(Server_Name, 30);
+	while (is_domain_name == -1) ;
 
     static u08 len;
 	len = strnlen((char*)&Server_Name[0], 30); 

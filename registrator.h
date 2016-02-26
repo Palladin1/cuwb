@@ -7,13 +7,15 @@
 #define  R_TIMEOUT_WAIT    2000
 
 
-#define  RCMD_SELL_START     0x7C
-#define  RCMD_SELL_END       0x7D
-#define  RCMD_SELL_CANCELL   0x6B 
-#define  RCMD_DATA_TIME_GET  0x21                                    /* Get the date and time without seconds */
-#define  RCMD_DATA_TIMES_GET 0x3B                                    /* Get the date and time with seconds */  
-#define  RCMD_CASH_GET_PUT   0xA1//0x77
-#define  RCMD_MODEM_STATUS   0xEA
+#define  RCMD_SELL_START          0x7C
+#define  RCMD_SELL_END            0x7D
+#define  RCMD_SELL_CANCELL        0x6B 
+#define  RCMD_DATA_TIME_GET       0x21                                    /* Get the date and time without seconds */
+#define  RCMD_DATA_TIMES_GET      0x3B                                    /* Get the date and time with seconds */  
+//#define  RCMD_CASH_GET_PUT        0x77
+#define  RCMD_MODEM_STATUS        0xEA
+#define  RCMD_DAY_REPORT_PRINT    0xA1
+
 
 #define  RANSVER_NAK    0x15
 #define  RANSVER_SYN    0x16
@@ -25,7 +27,9 @@
 #define  RDATA_ETX    0x03
 #define  RDATA_SEPARATOR    ';'
 
-#define  ROPERATION_CANCEL_SELL    0ul
+#define  ROPERATION_CANCEL_SELL      0ul
+#define  RZREPORT_WITH_TAPE_RESET    0u
+
 
 #define  SEQ_VALUE_LOWER            0x20
 #define  SEQ_VALUE_UPPER            0x7F
@@ -35,21 +39,6 @@
 #define  NULL_IN_MESSAGE    0x20
 #define  CONVERT_FOR_SEND(d)       ((d) + NULL_IN_MESSAGE)  
 #define  CONVERT_TO_DIGIT(c)       ((c) >= NULL_IN_MESSAGE) ? (c) - NULL_IN_MESSAGE : 0  
-
-/*
-#ifndef u08
-typedef unsigned char u08;
-#endif
-#ifndef u16
-typedef unsigned int u16;
-#endif
-#ifndef u32
-typedef unsigned long u32;
-#endif
-#ifndef s32
-typedef signed long s32;
-#endif
-*/
 
 
 typedef enum _REGISTRATOR_STATUS {
@@ -90,21 +79,26 @@ struct RegistratorDataCancelSale {
     u32 Operation;
 };
 
-struct RegistratorDataMoneyGetPut {
-    u16 DataCode;
-	s32 Quantity;
-};
+//struct RegistratorDataMoneyGetPut {
+//    u16 DataCode;
+//	s32 Quantity;
+//};
 
 struct RegistratorDataModemStatus {
     u32 IsPrint;
+};
+
+struct RegistratorDataReportPrint {
+    u32 Type;
 };
 
 typedef struct RR_Msg {
     union data {
 	    struct RegistratorDataFinishSale  ProductInfo;
 		struct RegistratorDataCancelSale  OperationNum;
-		struct RegistratorDataMoneyGetPut Money;
-        struct RegistratorDataModemStatus Report;
+//		struct RegistratorDataMoneyGetPut Money;
+        struct RegistratorDataModemStatus ReportPrint;
+		struct RegistratorDataReportPrint Report;
 	} Data;
 } RegistratorMsg;
 
@@ -114,9 +108,9 @@ void RegistratorCharPut (unsigned char c);
 void RegistratorInit (void);
 void RegistratorProcessing (u08 period);
 u08  RegistratorDataGet (RegistratorReceivedData * received_data, RECEIVED_DATA_TYPE datatype);
-u08  RegistratorDataSet (u08 cmd, void * data[]);
+u08  RegistratorDataSet (u08 cmd, RegistratorMsg * msg);
 REGISTRATOR_STATUS RegistratorStatusGet (void);
 extern void RegistratorSendStr (u08 *s, u08 len);
 REGISTRATOR_ERROR_CODE RegistratorErrorCode (RegistratorReceivedData *rr_err);
 
-#endif  //REGISTRATOR_H
+#endif  /* REGISTRATOR_H */

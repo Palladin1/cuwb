@@ -15,6 +15,7 @@
 
 #include  "indicator.h"
 #include  <string.h>
+#include  <ctype.h>
 
 
 static struct {
@@ -839,6 +840,35 @@ u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit)
 	}
 
 	return h;
+}
+
+s08 DomainNameOrIpChack (u08 *str, u08 len_max)
+{
+    u08 len;
+	u08 *s;
+    
+	if (!str && strnlen((const char *)str, len_max)) {
+	    return -1; 
+	}
+	
+	str = (u08 *)strstr((const char *)str, "\"");
+	if (!str) {
+	    return -1;
+	}
+	str++;
+	
+    s = (u08 *)strstr((const char *)str, "\"");
+    if (!s) {
+	    return -1;
+	}
+
+	for (len = s - str; len > 0; len--) {
+	    if (isalpha(str[len]) && str[len] != '.') {
+		    break;
+		}
+	}
+
+	return (len) ? 1 : 0;
 }
 
 

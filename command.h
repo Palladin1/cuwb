@@ -122,5 +122,7 @@ void QueueEncashmentPut (ENCASHMENT_T *data);
 void QueueEncashmentGet (ENCASHMENT_T *data, u08 with_remove);
 u08 QueueEncashmentNum (void);
 
+s08 DomainNameOrIpChack (u08 *str, u08 len_max);
+
 
 #endif    /* COMMAND_H */
