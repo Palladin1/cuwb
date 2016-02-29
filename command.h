@@ -43,7 +43,7 @@ struct COLLECTION_DATA_TO_SERVER {
     u16 *ApparatNum;
     ENCASHMENT_DATETIME_T DateTime;
 	MONEY_COUNTER_T       Money;
-	u32 *WaterQnt;
+	u32  WaterQnt;
 	u16 *Price;
 	u08 *TimeToBlock;
 	u08 *Flag1;

@@ -606,7 +606,7 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
     itoan(data->Money.Sum, &report_buff[cnt_buf], 6);
     cnt_buf += 6;
 
-	itoan(*data->WaterQnt, &report_buff[cnt_buf], 6);
+	itoan(data->WaterQnt, &report_buff[cnt_buf], 6);
 	cnt_buf += 6;
 	    
 	itoan(*data->Price, &report_buff[cnt_buf], 4);
@@ -618,7 +618,7 @@ void Create_Report_String (struct COLLECTION_DATA_TO_SERVER *data, u08 *report_b
 	itoan(data->Money.Bill, &report_buff[cnt_buf], 4);
     cnt_buf += 4;
 	
-	itoan(data->Money.Bill, &report_buff[cnt_buf], 4);
+	itoan(data->Money.Coin, &report_buff[cnt_buf], 4);
     cnt_buf += 4;
 /*
 ************************************************************ 

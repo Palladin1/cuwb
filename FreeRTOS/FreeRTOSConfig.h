@@ -88,7 +88,7 @@
 #define  configTIMER_TASK_PRIORITY    1
  
 #define  configTIMER_QUEUE_LENGTH        10
-#define  configTIMER_TASK_STACK_DEPTH   (160 + 40)
+#define  configTIMER_TASK_STACK_DEPTH   (160 + 50)
 
 #define configCHECK_FOR_STACK_OVERFLOW  0//2
 

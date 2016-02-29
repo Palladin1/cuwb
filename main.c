@@ -237,7 +237,7 @@ int main( void )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    xEventsQueue = xQueueCreate(16, sizeof(u08 *));
+    xEventsQueue = xQueueCreate(20, sizeof(u08 *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
@@ -271,13 +271,13 @@ Uart0Enable(Uart0_Resiv,  19200);
 
     xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  70 */
 
-	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  70, NULL, 2, NULL);         /*  70 */
+	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  90, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 240, NULL, 1, NULL);         /* 230 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 230 */
     
 	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
  
-	xTimer_ButtonPoll = xTimerCreate((signed char *)"TmrBtn", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
+	xTimer_ButtonPoll = xTimerCreate((signed char *)"K", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
     
 	xTimer_NoWaterBuzzerSignal = xTimerCreate((signed char *)"W", 2000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_NoWaterBuzzerSignal);
@@ -288,6 +288,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 	xTimer_ModemStart = xTimerCreate((signed char *)"M", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
 
 	xTimer_TimeBlockChack = xTimerCreate((signed char *)"R", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockCheck);
+	xTimerReset(xTimer_TimeBlockChack, 0);
 
 //  xCoRoutineCreate(vCoRoutineBuzerControll, 1, 0);
 
@@ -699,6 +700,12 @@ void vTask4( void *pvParameters )
     {
 
     wdt_reset();
+
+	PORTA ^= (1<<4);
+
+#if (CHECK_STACK == 2)
+    DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
+#endif  /* CHECK_STACK */
 		
 		
     switch (registrator_state) {
@@ -803,12 +810,10 @@ void vTask4( void *pvParameters )
                  if(i >= TASK_NUMBER) {
                      i = 0;
 				 }
-#elif (CHECK_STACK == 2)
-             DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
-			 CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #else 
              CUWB_RegistratorMsg.Data.OperationNum.Operation = ROPERATION_CANCEL_SELL;
 #endif /* CHECK_STACK */
+
 
              if ( RegistratorDataSet(RCMD_SELL_CANCELL, &CUWB_RegistratorMsg) ) {
                  registrator_ansver_to = SEND_SELL_CANCEL;
@@ -1393,10 +1398,9 @@ void vTask4( void *pvParameters )
 		    		encashment_data.Money.Sum = MoneyCounterToSave.Sum;
 	    			encashment_data.Money.Bill = MoneyCounterToSave.Bill;
     				encashment_data.Money.Coin = MoneyCounterToSave.Coin;
-  
+
                     RegistratorCashClear = MoneyCounterToSave.Sum;
    
-
 				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 					QueueEncashmentPut(&encashment_data);
 					MoneyCounterToSave.Sum = 0;
@@ -1404,8 +1408,11 @@ void vTask4( void *pvParameters )
 					MoneyCounterToSave.Coin = 0;
 					IntEeprBlockWrite((u16)&MoneyCounterToSave, MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
 
-				    IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
-					Fl_Send_Withdraw_The_Cash = 1;
+                    if (!is_service_mode) {  
+				        IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
+					    Fl_Send_Withdraw_The_Cash = 1;
+					}
+
 			        xSemaphoreGive(xI2CMutex);
 
 					SYSTEM_EVENTS = Fl_Ev_TakeManey;
@@ -1599,7 +1606,7 @@ void vTask5( void *pvParameters )
 
     
     data.ApparatNum  = (u16 *) &EEPR_LOCAL_COPY.vodomat_number;
-	data.WaterQnt    = (u32 *) &EEPR_LOCAL_COPY.amount_water;
+	data.WaterQnt    = 0;
 	data.Price       = (u16 *) &EEPR_LOCAL_COPY.cost_litre_coef;
 
 	data.TimeToBlock = (u08 *) &Hours_BeforeApparatBlock;
@@ -1984,7 +1991,7 @@ void vTask5( void *pvParameters )
 					 if (data.EventNum == Fl_Ev_TakeManey && QueueEncashmentNum()) {
 					     QueueEncashmentGet((ENCASHMENT_T *)&data.DateTime, 0);
 
-						 data.WaterQnt = (u32 *)&EEPR_LOCAL_COPY.amount_water;
+						 data.WaterQnt = EEPR_LOCAL_COPY.amount_water;
                      }
 					 else if (data.EventNum == Fl_Ev_NoPower) {
 	                     data.Money.Sum = ShouldReturnToBuyer.Money;
@@ -1992,7 +1999,7 @@ void vTask5( void *pvParameters )
 						 data.Money.Coin = MoneyCounterToSave.Coin;
 						 memcpy((u16 *)&data.DateTime, (u16 *)&TimeAndDate_System.Minute,  sizeof(data.DateTime)); 
 
-						 data.WaterQnt = (u32 *)&ShouldReturnToBuyer.Water;
+						 data.WaterQnt = ShouldReturnToBuyer.Water;
 					 } 
 					 else {
 	                     data.Money.Sum = MoneyCounterToSave.Sum;
@@ -2000,7 +2007,7 @@ void vTask5( void *pvParameters )
 						 data.Money.Coin = MoneyCounterToSave.Coin;
 						 memcpy((u16 *)&data.DateTime, (u16 *)&TimeAndDate_System.Minute, sizeof(data.DateTime)); 
 
-						 data.WaterQnt = (u32 *)&EEPR_LOCAL_COPY.amount_water;
+						 data.WaterQnt = EEPR_LOCAL_COPY.amount_water;
                      }
                      xSemaphoreGive(xI2CMutex);  
  
@@ -2013,7 +2020,7 @@ void vTask5( void *pvParameters )
                     static u16 z = 0;
                     DebugBuff[3] = uxTaskGetStackHighWaterMark(NULL);
                     data.Price =  &DebugBuff[i++];
-					z = i;
+					z = (i + 1);
 					data.ApparatNum = &z;
              
                     if(i >= TASK_NUMBER) {
@@ -2059,6 +2066,9 @@ void vTask5( void *pvParameters )
 
 			     if (data.EventNum == Fl_Ev_TakeManey && QueueEncashmentNum()) {
 				     QueueEncashmentGet((ENCASHMENT_T *)&data.DateTime, 1);
+				 }
+				 else if (data.EventNum == Fl_Ev_NoPower) {
+				     IsDataToReturnSent = 1;
 				 }
 				 
 				 break;
@@ -2351,7 +2361,7 @@ static inline u16 MoneyToPulse (u16 money_quantity)
 static inline u16 PulseQuantityToMoney (u16 pulse_quantity) 
 {
 	if ((EEPR_LOCAL_COPY.pulse_litre_coef > 0) && (pulse_quantity > 0))
-        return (u16)(((((EEPR_LOCAL_COPY.cost_litre_coef) * 8388608) / (((EEPR_LOCAL_COPY.pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
+        return (u16)((((((u32)EEPR_LOCAL_COPY.cost_litre_coef) * 8388608) / ((((u32)EEPR_LOCAL_COPY.pulse_litre_coef) * 65536) / pulse_quantity)) + 1) >> 1);
 
 	return 0;
 }
