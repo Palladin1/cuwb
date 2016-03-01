@@ -71,8 +71,8 @@ const char  Host[] PROGMEM = "Host: ";
 const char  Conn[] PROGMEM = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
 
 
-#define  ACCELEROMETR_PERIOD   3000ul           //3000 * 100mS = 300S
-#define  CHECK_COUNTER_PERIOD  50ul             //50  * 100mS = 5S
+#define  ACCELEROMETER_PERIOD    3 //3000u           //3000 * 100mS = 300S
+#define  CHECK_COUNTER_PERIOD    50u             //50  * 100mS = 5S
 
 #define  MINUTES_IN_DAY        1440ul    
 
@@ -142,7 +142,7 @@ CARRENT_STATE_CARRENT CARRENT_STATE = STATE_MODEM_IDLE;
 u08 gFlLedStateWater = 0;
 
 volatile u08 WtrCntTimer;
-volatile u16 AxellCntTimer;
+volatile u16 AccellCntTimer;
 
 volatile u16 NewPrice = 0;
 
@@ -228,7 +228,6 @@ void custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
-
 
 int main( void )
 {
@@ -442,9 +441,9 @@ void vTask2( void *pvParameters )
 			portEXIT_CRITICAL();
 		}
 
-		if (AxellCntTimer > 0) {
+		if (AccellCntTimer > 0) {
 		    portENTER_CRITICAL();
-	        AxellCntTimer--;
+	        AccellCntTimer--;
 			portEXIT_CRITICAL();
         }
 
@@ -694,14 +693,15 @@ void vTask4( void *pvParameters )
 
 	is_service_mode = ((IS_SERVICE_MODE) ? 1 : 0);
 
+	AccellCntTimer = ACCELEROMETER_PERIOD;
+	Sygnal_Get_Accellerometer = 0;
+
     wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
 
     wdt_reset();
-
-	PORTA ^= (1<<4);
 
 #if (CHECK_STACK == 2)
     DebugBuff[2] = uxTaskGetStackHighWaterMark(NULL);
@@ -1528,22 +1528,32 @@ void vTask4( void *pvParameters )
 	    }
 
 
-/////////// Get signal from axelerometr //////////////////////////////////////
-	    if (Sygnal_Get_Axellerometr) { 
-            Sygnal_Get_Axellerometr = 0;
-			
-			if (AxellCntTimer == 0) {
-			    AxellCntTimer = ACCELEROMETR_PERIOD;
-				SYSTEM_EVENTS = Fl_Ev_GetMoving;
+/////////// Got signal from accelerometer //////////////////////////////////////
+        static u08 is_accel_timer_start = 0;
+	    if (Sygnal_Get_Accellerometer) { 
+		
+            if (AccellCntTimer == 0) {
+			BUZZER_ON;
+
+		vTaskDelay(100 / portTICK_RATE_MS);
+		BUZZER_OFF;
+		    	AccellCntTimer = ACCELEROMETER_PERIOD;
+		        Sygnal_Get_Accellerometer = 0;			
+			    is_accel_timer_start = 1;
+        
+			    SYSTEM_EVENTS = Fl_Ev_GetMoving;
                 xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
             }
-        }
+        } else if (is_accel_timer_start && AccellCntTimer == 0) {
+		    is_accel_timer_start = 0;
+			AccelerometerEnable();
+		}
     
-/////// the sygnall set when bill can't get maney ////////////////////////////
+/////// the sygnall set when bill can't get money ////////////////////////////
 
         if (Sygnal_Get.NoWrkBill && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
 
-	        if (!Fl.ErrRsvBill) {                                // can't get the right status 
+	        if (!Fl.ErrRsvBill) {                                               // can't get the right status 
 			    Fl_State.RsvBill = REPORT_FLAG_ERR;
 				Fl.ErrRsvBill = 1;
 

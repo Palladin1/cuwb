@@ -47,6 +47,7 @@
 #define EXTINT_EDGE_ANY			0x01	///< Trigger on any edge
 #define EXTINT_EDGE_FALLING		0x02	///< Trigger on falling edge
 #define EXTINT_EDGE_RISING		0x03	///< Trigger on rising edge
+#define EXTINT_DEACTIVATE		0x80
 
 // type of interrupt handler to use
 // *do not change unless you know what you're doing

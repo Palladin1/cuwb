@@ -19,40 +19,11 @@
 #include "CUWBcfg.h"
 
 
+void Warning_from_Accellerometer (void);
+
+
 void InitPortsIO (void) {
-	
-//    u16 EepromAdr;
-//=====================================
-//	чтение EEPROM
-    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, sizeof(EEPR_LOCAL_COPY));
-
-	
-	IntEeprBlockRead((uint16_t)(&MoneyCounterToSave), MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
-
-	IntEeprBlockRead((uint16_t)(&RegistratorSaveWater), RegistratorWaterEEPROMAdr, 4);
-
-	IntEeprBlockRead((uint16_t)(&RegistratorCashClear), RegistratorCashEEPROMAdr, 4);
-
-
-/* Check version of softvare and set if don't equal */    
-	u16 CurrSoftVer;
-	CurrSoftVer = IntEeprWordRead(SoftVersionEEPROMAdr);
-    if (SOFTVARE_VERSION != CurrSoftVer) {
-	    IntEeprWordWrite(SoftVersionEEPROMAdr, SOFTVARE_VERSION);
-    }
-
-	
-//=====================================
 //Default setings for ports
-
-				//                   | valve3    valve2     valve1 |  pump   |  namber of indikator       |
-DDRA  = 0XFF;	//	DDRA |= (1<<DDA7)|(1<<DDA6)|(1<<DDA5)|(1<<DDA4)|(1<<DDA3)|(1<<DDA2)|(1<<DDA1)|(1<<DDA0);
-if (IS_BOARD_VERSION_NEW) {
-PORTA = 0X70;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(0<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
-}
-else {
-PORTA = 0X78;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(1<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
-}
 
 				//     	 |key door   | key rest|key stop |key strt |inh bill |escrow   | registrator present |sts bill| 
 DDRB  =	0X0C;	//	DDRB |= (0<<DDB7)|(0<<DDB6)|(0<<DDB5)|(0<<DDB4)|(1<<DDB3)|(1<<DDB2)|(0<<DDB1)            |(0<<DDB0);
@@ -82,6 +53,38 @@ DDRG  =	0X07;	//	DDRG |= (0<<DDG4)|(0<<DDG3)|(1<<DDG2)|(1<<DDG1)|(1<<DDG0);
 PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 
 //==================================================
+	
+//    u16 EepromAdr;
+//=====================================
+//	чтение EEPROM
+    IntEeprBlockRead((uint16_t)(&EEPR_LOCAL_COPY.cost_litre_coef), CostLitreCoefEEPROMAdr, sizeof(EEPR_LOCAL_COPY));
+
+	
+	IntEeprBlockRead((uint16_t)(&MoneyCounterToSave), MoneyCounterEEPROMAdr, sizeof(MoneyCounterToSave));
+
+	IntEeprBlockRead((uint16_t)(&RegistratorSaveWater), RegistratorWaterEEPROMAdr, 4);
+
+	IntEeprBlockRead((uint16_t)(&RegistratorCashClear), RegistratorCashEEPROMAdr, 4);
+
+
+/* Check version of softvare and set if don't equal */    
+	u16 CurrSoftVer;
+	CurrSoftVer = IntEeprWordRead(SoftVersionEEPROMAdr);
+    if (SOFTVARE_VERSION != CurrSoftVer) {
+	    IntEeprWordWrite(SoftVersionEEPROMAdr, SOFTVARE_VERSION);
+    }
+
+
+				//                   | valve3    valve2     valve1 |  pump   |  namber of indikator       |
+DDRA  = 0XFF;	//	DDRA |= (1<<DDA7)|(1<<DDA6)|(1<<DDA5)|(1<<DDA4)|(1<<DDA3)|(1<<DDA2)|(1<<DDA1)|(1<<DDA0);
+if (IS_BOARD_VERSION_NEW) {
+PORTA = 0X70;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(0<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
+}
+else {
+PORTA = 0X78;	// PORTA |= (0<<PA7) |(1<<PA6) |(1<<PA5) |(1<<PA4) |(1<<PA3) |(0<<PA2) |(0<<PA1) |(0<<PA0);
+}	
+//=====================================
+
     // initialize the I2C
 	i2cInit();
 
@@ -95,6 +98,7 @@ PORTG =	0X18;	// PORTG |=(1<<PG4)  |(1<<PG3) |(0<<PG2) |(0<<PG1) |(0<<PG0);
 
 
 //==================================================
+extintInit();
 
 /*
  **************************************************
@@ -135,20 +139,36 @@ if (!IS_COUNTER_WATER_NOT_ACTIVE) {
 }
 
 //==================================================
-
-void Warning_from_Axellerometr (void) {
-    Sygnal_Get_Axellerometr = 1;
-}
-
-	//! Configure external interrupt trigger
-//	extintConfigure(EXTINT5, EXTINT_EDGE_FALLING);
-	extintConfigure(EXTINT5, EXTINT_EDGE_RISING);
-	//! Attach a user function to an external interrupt
-	extintAttach(EXTINT5, Warning_from_Axellerometr);
+extintAttach(EXTINT5, Warning_from_Accellerometer);
+AccelerometerEnable();
 
 //==================================================
 
 }
+
+
+
+void Warning_from_Accellerometer (void) {
+	PORTA ^= (1<<4);
+    AccelerometerDisable();
+    Sygnal_Get_Accellerometer = 1;
+}
+
+
+void AccelerometerEnable (void) {
+	//! Configure external interrupt trigger
+//	extintConfigure(EXTINT5, EXTINT_EDGE_FALLING);
+	extintConfigure(EXTINT5, EXTINT_EDGE_RISING);
+	//! Attach a user function to an external interrupt
+//	extintAttach(EXTINT5, Warning_from_Accellerometer);
+}
+
+
+void AccelerometerDisable (void) {
+    extintConfigure(EXTINT5, EXTINT_DEACTIVATE);
+//    extintDetach(EXTINT5);
+}
+
 
 // UART1 Receiver interrupt service routine
 void Uart1_Resiv(u08 udrdata1) {

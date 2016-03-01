@@ -144,8 +144,12 @@ if(interruptNum == EXTINT0)
 		#ifdef ATmega128
 		    EIMSK &= ~(1<<5);
 		    EICRB &= ~((1<<ISC51) | (1<<ISC50));
+			if (EIFR  & (1 << 5)) 
+			     EIFR  |= (1<<5);
+			if (configuration != EXTINT_DEACTIVATE) {
 		    EICRB |= (configuration<<2);
 		    EIMSK |= (1<<5);
+			}
 	    #endif
 	}
 	#endif

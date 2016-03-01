@@ -11,12 +11,16 @@ void Uart1Disable (void);
 void Uart0Enable (void (*getbyte)(u08 c),  u16 baudrate);
 void Uart0Disable (void);
 
+
+void AccelerometerEnable (void);
+void AccelerometerDisable (void);
+
 //==================================
 
 
 volatile u16 CountPulse;
 volatile u08 CountPulseFault;
-volatile u08 Sygnal_Get_Axellerometr;
+volatile u08 Sygnal_Get_Accellerometer;
 
 volatile u16 ADR_LAST_DATTA;
 
