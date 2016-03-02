@@ -8,6 +8,11 @@
 #include "gsm_buffer.h"
 
 
+static MODEM_ANSVER ModemAnsver = ACK_NO;
+
+
+extern void ModemAnsverWeit_callback (unsigned int time); 
+
 
 /*
 *********************************************************************************************************
@@ -91,44 +96,42 @@ return (1);
 }
 
 
-unsigned char ModemSendCom (const char *com_buff, unsigned long com_deluy_time_ms) {
+unsigned char ModemSendCom (const char *com_buff, unsigned int com_deluy_time_ms) {
 
-    //unsigned char ret = 0;
-    com_deluy_time_ms *= CYCLES_PER_MS;
-	
-	ModemAnsver = ACK_IDLE,
-	
     rprintfProgStr(com_buff);
 
-    while (com_deluy_time_ms != 0) {
-	    
-	    //if (ModemAnsver != IDLE) {
-        if (ModemAnsver) {
-		    break;
-		}
-		com_deluy_time_ms--;
-	}
+    com_deluy_time_ms *= CYCLES_PER_MS;
+    ModemAnsver = ACK_NO;
+//    while (com_deluy_time_ms && ModemAnsver == ACK_NO) {
+//	    com_deluy_time_ms--;
+//	}
 
-return ModemAnsver;
-}
-
-unsigned char ModemSendData (const char *data_buff, unsigned long data_deluy_time_ms) {
-
-    //unsigned char ret = 0;
-    data_deluy_time_ms *= CYCLES_PER_MS;
-	
-	ModemAnsver = ACK_IDLE,
-	
-    rprintfStr((char *) data_buff);
-
-    while (data_deluy_time_ms != 0) {
-	    
-	    //if (ModemAnsver != IDLE) {
-        if (ModemAnsver) {
-		    break;
-		}
-		data_deluy_time_ms--;
+    if (com_deluy_time_ms) {
+	    ModemAnsverWeit_callback(com_deluy_time_ms);
 	}
 
     return ModemAnsver;
+}
+
+
+unsigned char ModemSendData (const char *data_buff, unsigned int data_deluy_time_ms) {
+
+    rprintfStr((char *) data_buff);
+
+    data_deluy_time_ms *= CYCLES_PER_MS;
+    ModemAnsver = ACK_NO;
+//    while (data_deluy_time_ms && ModemAnsver == ACK_NO) {
+//	    data_deluy_time_ms--;
+//	}
+    if (data_deluy_time_ms) {
+        ModemAnsverWeit_callback(data_deluy_time_ms);
+	}
+
+    return ModemAnsver;
+}
+
+
+void ModemAnsverSet (const MODEM_ANSVER ansver) 
+{
+    ModemAnsver = ansver;
 }

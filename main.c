@@ -155,6 +155,8 @@ xSemaphoreHandle xI2CMutex;
 xSemaphoreHandle xExtSignalStatusSem; 
 xSemaphoreHandle xTimeSendRequestSem;
 
+xSemaphoreHandle xGsmModemWaitingSem;
+
 xTimerHandle xTimer_ButtonPoll;
 
 xTimerHandle xTimer_NoWaterBuzzerSignal;
@@ -214,7 +216,7 @@ void Uart0_Resiv (u08 udrdata);
 void Global_Time_Deluy (unsigned int time_val);
 
 //u08 ModemSendCom (u08 *buff, u32 deluy_time_ms);
-void custom_at_handler(u08 *pData);
+u08 custom_at_handler(u08 *pData);
 
 
 /*
@@ -241,8 +243,10 @@ int main( void )
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
 	vSemaphoreCreateBinary(xExtSignalStatusSem);
     vSemaphoreCreateBinary(xTimeSendRequestSem);
-	
-    xI2CMutex = xSemaphoreCreateMutex();
+
+	vSemaphoreCreateBinary(xGsmModemWaitingSem);
+
+	xI2CMutex = xSemaphoreCreateMutex();
 
     InitPortsIO();
 
@@ -2217,6 +2221,8 @@ void vTask6( void *pvParameters )
 
 	BUZZER_ON;                                                                 /* buzzer will be turn off when timeer finnished */
 	xTimerStart(xTimer_ModemStart, 0);
+	
+	xSemaphoreTake(xGsmModemWaitingSem, 0);
 
 	for( ;; )
     {
@@ -2242,7 +2248,9 @@ void vTask6( void *pvParameters )
 				} 
 			
 				//if (com_buff[cnt] == '>' || cnt > 1)
-				    custom_at_handler(com_buff);
+				if (custom_at_handler(com_buff)) {
+				    xSemaphoreGive(xGsmModemWaitingSem);
+				}
 				
 				cnt = 0;
 		    }
@@ -2268,30 +2276,37 @@ void vTask6( void *pvParameters )
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void custom_at_handler(u08 *pData)
+u08 custom_at_handler(u08 *pData)
 { 
-    u08 *p;    
+    u08 *p;
+	u08 is_ack_get;    
 
+    is_ack_get = 0;
     if (strncmp_P((char *)pData, PSTR("Call Ready"), sizeof("Call Ready") - 1) == 0) {
 		CARRENT_STATE = STATE_GPRS_CONNECT;
     }
 	else if (strncmp_P((char *)pData, PSTR(">"), sizeof(">") - 1) == 0) {
-        ModemAnsver = ACK_CAN_SEND;    
+		ModemAnsverSet(ACK_CAN_SEND); 
+		is_ack_get = 1;
 	}
 	else if (strstr_P((char *)pData, PSTR("200 OK"))) {
         CARRENT_STATE = STATE_HTTP_SERVER_200_OK;
 	}
 	else if (strncmp_P((char *)pData, PSTR("OK"), sizeof("OK") - 1) == 0) {
-        ModemAnsver = ACK_OK;
+		ModemAnsverSet(ACK_OK);
+		is_ack_get = 1;
 	}
 	else if (strncmp_P((char *)pData, PSTR("ERROR"), sizeof("ERROR") - 1) == 0) {
-        ModemAnsver = ACK_ERROR;
+        ModemAnsverSet(ACK_ERROR);
+		is_ack_get = 1;
 	}
     else if (strncmp_P((char *)pData, PSTR("SEND OK"), sizeof("SEND OK") - 1) == 0) {
-        ModemAnsver = ACK_SEND_OK;
+        ModemAnsverSet(ACK_SEND_OK);
+		is_ack_get = 1;
 	}
 	else if (strncmp_P((char *)pData, PSTR("SEND FAIL"), sizeof("SEND FAIL") - 1) == 0) {
-        ModemAnsver = ACK_SEND_FAIL;
+        ModemAnsverSet(ACK_SEND_FAIL);
+		is_ack_get = 1;
 	}
 	else if (strncmp_P((char *)pData, PSTR("CONNECT OK"), sizeof("CONNECT OK") - 1) == 0) {
         CARRENT_STATE = STATE_STACK_MODE_CHACK;
@@ -2331,17 +2346,17 @@ void custom_at_handler(u08 *pData)
 		p += 6;
 		qend = (u08 *)strstr_P((const char *)p, PSTR(","));
 		if (!(qend && qend > p)) {
-			return;
+			return (0);
 		}
 
         k = qend - p;
 		if (k != 2 && k != 1) {
-            return;
+            return (0);
 		}
 
 	    k = (u08)atoin(p, k);
 		if (k == 0) {
-	        return;
+	        return (0);
 		}
 		
 		if (k == 99 || k < 8) { 
@@ -2356,11 +2371,11 @@ void custom_at_handler(u08 *pData)
         
 		p += 6;
         if (strlen((const char *)p) < 4) {
-            return;
+            return (0);
 		}
 		
         if ((price = atoin(p, 4)) == 0) {
-		    return;
+		    return (0);
 		}
 
 		if (EEPR_LOCAL_COPY.cost_litre_coef != price && 500 >= price) {
@@ -2377,6 +2392,8 @@ void custom_at_handler(u08 *pData)
              ;		 
  		 }
 	}
+
+	return is_ack_get;
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -2441,6 +2458,14 @@ extern void RegistratorSendStr (u08 *s, u08 len) {
 	}
 }
 
+
+extern void ModemAnsverWeit_callback (unsigned int time)
+{
+    
+	while  (time && (xSemaphoreTake(xGsmModemWaitingSem, 10 / portTICK_RATE_MS) != pdTRUE)) { 
+	    time--;
+	}
+}
 
 /*
 void vApplicationIdleHook( void )

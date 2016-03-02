@@ -15,7 +15,7 @@
 
 typedef enum {
 	    
-    ACK_IDLE,
+    ACK_NO,
 	ACK_OK,
 	ACK_ERROR,
 	ACK_CAN_SEND,
@@ -24,14 +24,14 @@ typedef enum {
 
 } MODEM_ANSVER;
 
-MODEM_ANSVER ModemAnsver;
-
 
 unsigned char ModemStatus(void);
 unsigned char ModemSetSetings(void);
 unsigned char ModemSMSSend(unsigned char *number, unsigned char *text_sms);
 
-unsigned char ModemSendCom (const char *com_buff, unsigned long com_deluy_time_ms);
-unsigned char ModemSendData (const char *data_buff, unsigned long data_deluy_time_ms);
+unsigned char ModemSendCom (const char *com_buff, unsigned int com_deluy_time_ms);
+unsigned char ModemSendData (const char *data_buff, unsigned int data_deluy_time_ms);
+
+void ModemAnsverSet (const MODEM_ANSVER ansver) ;
 
 #endif //MODEM_H
