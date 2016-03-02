@@ -71,7 +71,7 @@ const char  Host[] PROGMEM = "Host: ";
 const char  Conn[] PROGMEM = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
 
 
-#define  ACCELEROMETER_PERIOD    3 //3000u           //3000 * 100mS = 300S
+#define  ACCELEROMETER_PERIOD    3000u           //3000 * 100mS = 300S
 #define  CHECK_COUNTER_PERIOD    50u             //50  * 100mS = 5S
 
 #define  MINUTES_IN_DAY        1440ul    
@@ -180,7 +180,7 @@ volatile u08 Hours_BeforeApparatBlock = 0;
 
 #if CHECK_STACK
 #define TASK_NUMBER    5
-static u16 DebugBuff[TASK_NUMBER] = {0};
+volatile static u16 DebugBuff[TASK_NUMBER] = {0};
 #endif //CHECK_STACK
 
 
@@ -266,13 +266,13 @@ Uart0Enable(Uart0_Resiv,  19200);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  40 */
+	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  30, NULL, 1, NULL);         /*  40 */
 
-    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  70 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  70 */
 
 	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  90, NULL, 2, NULL);         /*  70 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 230 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 220, NULL, 1, NULL);         /* 230 */
     
 	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
  
@@ -361,7 +361,7 @@ void vCallback_BuzzerOff (xTimerHandle xTimer)
 
 void vCallback_ModemStart (xTimerHandle xTimer)
 {
-    CARRENT_STATE = STATE_MODEM_ON;
+//    CARRENT_STATE = STATE_MODEM_ON;
 
 	BUZZER_OFF;
 }
@@ -369,9 +369,16 @@ void vCallback_ModemStart (xTimerHandle xTimer)
 
 void vCallback_TimerBlockCheck (xTimerHandle xTimer)
 {
-    if (Fl_Send_HourBeforeBlock == 0) {
-	    Fl_Send_HourBeforeBlock = 1;
-	}       
+    static u08 chack_period = 60;
+    	
+	chack_period--;
+	if (chack_period == 0) {
+	    chack_period = 60;
+
+		if (Fl_Send_HourBeforeBlock == 0) {
+	        Fl_Send_HourBeforeBlock = 1;
+	    }  
+	}     
 }
 
 
@@ -579,7 +586,7 @@ void vTask4( void *pvParameters )
         u08 ErrMinWater   : 1;
 	    u08 ErrRsvBill    : 1;
 	    u08 WtrCntrErr    : 1;
-	    u08 ServiceOpened : 1;
+//	    u08 ServiceOpened : 1;
 		u08 MoneyGet      : 1;
 		u08 AppBlock      : 1;
 	} Fl;
@@ -696,7 +703,7 @@ void vTask4( void *pvParameters )
 	AccellCntTimer = ACCELEROMETER_PERIOD;
 	Sygnal_Get_Accellerometer = 0;
 
-    wdt_enable(WDTO_2S);
+ //   wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
@@ -982,7 +989,7 @@ void vTask4( void *pvParameters )
 								   xSemaphoreGive(xI2CMutex);
 
                                    Hours_BeforeApparatBlock = h;
-							       if (!Fl.AppBlock && Hours_BeforeApparatBlock > (72 - 60)) {
+							       if (!Fl.AppBlock && Hours_BeforeApparatBlock > (72 - (72 - 12))) {
 								       Fl.AppBlock = 1;
 							           SYSTEM_EVENTS = Fl_Ev_WillBlocked;
 				                       xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
@@ -1372,21 +1379,23 @@ void vTask4( void *pvParameters )
 	    }
 
 
-        if (Sygnal_Get.Reset && !Sygnal_Get.ServiceKey) {
+        if (Sygnal_Get.Reset) {
        
-	        if (!Fl.SeifOpened) { 
+			if (!Fl.SeifOpened && Sygnal_Get.ServiceKey) {
+		        SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
+			    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+
+		    } else if (!Fl.SeifOpened && !Sygnal_Get.ServiceKey) { 
 			    ENCASHMENT_T encashment_data;
 				u16 dattaH;
 		        u16 dattaL;
              
 			    StopGetManey();
-		        Fl.SeifOpened = 1;
-			    //Fl_Ev_TakeManey = 1;
 
-				if (encashment_data.Money.Sum != 0) {
+				if (MoneyCounterToSave.Sum != 0) {
 
-                    dattaH = (u16) ((MoneyCounterToSave.Sum) >> 16);
-		            dattaL = (u16) ((MoneyCounterToSave.Sum) & 0x0000FFFF);
+                    dattaH = (u16)((MoneyCounterToSave.Sum) >> 16);
+		            dattaL = (u16)((MoneyCounterToSave.Sum) & 0x0000FFFF);
 
 				    xSemaphoreTake(xI2CMutex, portMAX_DELAY);
 				    TimeAndDayToBcd(&Time_And_Date_Bcd, TimeAndDate_System);
@@ -1441,17 +1450,12 @@ void vTask4( void *pvParameters )
 				}
 #endif
 		    }
+
+			Fl.SeifOpened = 1;
         }
-		else if (Sygnal_Get.Reset && Sygnal_Get.ServiceKey) {
-		    Fl.ServiceOpened = 1;
-		    SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
-			xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
-		}
-		else {
-		    Fl.ServiceOpened = 0;
+        else {
 			Fl.SeifOpened = 0;
 	    }
-
 
 	    if (Sygnal_Get.DoorOpn && !Fl.MergeEnable) {
 		    if (!Fl.SellStart && !Fl.SellStop && !(Sygnal_Get.Reset) && !Fl.WtrCntrErr) {
@@ -1533,10 +1537,6 @@ void vTask4( void *pvParameters )
 	    if (Sygnal_Get_Accellerometer) { 
 		
             if (AccellCntTimer == 0) {
-			BUZZER_ON;
-
-		vTaskDelay(100 / portTICK_RATE_MS);
-		BUZZER_OFF;
 		    	AccellCntTimer = ACCELEROMETER_PERIOD;
 		        Sygnal_Get_Accellerometer = 0;			
 			    is_accel_timer_start = 1;
@@ -1696,7 +1696,26 @@ void vTask5( void *pvParameters )
         switch (CARRENT_STATE) {
 
             case STATE_MODEM_IDLE: {
-				 
+#if MODEM_DBG
+	    uartSendByte(0, '3');
+		uartSendByte(0, '3');
+		uartSendByte(0, '\n');
+#endif
+				 while (1) {
+				     KLAPAN1_ON;
+					 #if MODEM_DBG
+	    uartSendByte(0, '5');
+		uartSendByte(0, '3');
+		uartSendByte(0, '\n');
+#endif
+				     ModemSendCom(DISCONNECT_GPRS, 4000);
+					 KLAPAN1_OFF;
+					 #if MODEM_DBG
+	    uartSendByte(0, '5');
+		uartSendByte(0, '4');
+		uartSendByte(0, '\n');
+#endif
+				 }
 			     break;
 			}
 					    
@@ -1723,7 +1742,17 @@ void vTask5( void *pvParameters )
 			         PWRKEY_ON;
                      vTaskDelay(2000 / portTICK_RATE_MS);
 					 PWRKEY_OFF;
-                     while (ModemStatus() == 0);
+
+					 u08 i = 0;
+                     while (ModemStatus() == 0) {
+				     
+					     vTaskDelay(1000 / portTICK_RATE_MS);
+					     if (i == 60) {
+					         CARRENT_STATE = STATE_MODEM_OFF;
+					         break;
+                         } 
+					     i++;
+				     }
 
                      Uart1Enable();		
                      vTaskDelay(2 / portTICK_RATE_MS);				   
@@ -1937,7 +1966,7 @@ void vTask5( void *pvParameters )
 			//     vTaskDelay(10000 / portTICK_RATE_MS);
                  
 				 GSM_Timer.State_Change = STATE_GPRS_DEACTIVATE;
-				 GSM_Timer.Interval = 65000; 
+				 GSM_Timer.Interval = 7500; 
 				 CARRENT_STATE = STATE_SOME_WAIT;
 
 				 ModemSendCom(CONNECT_TO_SERVER, 3);
@@ -2055,7 +2084,7 @@ void vTask5( void *pvParameters )
 /////////////////////////////////////////////////////////
 
 					 CARRENT_STATE = STATE_SOME_WAIT;
-                     GSM_Timer.State_Change = STATE_GPRS_FORMED_BUFF;
+                     GSM_Timer.State_Change = STATE_GPRS_DISCONNECT;
                      GSM_Timer.Interval = 5000;
 
 					 if (ModemSendCom(Conn, 5000) == ACK_SEND_OK) {
@@ -2116,11 +2145,13 @@ void vTask5( void *pvParameters )
 				 else {
 				 	 disconnect_count++;
 
-				     GSM_Timer.State_Change = STATE_GPRS_CONNECT;
+				     GSM_Timer.State_Change = STATE_MODEM_OFF;
 				     GSM_Timer.Interval = 100; 
 				     CARRENT_STATE = STATE_SOME_WAIT;
 				 				 
-				     ModemSendCom(DISCONNECT_GPRS, 500);
+				     if (ModemSendCom(DISCONNECT_GPRS, 4000) == ACK_ERROR) {
+				         CARRENT_STATE = STATE_GPRS_DEACTIVATE;
+				     }
 				 }
 
 				 break;
@@ -2196,7 +2227,7 @@ void vTask6( void *pvParameters )
 
 #if MODEM_DBG
 			uartSendByte(0, com_buff[cnt]);
-			uartSendByte(0, '\n');
+			//uartSendByte(0, '\n');
 #endif
             
 			if (cnt == 0 && !isprint(com_buff[cnt])) {

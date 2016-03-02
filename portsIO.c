@@ -19,7 +19,7 @@
 #include "CUWBcfg.h"
 
 
-void Warning_from_Accellerometer (void);
+void AccelerometerInit (void);
 
 
 void InitPortsIO (void) {
@@ -139,9 +139,8 @@ if (!IS_COUNTER_WATER_NOT_ACTIVE) {
 }
 
 //==================================================
-extintAttach(EXTINT5, Warning_from_Accellerometer);
-AccelerometerEnable();
 
+AccelerometerInit();
 //==================================================
 
 }
@@ -149,9 +148,14 @@ AccelerometerEnable();
 
 
 void Warning_from_Accellerometer (void) {
-	PORTA ^= (1<<4);
     AccelerometerDisable();
     Sygnal_Get_Accellerometer = 1;
+}
+
+
+void AccelerometerInit (void) {
+    extintAttach(EXTINT5, Warning_from_Accellerometer);
+    AccelerometerEnable();
 }
 
 
@@ -166,7 +170,6 @@ void AccelerometerEnable (void) {
 
 void AccelerometerDisable (void) {
     extintConfigure(EXTINT5, EXTINT_DEACTIVATE);
-//    extintDetach(EXTINT5);
 }
 
 

@@ -829,14 +829,17 @@ u16 HoursToBlocking (TimeAndDate *hour_cur, TimeAndDate *hour_transmit)
 {
     u16 h;
      
+    if (hour_transmit->Day == 0 && hour_transmit->Day == 0) {
+	    return (0);
+	}
+
     h = 0;
     if (hour_transmit->Day < hour_cur->Day) {
 	    h = (hour_cur->Day - hour_transmit->Day) * 24;
 	}
 
     if (hour_transmit->Hour < (h + hour_cur->Hour)) {
-	    h += hour_cur->Hour;
-		h -= hour_transmit->Hour;
+	    h = (h + hour_cur->Hour) - hour_transmit->Hour;
 	}
 
 	return h;
