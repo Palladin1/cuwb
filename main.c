@@ -365,7 +365,7 @@ void vCallback_BuzzerOff (xTimerHandle xTimer)
 
 void vCallback_ModemStart (xTimerHandle xTimer)
 {
-//    CARRENT_STATE = STATE_MODEM_ON;
+    CARRENT_STATE = STATE_MODEM_ON;
 
 	BUZZER_OFF;
 }
@@ -707,7 +707,7 @@ void vTask4( void *pvParameters )
 	AccellCntTimer = ACCELEROMETER_PERIOD;
 	Sygnal_Get_Accellerometer = 0;
 
- //   wdt_enable(WDTO_2S);
+    wdt_enable(WDTO_2S);
 
 	for( ;; )
     {
@@ -1700,6 +1700,8 @@ void vTask5( void *pvParameters )
         switch (CARRENT_STATE) {
 
             case STATE_MODEM_IDLE: {
+/*
+			Uart1Enable();
 #if MODEM_DBG
 	    uartSendByte(0, '3');
 		uartSendByte(0, '3');
@@ -1712,7 +1714,7 @@ void vTask5( void *pvParameters )
 		uartSendByte(0, '3');
 		uartSendByte(0, '\n');
 #endif
-				     ModemSendCom(DISCONNECT_GPRS, 4000);
+				     ModemSendCom(DISCONNECT_GPRS, (40000));
 					 KLAPAN1_OFF;
 					 #if MODEM_DBG
 	    uartSendByte(0, '5');
@@ -1720,6 +1722,7 @@ void vTask5( void *pvParameters )
 		uartSendByte(0, '\n');
 #endif
 				 }
+*/
 			     break;
 			}
 					    
@@ -2153,7 +2156,7 @@ void vTask5( void *pvParameters )
 				     GSM_Timer.Interval = 100; 
 				     CARRENT_STATE = STATE_SOME_WAIT;
 				 				 
-				     if (ModemSendCom(DISCONNECT_GPRS, 4000) == ACK_ERROR) {
+				     if (ModemSendCom(DISCONNECT_GPRS, 40000) == ACK_ERROR) {
 				         CARRENT_STATE = STATE_GPRS_DEACTIVATE;
 				     }
 				 }
@@ -2459,12 +2462,9 @@ extern void RegistratorSendStr (u08 *s, u08 len) {
 }
 
 
-extern void ModemAnsverWeit_callback (unsigned int time)
+extern void ModemAnsverWeit_callback (unsigned long time)
 {
-    
-	while  (time && (xSemaphoreTake(xGsmModemWaitingSem, 10 / portTICK_RATE_MS) != pdTRUE)) { 
-	    time--;
-	}
+    for (time /= 10; time && (xSemaphoreTake(xGsmModemWaitingSem, 10 / portTICK_RATE_MS) != pdTRUE); time--) ;
 }
 
 /*

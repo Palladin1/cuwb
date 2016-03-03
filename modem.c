@@ -11,7 +11,7 @@
 static MODEM_ANSVER ModemAnsver = ACK_NO;
 
 
-extern void ModemAnsverWeit_callback (unsigned int time); 
+extern void ModemAnsverWeit_callback (unsigned long time); 
 
 
 /*
@@ -96,11 +96,11 @@ return (1);
 }
 
 
-unsigned char ModemSendCom (const char *com_buff, unsigned int com_deluy_time_ms) {
+unsigned char ModemSendCom (const char *com_buff, unsigned long com_deluy_time_ms) {
 
     rprintfProgStr(com_buff);
 
-    com_deluy_time_ms *= CYCLES_PER_MS;
+//    com_deluy_time_ms *= CYCLES_PER_MS;
     ModemAnsver = ACK_NO;
 //    while (com_deluy_time_ms && ModemAnsver == ACK_NO) {
 //	    com_deluy_time_ms--;
@@ -114,11 +114,11 @@ unsigned char ModemSendCom (const char *com_buff, unsigned int com_deluy_time_ms
 }
 
 
-unsigned char ModemSendData (const char *data_buff, unsigned int data_deluy_time_ms) {
+unsigned char ModemSendData (const char *data_buff, unsigned long data_deluy_time_ms) {
 
     rprintfStr((char *) data_buff);
 
-    data_deluy_time_ms *= CYCLES_PER_MS;
+//    data_deluy_time_ms *= CYCLES_PER_MS;
     ModemAnsver = ACK_NO;
 //    while (data_deluy_time_ms && ModemAnsver == ACK_NO) {
 //	    data_deluy_time_ms--;
