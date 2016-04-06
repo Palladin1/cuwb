@@ -232,11 +232,6 @@ u08 custom_at_handler(u08 *pData);
 
 int main( void )
 {
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//xTaskGetTickCount()
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
     xEventsQueue = xQueueCreate(20, sizeof(u08 *));
 
     vSemaphoreCreateBinary(xUart_RX_Semaphore);
@@ -573,12 +568,12 @@ void vTask3( void *pvParameters )
 
 void vTask4( void *pvParameters )
 {
-    static u16 PumpTimeCoef ;
+    static  u16 PumpTimeCoef ;
 //	u16 get_key_skan = 0;
+ 
+    static  TimeAndDate Time_And_Date_Bcd = {0};
 
-    static TimeAndDate Time_And_Date_Bcd = {0};
-
-    static struct {
+    static  struct {
         u08 SellEnable    : 1;
         u08 SellStart     : 1;
         u08 SellStop	  : 1;
@@ -595,7 +590,7 @@ void vTask4( void *pvParameters )
 	} Fl;
 
 	
-	static struct {
+	static  struct {
 	    u08 NoWater    : 1;
         u08 NoWrkBill  : 1;
         u08 NoPower1   : 1;
@@ -610,7 +605,7 @@ void vTask4( void *pvParameters )
 	} Sygnal_Get;
 
 
-	static u08 Is_Registrator_Err_Gprs_Send = 0;
+	static  u08 Is_Registrator_Err_Gprs_Send = 0;
 	
 /*			
     const u08 Fl_Ev_NoWater              =  1;          
@@ -629,30 +624,31 @@ void vTask4( void *pvParameters )
 
     
 
-    static u16 ManeySave = 0;
-    static u16 WaterSave = 0;
-	static u16 CountRManey = 0;
+    static  u16 ManeySave = 0;
+    static  u16 WaterSave = 0;
+	static  u16 CountRManey = 0;
 
-    static u16 tmp_cnt_pulse = 0;
+    static  u16 tmp_cnt_pulse = 0;
     
     PumpTimeCoef = EEPR_LOCAL_COPY.pump_off_time_coef;
 
 	
-	static u08 Fl_RegistratorErr = 1;
-	static u08 registrator_connect_prev;
-	static u08 Fl_Send_Sell_End = 0;
-	static u08 Fl_Get_New_Data = 0;
-	static u08 Fl_Send_Withdraw_The_Cash = 0;
+	static  u08 Fl_RegistratorErr = 1;
+	static  u08 registrator_connect_prev;
+	static  u08 Fl_Send_Sell_End = 0;
+	static  u08 Fl_Get_New_Data = 0;
+	static  u08 Fl_Send_Exclude_Sum_Read  = 0;
+	static  u08 Fl_Send_Exclude_Sum_Clear = 0;
 
 
-	static u08 is_service_mode;
+	static  u08 is_service_mode;
 
-	static u16 coin_which_get_cntr;
-	static u16 bill_which_get_cntr;
+	static  u16 coin_which_get_cntr;
+	static  u16 bill_which_get_cntr;
 
-	static u08 is_service_key_present;
+	static  u08 is_service_key_present;
 	
-	typedef enum {
+	typedef  enum {
 	    IDLE_STATE,
 		WAIT_INIT,
 		SEND_SELL_START,
@@ -660,7 +656,8 @@ void vTask4( void *pvParameters )
 		SEND_SELL_CANCEL,
 		SEND_TIME_DATE_GET, 
 		SEND_MODEM_STATUS_CHECK, 
-		SEND_RESET_THE_TAPE,
+		SEND_STORED_SUM_READ,
+		SEND_STORED_SUM_CLEAR,
 		REGISTRATOR_ANSVER_GET,
 		REGISTRATOR_ANSVER_WAIT,
 		SERVICE_MODE
@@ -675,10 +672,12 @@ void vTask4( void *pvParameters )
 		EV_SAVE_NO_POWER        = 4
 	};
 
-	static RegistratorReceivedData err_data;
-	static RegistratorReceivedData request_data;
+	static  RegistratorReceivedData err_data;
+	static  RegistratorReceivedData request_data;
 	
-	static RegistratorMsg CUWB_RegistratorMsg;
+	static  RegistratorMsg CUWB_RegistratorMsg;
+
+	static  s32 registrator_sum;
 
     registrator_state = WAIT_INIT;
 	registrator_ansver_to = IDLE_STATE;
@@ -694,7 +693,7 @@ void vTask4( void *pvParameters )
 	}
 
     if (RegistratorCashClear > 0) {     /* The RegistratorSaveWater takes it value by read internal eeprom while initialization of the microcontroller */
-	    Fl_Send_Withdraw_The_Cash = 1;
+	    Fl_Send_Exclude_Sum_Clear = 1;
 	}
 
 
@@ -759,11 +758,17 @@ void vTask4( void *pvParameters )
 				         registrator_state = SEND_SELL_START;
 					 }
 				 }
-				 else if (Fl_Send_Withdraw_The_Cash == 1) {
-				     registrator_state = SEND_RESET_THE_TAPE;
-
+				 else if (Fl_Send_Exclude_Sum_Clear == 1) {
+				     
 					 if (registrator_ansver_to == SEND_SELL_START) {
 				         registrator_state = SEND_SELL_CANCEL;    
+					 } else if ((registrator_ansver_to == SEND_STORED_SUM_READ && Fl_Send_Exclude_Sum_Read == 0) || 
+					             registrator_ansver_to == SEND_STORED_SUM_CLEAR) {
+
+					     registrator_state = SEND_STORED_SUM_CLEAR;
+					 } else {
+                         registrator_state = SEND_STORED_SUM_READ;
+					     Fl_Send_Exclude_Sum_Read = 1;
 					 }
 				 }
 				 else if (Fl_Send_TimeDateCurGet == 1) {
@@ -783,7 +788,7 @@ void vTask4( void *pvParameters )
 	             else  if (xSemaphoreTake(xTimeSendRequestSem, 0) == pdTRUE) {
 				     registrator_state = SEND_SELL_START;
 				     
-					 if (registrator_ansver_to == SEND_SELL_START) {
+					 if (registrator_ansver_to == SEND_SELL_START && Fl_RegistratorErr == 0) {
 				         registrator_state = SEND_SELL_CANCEL;
 					 }
 				 }
@@ -849,12 +854,26 @@ void vTask4( void *pvParameters )
 	    	 }
 			 break;
 		}
-        case SEND_RESET_THE_TAPE: {
+        case SEND_STORED_SUM_READ: {
 			 
-			 CUWB_RegistratorMsg.Data.Report.Type = RZREPORT_WITH_TAPE_RESET;                                        /* 0 -  national currency */
+			 CUWB_RegistratorMsg.Data.AddExcludeSum.OperatorNumber = ROPERATOR_NUMBER_DEFAULT;
+			 CUWB_RegistratorMsg.Data.AddExcludeSum.Sum = 0;                                       /* If need to know current sum this parameter should be set to 0 */
 
-             if ( RegistratorDataSet(RCMD_DAY_REPORT_PRINT, &CUWB_RegistratorMsg) ) {
-			     registrator_ansver_to = SEND_RESET_THE_TAPE;
+
+             if ( RegistratorDataSet(RCMD_ADD_EXCLUDE_SUM, &CUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_STORED_SUM_READ;
+                 registrator_state = REGISTRATOR_ANSVER_WAIT;
+	    	 }
+			 break;
+		}
+        case SEND_STORED_SUM_CLEAR: {
+			 
+			 CUWB_RegistratorMsg.Data.AddExcludeSum.OperatorNumber = ROPERATOR_NUMBER_DEFAULT;
+			 CUWB_RegistratorMsg.Data.AddExcludeSum.Sum = registrator_sum;                                       /* for to clear the sum this parameter must be less then 0 */
+             CUWB_RegistratorMsg.Data.AddExcludeSum.Sum *= (-1);
+
+             if ( RegistratorDataSet(RCMD_ADD_EXCLUDE_SUM, &CUWB_RegistratorMsg) ) {
+			     registrator_ansver_to = SEND_STORED_SUM_CLEAR;
                  registrator_state = REGISTRATOR_ANSVER_WAIT;
 	    	 }
 			 break;
@@ -868,7 +887,7 @@ void vTask4( void *pvParameters )
 			     Fl_RegistratorErr = 1;
              }
 			 break;
-		}
+		} 
     	case REGISTRATOR_ANSVER_GET: {
 		     switch (registrator_ansver_to) {
 			     case SEND_SELL_START: {
@@ -1021,22 +1040,64 @@ void vTask4( void *pvParameters )
 				     }
 					 break;
 				 }
-				 case SEND_RESET_THE_TAPE: {
+				 case SEND_STORED_SUM_READ: {
                       RegistratorDataGet(&err_data, ERROR_CODE);
 
 					  switch ( RegistratorErrorCode(&err_data) ) {
 					      case RR_ERR_NO: {
-
 					           Fl_RegistratorErr = 0;
+							   RegistratorDataGet(&request_data, DATA);
 
-						       RegistratorCashClear = 0;
-							   xSemaphoreTake(xI2CMutex, portMAX_DELAY);
-					           if (IntEeprDwordRead(RegistratorCashEEPROMAdr) != 0) {  
-    	      	                   IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
+							   if (request_data.len >= 4) {
+							       char *pos;
+
+								   pos = strstr((const char *)request_data.dataptr, ".");
+								   if (pos) {
+								       *pos = 0;
+									   registrator_sum = atol((const char *)request_data.dataptr);
+                                       registrator_sum = registrator_sum * 100 + atol((const char *)(pos + 1));
+								   
+						               Fl_Send_Exclude_Sum_Read = 0;
+								   }
 							   }
-                               xSemaphoreGive(xI2CMutex);
 
-					           Fl_Send_Withdraw_The_Cash = 0;
+							   registrator_state = IDLE_STATE;
+							   break;
+					      }
+					      case RR_ERR_STATE_NOT_RIGHT: {
+					           Fl_RegistratorErr = 0;
+						       registrator_state = SEND_SELL_CANCEL;
+							   break;
+					      }
+					      default: {
+					           Fl_RegistratorErr = 1;
+				    	       registrator_state = IDLE_STATE;
+							   break;
+					      }
+				     }
+					 break;
+			     }
+                 case SEND_STORED_SUM_CLEAR: {
+                      RegistratorDataGet(&err_data, ERROR_CODE);
+
+					  switch ( RegistratorErrorCode(&err_data) ) {
+					      case RR_ERR_NO: {
+					           Fl_RegistratorErr = 0;
+							   RegistratorDataGet(&request_data, DATA);
+
+							   if (request_data.len >= 4) {
+
+						           RegistratorCashClear = 0;
+							       xSemaphoreTake(xI2CMutex, portMAX_DELAY);
+					               if (IntEeprDwordRead(RegistratorCashEEPROMAdr) != 0) {  
+    	      	                       IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
+							       }
+                                   xSemaphoreGive(xI2CMutex);
+
+                                   registrator_sum = 0;
+					               Fl_Send_Exclude_Sum_Clear = 0;
+							   }
+
 							   registrator_state = IDLE_STATE;
 							   break;
 					      }
@@ -1422,7 +1483,7 @@ void vTask4( void *pvParameters )
 
                     if (!is_service_mode) {  
 				        IntEeprDwordWrite(RegistratorCashEEPROMAdr, RegistratorCashClear);
-					    Fl_Send_Withdraw_The_Cash = 1;
+					    Fl_Send_Exclude_Sum_Clear = 1;
 					}
 
 			        xSemaphoreGive(xI2CMutex);
@@ -1432,7 +1493,7 @@ void vTask4( void *pvParameters )
 				}
 				
 #if 1
-                if (EEPR_LOCAL_COPY.amount_water < EEPR_LOCAL_COPY.max_size_barrel) {
+                if (EEPR_LOCAL_COPY.amount_water != EEPR_LOCAL_COPY.max_size_barrel) {
 			    	xSemaphoreTake(xI2CMutex, portMAX_DELAY);
                     IntEeprDwordWrite(AmountWaterEEPROMAdr, EEPR_LOCAL_COPY.max_size_barrel);
 					xSemaphoreGive(xI2CMutex);
@@ -1597,7 +1658,6 @@ void vTask4( void *pvParameters )
 
 void vTask5( void *pvParameters )
 {
-
     u08 send_data_buff[60];
 	u08 Script_Name[16];
 	u08 Password[10];
@@ -1699,29 +1759,6 @@ void vTask5( void *pvParameters )
         switch (CARRENT_STATE) {
 
             case STATE_MODEM_IDLE: {
-/*
-			Uart1Enable();
-#if MODEM_DBG
-	    uartSendByte(0, '3');
-		uartSendByte(0, '3');
-		uartSendByte(0, '\n');
-#endif
-				 while (1) {
-				     KLAPAN1_ON;
-					 #if MODEM_DBG
-	    uartSendByte(0, '5');
-		uartSendByte(0, '3');
-		uartSendByte(0, '\n');
-#endif
-				     ModemSendCom(DISCONNECT_GPRS, (40000));
-					 KLAPAN1_OFF;
-					 #if MODEM_DBG
-	    uartSendByte(0, '5');
-		uartSendByte(0, '4');
-		uartSendByte(0, '\n');
-#endif
-				 }
-*/
 			     break;
 			}
 					    
@@ -2125,7 +2162,7 @@ void vTask5( void *pvParameters )
 			uartSendByte(0, '2');
 			uartSendByte(0, '\n');
 #endif
-                 
+              
 				 CARRENT_STATE = STATE_SOME_WAIT;
                  GSM_Timer.State_Change = STATE_GPRS_DEACTIVATE;
                  GSM_Timer.Interval = 500;

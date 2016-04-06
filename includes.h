@@ -23,6 +23,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <avr\pgmspace.h>
+#include <stdlib.h>
+
 
 /*
 *********************************************************************************************************
@@ -33,7 +35,6 @@
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
-
 
 
 /*

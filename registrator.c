@@ -53,7 +53,7 @@ void RegistratorStatusSet (REGISTRATOR_STATUS status_cur);
        
 u08 increase_seq (u08 cur);
 u08 make_data_type_n (u08 *to, u32 d);
-u08 make_data_type_m (u08 *to, s32 d);
+u08 make_data_type_m (u08 *to, s64 d);
 u08 make_data_type_q (u08 *to, u32 d);
 u08 set_point (u08 *s, u08 pos, u08 len_cur);
 
@@ -256,10 +256,11 @@ u08  RegistratorDataSet (u08 cmd, RegistratorMsg * msg)
 			 RegistratorStatusSet(RR_CONNECTION_WAIT_ANSVER);
              break;
         }
-		case RCMD_DAY_REPORT_PRINT: {
+		case RCMD_ADD_EXCLUDE_SUM: {
 
 			 if (msg != NULL) {
-				 offset = make_data_type_n(&send_message.data[0], msg->Data.Report.Type);
+				 offset = make_data_type_n(&send_message.data[0], msg->Data.AddExcludeSum.OperatorNumber);
+				  offset += make_data_type_m(&send_message.data[offset], msg->Data.AddExcludeSum.Sum);
                  send_message.data_len = offset;
 			 }
                 
@@ -488,12 +489,21 @@ u08 make_data_type_n (u08 *to, u32 d)
 }
 
 
-u08 make_data_type_m (u08 *to, s32 d)
+u08 make_data_type_m (u08 *to, s64 d)
 {
     u08 len;
+    
+	len = 0;
+	if (d < 0) {
+	    *to = '-';
+	    d *= -1;
 
-    ltoa(d, (char *)to, 10);
-	len = strlen((char *)to);
+		ltoa(d, (char *)(to + 1), 10);
+	} else {
+		ltoa(d, (char *)to, 10);
+	}
+
+    len = strlen((char *)to);
 	if (*to == '-') {
 	    len = set_point((to + 1), 2, (len - 1));
 		len++;
