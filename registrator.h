@@ -31,7 +31,7 @@
 
 #define  ROPERATION_CANCEL_SELL      0ul
 #define  RZREPORT_WITH_TAPE_RESET    0u
-#define  ROPERATOR_NUMBER_DEFAULT    0u
+#define  ROPERATOR_NUMBER_DEFAULT    1u
 
 
 #define  SEQ_VALUE_LOWER            0x20
