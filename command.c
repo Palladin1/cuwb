@@ -359,7 +359,7 @@ u16 KeySkan(u16 key_kode) {
 
 //=================================
 
-	if (!BTN_RESERV1) {
+	if (BTN_RESERV1) {
 	    if (Cntr.Reserv1Press == 20) {
 			key_kode |= (1 << 11);
 			Cntr.Reserv1Press = 30;
