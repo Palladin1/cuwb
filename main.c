@@ -1791,22 +1791,21 @@ void vTask5( void *pvParameters )
 					 PWRKEY_OFF;
 
 					 u08 i = 0;
-                     while (ModemStatus() == 0) {
-				     
-					     vTaskDelay(1000 / portTICK_RATE_MS);
-					     if (i == 60) {
-					         CARRENT_STATE = STATE_MODEM_OFF;
-					         break;
-                         } 
-					     i++;
+                     while (ModemStatus() == 0 || i < 60) {
+				         vTaskDelay(1000 / portTICK_RATE_MS);
+					     ++i;
 				     }
 
-                     Uart1Enable();		
-                     vTaskDelay(2 / portTICK_RATE_MS);				   
-
-					 GSM_Timer.State_Change = STATE_MODEM_FIRST_INIT;
-					 GSM_Timer.Interval = 6000;
-					 CARRENT_STATE = STATE_SOME_WAIT;
+                     if (i == 60) {
+					     CARRENT_STATE = STATE_MODEM_OFF;
+					 } else {
+                         Uart1Enable();		
+                         vTaskDelay(2 / portTICK_RATE_MS);				   
+   
+	                     GSM_Timer.State_Change = STATE_MODEM_FIRST_INIT;
+					     GSM_Timer.Interval = 6000;
+					     CARRENT_STATE = STATE_SOME_WAIT;
+					}
                  }   
 			     break;
 			} 
@@ -1868,7 +1867,7 @@ void vTask5( void *pvParameters )
 #if MODEM_DBG
 			uartSendByte(0, '4');
             uartSendByte(0, '\n');
-#endif			 
+#endif
 				 //Pfone book on sim 
 	             ModemSendCom(PFONE_BOOK, 500);
                   
