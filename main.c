@@ -1791,7 +1791,7 @@ void vTask5( void *pvParameters )
 					 PWRKEY_OFF;
 
 					 u08 i = 0;
-                     while (ModemStatus() == 0 || i < 60) {
+                     while (ModemStatus() == 0 && i < 60) {
 				         vTaskDelay(1000 / portTICK_RATE_MS);
 					     ++i;
 				     }
