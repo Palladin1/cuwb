@@ -399,6 +399,8 @@ void vTask2( void *pvParameters )
 
 	u08 after_reset = 1;
 
+	static u16 modem_error_timer = 60*60*1000 / 100;
+
 	for( ;; )
     {
  
@@ -484,9 +486,19 @@ void vTask2( void *pvParameters )
 						SYSTEM_EVENTS = Fl_Ev_JustAfterReset;
 						xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 					}
+
 				    if (uxQueueMessagesWaiting(xEventsQueue) == 0) { 
 				        SYSTEM_EVENTS = Fl_Ev_RequestData;
                         xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+
+						modem_error_timer = 60*60*1000 / 100;
+					} else {
+					    if (modem_error_timer == 0) {
+						    modem_error_timer = 60*60*1000 / 100;
+							CARRENT_STATE = STATE_MODEM_OFF;
+						} else {
+						    --modem_error_timer;
+						}
 					}
 				}
 		    }
@@ -2377,6 +2389,9 @@ u08 custom_at_handler(u08 *pData)
     else if (strncmp_P((char *)pData, PSTR("REQUEST DATA"), sizeof("REQUEST DATA") - 1) == 0) {
   		SYSTEM_EVENTS = Fl_Ev_RequestData;
 		xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
+	}
+    else if (strncmp_P((char *)pData, PSTR("RESET MODEM"), sizeof("RESET MODEM") - 1) == 0) {
+  	    CARRENT_STATE = STATE_MODEM_OFF;
 	}
 	else if (strncmp_P((char *)pData, PSTR("CLOSED"), sizeof("CLOSED") - 1) == 0) {
 		CARRENT_STATE = STATE_GPRS_FORMED_BUFF;
