@@ -132,6 +132,7 @@ enum {
 	Fl_Ev_ServiceModeDeactivate = 11,
 	Fl_Ev_ServiceOpening        = 12,  
 	Fl_Ev_WillBlocked           = 13,
+	Fl_Ev_RegOk                 = 14,
 } SYSTEM_EVENTS;
 
 
@@ -172,7 +173,7 @@ static u16 ExtSignalStatus = 0;
 
 volatile static u08 IsRegistratorConnect = 0;
 
-static u16 Tmr_For_Init_Rr = 600; /* need time in Sec = Tmr_For_Init_Rr * 100ms, 600 * 100 = 60 S  */
+static u16 Tmr_For_Init_Rr = 1200; /* where X time in Sec = Tmr_For_Init_Rr * 100ms */
 
 volatile u08 Fl_Send_HourBeforeBlock = 0;
 volatile u08 Fl_Send_TimeDateCurGet = 0;
@@ -399,7 +400,8 @@ void vTask2( void *pvParameters )
 
 	u08 after_reset = 1;
 
-	static u16 modem_error_timer = 60*60*1000 / 100;
+    #define  MODEM_ERROR_TIMER_PERIOD    30*60*(1000 / 100);
+	static  u16 modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
 
 	for( ;; )
     {
@@ -491,10 +493,10 @@ void vTask2( void *pvParameters )
 				        SYSTEM_EVENTS = Fl_Ev_RequestData;
                         xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 
-						modem_error_timer = 60*60*1000 / 100;
+						modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
 					} else {
 					    if (modem_error_timer == 0) {
-						    modem_error_timer = 60*60*1000 / 100;
+						    modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
 							CARRENT_STATE = STATE_MODEM_OFF;
 						} else {
 						    --modem_error_timer;
@@ -1271,7 +1273,7 @@ void vTask4( void *pvParameters )
 		    Fl.SellEnable = 0;
 		}
 
-
+        
         if ((Fl_RegistratorErr || !IsRegistratorConnect) && !is_service_mode) {
 		    if (!Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
 			    Fl_State.RrState = REPORT_FLAG_ERR;
@@ -1280,9 +1282,12 @@ void vTask4( void *pvParameters )
 			    Is_Registrator_Err_Gprs_Send = 1;
 			}
 		}
-		else if (Is_Registrator_Err_Gprs_Send) {
+		else if (Is_Registrator_Err_Gprs_Send && (Tmr_For_Init_Rr == 0)) {
 		    Fl_State.RrState = REPORT_FLAG_OK;
 			Is_Registrator_Err_Gprs_Send = 0;
+            
+			SYSTEM_EVENTS = Fl_Ev_RegOk;
+		    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 		}
 
 

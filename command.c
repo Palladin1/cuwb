@@ -938,7 +938,7 @@ u16 atoin (u08 *s, u08 n)
 	return ret;
 }
 
-#define  QUEUE_ENCASHMENT_LEN_MAX    3u
+#define  QUEUE_ENCASHMENT_LEN_MAX    10u
 
 
 struct QUEUE_ENCASHMENT_T {
