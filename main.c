@@ -620,23 +620,7 @@ void vTask4( void *pvParameters )
 
 
 	static  u08 Is_Registrator_Err_Gprs_Send = 0;
-	
-/*			
-    const u08 Fl_Ev_NoWater              =  1;          
-    const u08 Fl_Ev_NoPower              =  2;
-    const u08 Fl_Ev_TakeManey            =  3;
-    const u08 Fl_Ev_GetMoving            =  4;
-    const u08 Fl_Ev_LimWater             =  5;
-//  const u08 Fl_Ev_RequestData = 6;
-    const u08 Fl_Ev_ErrorBill            =  7;
-	const u08 Fl_Ev_RegError             =  8;
-	const u08 Fl_Ev_ServiceKeyPresent    =  9;
-	const u08 Fl_Ev_ServiceKeyNotPresent = 10;
-*/
 
-
-
-    
 
     static  u16 ManeySave = 0;
     static  u16 WaterSave = 0;
@@ -1239,7 +1223,6 @@ void vTask4( void *pvParameters )
 		            }
 //				}
 				
-				/* xQueueSend(xEventsQueue, &Fl_Ev_NoPower, 0); */
 				SYSTEM_EVENTS = Fl_Ev_NoPower;
 				xQueueSendToFront(xEventsQueue, &SYSTEM_EVENTS, 0);
             }
@@ -1316,7 +1299,8 @@ void vTask4( void *pvParameters )
 	    }
 
 	
-	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet) && !Fl.SellStart) {
+//	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet) && !Fl.SellStart) {                         /* Chack the Fl.SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
+	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet)) {                                          
             		
             Fl.MoneyGet = 1;
 
@@ -1327,7 +1311,8 @@ void vTask4( void *pvParameters )
 
 				coin_which_get_cntr += 25;
             }
-			else {
+
+            if (Sygnal_Get.BillGet) {
     			Sygnal_Get.BillGet = 0;
 		        CountRManey += 100;
 		        ManeySave += 100;
@@ -1436,11 +1421,12 @@ void vTask4( void *pvParameters )
     	}
 
 
-        if (Sygnal_Get.ServiceKey) {
+        //if (Sygnal_Get.ServiceKey) {
+		if (Sygnal_Get.ServiceKey && !Fl.SellStart) {
 		    if (is_service_key_present == 0) {
 			    is_service_key_present = 1; 
 
-				SellingStop();
+				//SellingStop();
 
 				SYSTEM_EVENTS = Fl_Ev_ServiceModeActivate;
                 xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
@@ -2472,11 +2458,11 @@ static inline u16 MoneyToWater (u16 money_quantity)
 static inline u16 MoneyToPulse (u16 money_quantity) 
 {
 	if ((EEPR_LOCAL_COPY.cost_litre_coef  > 0) && (EEPR_LOCAL_COPY.pulse_litre_coef > 0))
-//  CountPulse = (u16)((((((money * 1024) / (*cost_litre_coef)) * (*pulse_litre_coef)) >> 15) + 1) >> 1);
         return (u16)(((((((u32)money_quantity << 10) / (EEPR_LOCAL_COPY.cost_litre_coef)) * (EEPR_LOCAL_COPY.pulse_litre_coef)) >> 15) + 1) >> 1);
 	    
 	return 0;
 }
+
 
 static inline u16 PulseQuantityToMoney (u16 pulse_quantity) 
 {
