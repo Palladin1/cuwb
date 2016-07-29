@@ -265,15 +265,15 @@ Uart0Enable(Uart0_Resiv,  19200);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  30, NULL, 1, NULL);         /*  40 */
+	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  30 */
 
-    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  70 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  90, NULL, 2, NULL);         /*  70 */
+	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  100, NULL, 2, NULL);         /*  90 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 220, NULL, 1, NULL);         /* 230 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 220 */
     
-	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
+	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
  
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"K", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
@@ -628,10 +628,7 @@ void vTask4( void *pvParameters )
 
     static  u16 tmp_cnt_pulse = 0;
     
-    PumpTimeCoef = EEPR_LOCAL_COPY.pump_off_time_coef;
-
-	
-	static  u08 Fl_RegistratorErr = 1;
+    static  u08 Fl_RegistratorErr = 1;
 	static  u08 registrator_connect_prev;
 	static  u08 Fl_Send_Sell_End = 0;
 	static  u08 Fl_Get_New_Data = 0;
@@ -694,6 +691,7 @@ void vTask4( void *pvParameters )
 	    Fl_Send_Exclude_Sum_Clear = 1;
 	}
 
+    PumpTimeCoef = EEPR_LOCAL_COPY.pump_off_time_coef;
 
 	ShouldReturnToBuyer.Money = 0;
 	ShouldReturnToBuyer.Water = 0;
