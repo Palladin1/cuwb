@@ -265,15 +265,15 @@ Uart0Enable(Uart0_Resiv,  19200);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////    
 
-	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  40, NULL, 1, NULL);         /*  30 */
+	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  30, NULL, 1, NULL);         /*  30 */
 
-    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  100, NULL, 2, NULL);         /*  90 */
+	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  120, NULL, 2, NULL);         /*  90 */
 
-    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 230, NULL, 1, NULL);         /* 220 */
+    xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 220, NULL, 1, NULL);         /* 220 */
     
-	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
+	xTaskCreate(vTask6, (signed char*) "T6", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
  
 	xTimer_ButtonPoll = xTimerCreate((signed char *)"K", 5 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_ButtonPoll);
 	xTimerReset(xTimer_ButtonPoll, 0);
@@ -1448,8 +1448,8 @@ void vTask4( void *pvParameters )
 	    }
 
 
-        if (Sygnal_Get.Reset) {
-       
+        if (Sygnal_Get.Reset && !Fl.SellStart) {
+
 			if (!Fl.SeifOpened && Sygnal_Get.ServiceKey) {
 		        SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
 			    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);

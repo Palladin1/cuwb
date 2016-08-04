@@ -33,6 +33,16 @@ static struct {
     u08 Reserv1Press;
 } Cntr;
 
+static struct {
+    u08 NoWater       :  1;
+    u08 NoPower1      :  1;
+    u08 NoPower2      :  1;
+    u08 DoorOpn       :  1;
+    u08 Reset         :  1;
+    u16 NoWrkBill     :  1;
+    u08 RegPresent    :  1;
+    u08 Reserv1Press  :  1;
+} CurrState;
 
 static u08 PumpShouldTurnOn = 0;
 
@@ -174,7 +184,7 @@ void SaveEvent (u08 *time_and_date_buf, const u16 cntr_money, const u16 cntr_wat
 }
 
 
-
+/*
 u16 KeySkan(u16 key_kode) { 
 
 	if (COUNT_COIN) {
@@ -360,17 +370,301 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (BTN_RESERV1) {
-	    if (Cntr.Reserv1Press == 20) {
-			key_kode |= (1 << 11);
-			Cntr.Reserv1Press = 30;
-		}    
-        else if (Cntr.Reserv1Press < 20) {
+	    if (CurrState.Reserv1Press) {
+		    Cntr.Reserv1Press = 0;
+		} else if (Cntr.Reserv1Press < 200) {
 		    Cntr.Reserv1Press++;
+        } else if (Cntr.Reserv1Press == 200) {
+		    Cntr.Reserv1Press = 0;
+		    key_kode |= (1 << 11);
+		    CurrState.Reserv1Press = 1;
         }
 	}
 	else {
-		key_kode &= ~(1 << 11);
-	    Cntr.Reserv1Press = 0;
+	    if (!CurrState.Reserv1Press) {
+		    Cntr.Reserv1Press = 0;
+		} else if (Cntr.Reserv1Press < 200) {
+		    Cntr.Reserv1Press++;
+        } else if (Cntr.Reserv1Press == 200) {
+		    Cntr.Reserv1Press = 0;
+		    key_kode &= ~(1 << 11);
+		    CurrState.Reserv1Press = 0;
+        }
+
+	}
+	
+
+    return key_kode;	
+}
+*/
+
+u16 KeySkan(u16 key_kode) { 
+
+	if (COUNT_COIN) {
+       
+        if (Cntr.TmrCoin < (u08)((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8)) {
+		    Cntr.TmrCoin++;
+        }
+	}
+	else {
+	    if (Cntr.TmrCoin > 0) {
+	        u08 TimeMax = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8);
+		    u08 TimeMin = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) & 0x00FF);
+			if ((Cntr.TmrCoin > TimeMin) && (Cntr.TmrCoin < TimeMax)) {
+				 key_kode |= (1 << 0);		    }
+			
+		}
+		else {
+			key_kode &= ~(1 << 0);
+	    }
+		Cntr.TmrCoin = 0;
+	}
+
+
+	if (COUNT_BILL) {
+        
+        if (Cntr.TmrBill < (u08)((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8)) {
+		    Cntr.TmrBill++;
+        }
+	}
+	else {
+	    if (Cntr.TmrBill > 0) {
+	        u08 TimeMax = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8);
+		    u08 TimeMin = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) & 0x00FF);
+			if ((Cntr.TmrBill > TimeMin) && (Cntr.TmrBill < TimeMax)) {
+				key_kode |= (1 << 1);
+		    }
+			
+		}
+		else {
+			key_kode &= ~(1 << 1);
+		}
+		Cntr.TmrBill = 0;
+	}
+    
+//=================================
+	
+	if (!(WATER_PRESENT)) {
+	    if (CurrState.NoWater) {
+		    Cntr.NoWater = 0;
+		} else if (Cntr.NoWater < 200) {
+		    Cntr.NoWater++;
+        } else if (Cntr.NoWater == 200) {
+		    Cntr.NoWater = 0;
+		    key_kode |= (1 << 2);
+		    CurrState.NoWater = 1;
+        }
+	}
+	else {
+	    if (!CurrState.NoWater) {
+		    Cntr.NoWater = 0;
+		} else if (Cntr.NoWater < 200) {
+		    Cntr.NoWater++;
+        } else if (Cntr.NoWater == 200) {
+		    Cntr.NoWater = 0;
+		    key_kode &= ~(1 << 2);
+		    CurrState.NoWater = 0;
+        }
+	}
+
+//=================================	
+
+	if (STATUS_PWR_12V) {
+	    if (CurrState.NoPower1) {
+		    Cntr.NoPower1 = 0;
+		} else if (Cntr.NoPower1 < 20) {
+		    Cntr.NoPower1++;
+        } else if (Cntr.NoPower1 == 20) {
+		    Cntr.NoPower1 = 0;
+		    key_kode |= (1 << 3);
+		    CurrState.NoPower1 = 1;
+        }
+	}
+	else {
+	    if (!CurrState.NoPower1) {
+		    Cntr.NoPower1 = 0;
+		} else if (Cntr.NoPower1 < 20) {
+		    Cntr.NoPower1++;
+        } else if (Cntr.NoPower1 == 20) {
+		    Cntr.NoPower1 = 0;
+		    key_kode &= ~(1 << 3);
+		    CurrState.NoPower1 = 0;
+        }
+	}
+
+//=================================
+
+	if (STATUS_PWR_5V) {
+	    if (CurrState.NoPower2) {
+		    Cntr.NoPower2 = 0;
+		} else if (Cntr.NoPower2 < 20) {
+		    Cntr.NoPower2++;
+        } else if (Cntr.NoPower2 == 20) {
+		    Cntr.NoPower2 = 0;
+		    key_kode |= (1 << 4);
+		    CurrState.NoPower2 = 1;
+        }
+	}
+	else {
+	    if (!CurrState.NoPower2) {
+		    Cntr.NoPower2 = 0;
+		} else if (Cntr.NoPower2 < 20) {
+		    Cntr.NoPower2++;
+        } else if (Cntr.NoPower2 == 20) {
+		    Cntr.NoPower2 = 0;
+		    key_kode &= ~(1 << 4);
+		    CurrState.NoPower2 = 0;
+        }
+	}
+
+//=================================	
+
+	if (!(BTN_DOOR)) {				  
+	    if (Cntr.DoorOpn == 20) {
+			key_kode |= (1 << 5);
+			Cntr.DoorOpn = 30;
+		}    
+        else if (Cntr.DoorOpn < 20) {
+		    Cntr.DoorOpn++;
+        }
+	}
+	else {
+		key_kode &= ~(1 << 5);   
+	    Cntr.DoorOpn = 0;
+	}
+
+//=================================
+   	
+	if (!(BTN_START)) {
+	    if (Cntr.Start == 20) {
+			key_kode |= (1 << 6);
+			Cntr.Start = 30;
+		}    
+        else if (Cntr.Start < 20) {
+		    Cntr.Start++;
+        }
+	}
+	else {
+		key_kode &= ~(1 << 6);
+	    Cntr.Start = 0;
+	}
+//=================================
+
+	if (!(BTN_STOP)) {
+        if (Cntr.Stop == 20) {
+			key_kode |= (1 << 7);
+			Cntr.Stop = 30;
+		}    
+        else if (Cntr.Stop < 20) {
+		    Cntr.Stop++;
+        }
+	}
+	else {
+		key_kode &= ~(1 << 7);
+	    Cntr.Stop = 0;
+	}
+//=================================
+
+	if (BTN_RESET) {
+	    if (CurrState.Reset) {
+		    Cntr.Reset = 0;
+		} else if (Cntr.Reset < 200) {
+		    Cntr.Reset++;
+        } else if (Cntr.Reset == 200) {
+		    Cntr.Reset = 0;
+		    key_kode |= (1 << 8);
+		    CurrState.Reset = 1;
+        }
+	}
+	else {
+	    if (!CurrState.Reset) {
+		    Cntr.Reset = 0;
+		} else if (Cntr.Reset < 200) {
+		    Cntr.Reset++;
+        } else if (Cntr.Reset == 200) {
+		    Cntr.Reset = 0;
+		    key_kode &= ~(1 << 8);
+		    CurrState.Reset = 0;
+        }
+	}
+	
+	
+//=================================
+
+	if (STATUS_COUNT_BILL) {
+	    if (CurrState.NoWrkBill) {
+		    Cntr.NoWrkBill = 0;
+		} else if (Cntr.NoWrkBill < 25000) {
+		    Cntr.NoWrkBill++;
+        } else if (Cntr.NoWrkBill == 25000) {
+		    Cntr.NoWrkBill = 0;
+		    key_kode |= (1 << 9);
+		    CurrState.NoWrkBill = 1;
+        }
+	}
+	else {
+	    if (!CurrState.NoWrkBill) {
+		    Cntr.NoWrkBill = 0;
+		} else if (Cntr.NoWrkBill < 25000) {
+		    Cntr.NoWrkBill++;
+        } else if (Cntr.NoWrkBill == 25000) {
+		    Cntr.NoWrkBill = 0;
+		    key_kode &= ~(1 << 9);
+		    CurrState.NoWrkBill = 0;
+        }
+
+	}
+	
+//=================================
+
+	if (!BTN_REGISTRATOR_PRESENT) {
+	    if (CurrState.RegPresent) {
+		    Cntr.RegPresent = 0;
+		} else if (Cntr.RegPresent < 200) {
+		    Cntr.RegPresent++;
+        } else if (Cntr.RegPresent == 200) {
+		    Cntr.RegPresent = 0;
+		    key_kode |= (1 << 10);
+		    CurrState.RegPresent = 1;
+        }
+	}
+	else {
+	    if (!CurrState.RegPresent) {
+		    Cntr.RegPresent = 0;
+		} else if (Cntr.RegPresent < 200) {
+		    Cntr.RegPresent++;
+        } else if (Cntr.RegPresent == 200) {
+		    Cntr.RegPresent = 0;
+		    key_kode &= ~(1 << 10);
+		    CurrState.RegPresent = 0;
+        }
+
+	}
+
+//=================================
+
+	if (BTN_RESERV1) {
+	    if (CurrState.Reserv1Press) {
+		    Cntr.Reserv1Press = 0;
+		} else if (Cntr.Reserv1Press < 200) {
+		    Cntr.Reserv1Press++;
+        } else if (Cntr.Reserv1Press == 200) {
+		    Cntr.Reserv1Press = 0;
+		    key_kode |= (1 << 11);
+		    CurrState.Reserv1Press = 1;
+        }
+	}
+	else {
+	    if (!CurrState.Reserv1Press) {
+		    Cntr.Reserv1Press = 0;
+		} else if (Cntr.Reserv1Press < 200) {
+		    Cntr.Reserv1Press++;
+        } else if (Cntr.Reserv1Press == 200) {
+		    Cntr.Reserv1Press = 0;
+		    key_kode &= ~(1 << 11);
+		    CurrState.Reserv1Press = 0;
+        }
+
 	}
 	
 
