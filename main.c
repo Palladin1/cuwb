@@ -46,7 +46,7 @@ const char  SINGLE_CONNECTION[]       PROGMEM = "AT+QIMUX=0\n";
 const char  CONNECT_BY_DOMAIN_NAME[]  PROGMEM = "AT+QIDNSIP=1\n";     // "0" - use IP adress, "1" - use domain name
 const char  CONNECT_BY_IP_ADDRESS[]   PROGMEM = "AT+QIDNSIP=0\n";     // "0" - use IP adress, "1" - use domain name
 
-const char  TCPIP_STACK_CONNECT[]    PROGMEM = "AT+QIREGAPP\n";    
+const char  TCPIP_STACK_CONNECT[]     PROGMEM = "AT+QIREGAPP\n";    
 const char  ACTIVEATE_FGCNT[]         PROGMEM = "AT+QIACT\n"; 
 const char  QUERY_IP[]                PROGMEM = "AT+QILOCIP\n";    
 const char  CONNECT_TO_SERVER[]       PROGMEM = "AT+QIOPEN=\"TCP\",";
@@ -60,6 +60,8 @@ const char  MODE_CLIENT_SET[]         PROGMEM = "AT+QISRVC=1\n";
 const char  DISCONNECT_SESSION[]      PROGMEM = "AT+QICLOSE\n";
 const char  DISCONNECT_GPRS[]         PROGMEM = "AT+QIDEACT\n";
 const char  GET_QUALITY_OF_NET[]      PROGMEM = "AT+CSQ\n";
+const char  GPRS_SLOT_CLASS_NUM_SET[] PROGMEM = "AT+QGPCLASS=1\n";  /* from 1 to 12, by default 12, after set needs to reset the modem */
+
 
 //const char  VISUAL_DIAL_NUM[]       PROGMEM = "AT+CLIP=1\n";
 
@@ -1149,7 +1151,7 @@ void vTask4( void *pvParameters )
 
     
 		if (is_service_mode) {
-		//    Sygnal_Get.ServiceKey = 0;
+		    Sygnal_Get.ServiceKey = 0;
 		}
 
 		if (Sygnal_Get.NoPower1 || Sygnal_Get.NoPower2) {
