@@ -20,6 +20,25 @@ extern void ModemAnsverWeit_callback (unsigned long time);
 *********************************************************************************************************
 */
 
+void ModemInit (void) 
+{
+    GPIO_INIT(MODEM_PWR_GPIO);
+}
+
+void ModemPowerOn (void)
+{
+    GPIO_CLEAR(MODEM_PWR_GPIO);
+}
+
+void ModemPowerOff (void)
+{
+    GPIO_SET(MODEM_PWR_GPIO);
+}
+
+unsigned char ModemIsPower (void)
+{
+    return (!GPIO_IS_SET(MODEM_PWR_GPIO)) ? 1 : 0;
+}
 
 unsigned char ModemStatus (void) {
 

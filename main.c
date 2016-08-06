@@ -253,6 +253,8 @@ int main( void )
 
 	QueueEncashmentInit();
 
+	ModemInit();
+
 #if MODEM_DBG
 //Uart0Disable();
 Uart0Enable(Uart0_Resiv,  19200);
@@ -1145,8 +1147,9 @@ void vTask4( void *pvParameters )
 			Sygnal_Get.ServiceKey = ((ExtSignalStatus >> 11) & 1);
 		}
 
+    
 		if (is_service_mode) {
-		    Sygnal_Get.ServiceKey = 0;
+		//    Sygnal_Get.ServiceKey = 0;
 		}
 
 		if (Sygnal_Get.NoPower1 || Sygnal_Get.NoPower2) {

@@ -101,8 +101,6 @@ volatile  u08 Fl_RxReciv;
 
 //#define STATUS_GSM (PIND & 0x10)			
 
-//#define PUMP_ON  PORTA &= ~(1<<3)
-//#define PUMP_OFF PORTA |=  (1<<3)
 #define PUMP_ON  PORTA |=  (1<<3)
 #define PUMP_OFF PORTA &= ~(1<<3)
 
@@ -128,8 +126,8 @@ volatile  u08 Fl_RxReciv;
 //#define PWRKEY_ON  PORTD&=~(1<<5)
 //#define PWRKEY_OFF PORTD|=(1<<5)
 
-#define WP_MEMORY_ON  PORTD|=(1<<6)
-#define WP_MEMORY_OFF PORTD&=~(1<<6)
+//#define WP_MEMORY_ON  PORTD|=(1<<6)
+//#define WP_MEMORY_OFF PORTD&=~(1<<6)
 
 
 #define BUZZER_ON  PORTC |=  (1<<2)

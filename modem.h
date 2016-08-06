@@ -13,6 +13,24 @@
 #define PWRKEY_OFF (PORT_MODEM_POWERKEY |= (1 << NUMBER_PORT_MODEM_POWERKEY))
 
 
+
+#define  MODEM_PWR_GPIO    D, 6, 1, 0 /* name - A, B, C, D, etc., num - fron 0 to 7, init state - 0 or 1, dir - output 1, inpur 0 */
+
+#define  GPIO_DDDR(nm) (DDR##nm)
+#define  GPIO_PORT(nm) (PORT##nm)
+#define  GPIO_PIN(nm) (PIN##nm)
+
+#define  __GPIO_INIT(name, num, state, dir)     (state)? (GPIO_DDDR(name) |= (1 << num)) : (GPIO_DDDR(name) &= ~(1 << num)); (dir) ? (GPIO_PORT(name) |= (1 << num)) : (GPIO_PORT(name) &= ~(1 << num))   
+#define  __GPIO_SET(name, num, state, dir)      (GPIO_PORT(name) |= (1 << num))
+#define  __GPIO_CLEAR(name, num, state, dir)    (GPIO_PORT(name) &= ~(1 << num))
+#define  __GPIO_IS_SET(name, num, state, dir)   (GPIO_PIN(name) & (1 << num))
+
+#define  GPIO_INIT(...)      __GPIO_INIT(__VA_ARGS__)
+#define  GPIO_SET(...)       __GPIO_SET(__VA_ARGS__)
+#define  GPIO_CLEAR(...)     __GPIO_CLEAR(__VA_ARGS__)
+#define  GPIO_IS_SET(...)    __GPIO_SET(__VA_ARGS__)
+
+
 typedef enum {
 	    
     ACK_NO,
@@ -24,6 +42,11 @@ typedef enum {
 
 } MODEM_ANSVER;
 
+
+void ModemInit (void);
+void ModemPowerOn (void);
+void ModemPowerOff (void);
+unsigned char ModemIsPower (void);
 
 unsigned char ModemStatus(void);
 unsigned char ModemSetSetings(void);
