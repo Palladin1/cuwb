@@ -271,9 +271,9 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTaskCreate(vTask2, (signed char*) "T2", configMINIMAL_STACK_SIZE +  30, NULL, 1, NULL);         /*  30 */
 
-    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  60, NULL, 1, NULL);         /*  60 */
+    xTaskCreate(vTask3, (signed char*) "T3", configMINIMAL_STACK_SIZE +  70, NULL, 1, NULL);         /*  60 */
 
-	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE +  120, NULL, 2, NULL);         /*  90 */
+	xTaskCreate(vTask4, (signed char*) "T4", configMINIMAL_STACK_SIZE + 120, NULL, 2, NULL);         /*  90 */
 
     xTaskCreate(vTask5, (signed char*) "T5", configMINIMAL_STACK_SIZE + 220, NULL, 1, NULL);         /* 220 */
     
