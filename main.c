@@ -587,7 +587,9 @@ void vTask3( void *pvParameters )
 void vTask4( void *pvParameters )
 {
     static  u16 PumpTimeCoef ;
-//	u16 get_key_skan = 0;
+
+    #define  MONEY_GET_PERIOD    1000 / 2   /* 2 is the period of the tasks call */
+	static  u16 timer_is_money_get = MONEY_GET_PERIOD;
  
     static  TimeAndDate Time_And_Date_Bcd = {0};
 
@@ -1302,10 +1304,11 @@ void vTask4( void *pvParameters )
 	    }
 
 	
-//	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet) && !Fl.SellStart) {                         /* Chack the Fl.SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
-	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet)) {                                          
+	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet) && !Fl.SellStart) {                         /* Chack the Fl.SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
+//	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet)) {                                          
             		
             Fl.MoneyGet = 1;
+			timer_is_money_get = MONEY_GET_PERIOD;
 
 			if (Sygnal_Get.CoinGet) {
 			    Sygnal_Get.CoinGet = 0;
@@ -1313,9 +1316,9 @@ void vTask4( void *pvParameters )
 		        ManeySave += 25;
 
 				coin_which_get_cntr += 25;
-            }
-
-            if (Sygnal_Get.BillGet) {
+            } 
+			
+			if (Sygnal_Get.BillGet) {
     			Sygnal_Get.BillGet = 0;
 		        CountRManey += 100;
 		        ManeySave += 100;
@@ -1326,7 +1329,11 @@ void vTask4( void *pvParameters )
 			portENTER_CRITICAL();
             CountPulse = MoneyToPulse(CountRManey);
 		    portEXIT_CRITICAL();
-	    }
+	    } else {
+		    if (timer_is_money_get) {
+		        --timer_is_money_get;
+            }
+		}
 	
 
 	    if (!Fl.MoneyGet) {
@@ -1335,9 +1342,10 @@ void vTask4( void *pvParameters )
 		
 
 	    if (Sygnal_Get.Start && !Sygnal_Get.Stop 
-		                     && Fl.SellEnable 
-							 && !Fl.SellStart
-							 && CountPulse) {
+		                     && Fl.SellEnable    
+							 && !Fl.SellStart    
+							 && CountPulse       
+							 && !timer_is_money_get) {
          
 		    StopGetManey();
 		    Fl.MoneyGet = 0;
@@ -1398,10 +1406,16 @@ void vTask4( void *pvParameters )
 		    Fl.SellStart = 1;
 	    }
 
+if ((!(Sygnal_Get.Start) || Fl.SellStart)) {
+KLAPAN1_ON;
+	KLAPAN2_ON;
+	KLAPAN3_ON;}
 	    
         if (Sygnal_Get.Stop && (!(Sygnal_Get.Start) || Fl.SellStart)) {
 	        
 			SellingStop();
+
+				
 
 		    Fl.SellStart = 0;
 		    Fl.SellStop  = 1;
@@ -1569,7 +1583,8 @@ void vTask4( void *pvParameters )
 		}
 #endif
 
-        if (Fl.SellStart && !IS_COUNTER_WATER_NOT_ACTIVE && WtrCntTimer == 0) {
+        if (Fl.SellStart && !IS_COUNTER_WATER_NOT_ACTIVE 
+		                 && WtrCntTimer == 0) {
 		
 		    if (tmp_cnt_pulse == CountPulse) {
       		   	SellingStop();
