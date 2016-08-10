@@ -597,8 +597,8 @@ void vTask4( void *pvParameters )
  
     static  TimeAndDate Time_And_Date_Bcd = {0};
 
-	static  uint8_t Fl;
-	static  uint8_t Sygnal_Get;
+	static  uint16_t Fl;
+	static  uint16_t Sygnal_Get;
 
     enum {
         F_SellEnable,
@@ -1130,7 +1130,7 @@ void vTask4( void *pvParameters )
              uint8_t i;
 			 for (i = 0; i < 12; i++) {
 			     if (i == SygRegPresent) {
-				     IsRegistratorConnect = (ExtSignalStatus & (1 << 10));
+				     IsRegistratorConnect = (ExtSignalStatus & (1 << SygRegPresent));
 			     } else {
 				     (FLAG_GET(ExtSignalStatus, i)) ? FLAG_SET(Sygnal_Get, i)   : FLAG_RESET(Sygnal_Get, i);
 				 }
@@ -1299,11 +1299,11 @@ void vTask4( void *pvParameters )
 			timer_is_money_get = MONEY_GET_PERIOD;
 
 			if (FLAG_GET(Sygnal_Get, SygCoinGet)) {
-			    FLAG_RESET(Sygnal_Get,  SygCoinGet);
+			    FLAG_RESET(Sygnal_Get, SygCoinGet);
 	    	    CountRManey += 25;
 		        ManeySave += 25;
 
-				coin_which_get_cntr += 25;
+				coin_which_get_cntr++;
             } 
 			
 			if (FLAG_GET(Sygnal_Get, SygBillGet)) {
@@ -1395,11 +1395,10 @@ void vTask4( void *pvParameters )
 	    }
 
 	    
-        if (FLAG_GET(Sygnal_Get, SygStop) && (!(FLAG_GET(Sygnal_Get, SygStart)) || FLAG_GET(Fl, F_SellStart))) {
+        //if (FLAG_GET(Sygnal_Get, SygStop) && (!(FLAG_GET(Sygnal_Get, SygStart)) || FLAG_GET(Fl, F_SellStart))) {
+		if (FLAG_GET(Sygnal_Get, SygStop) && FLAG_GET(Fl, F_SellStart)) {
 	        
 			SellingStop();
-
-				
 
 		    FLAG_RESET(Fl, F_SellStart);
 		    FLAG_SET(Fl, F_SellStop);

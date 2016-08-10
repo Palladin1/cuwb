@@ -177,7 +177,6 @@ void SaveEvent (u08 *time_and_date_buf, const u16 cntr_money, const u16 cntr_wat
 }
 
 
-/*
 u16 KeySkan(u16 key_kode) { 
 
 	if (COUNT_COIN) {
@@ -191,11 +190,12 @@ u16 KeySkan(u16 key_kode) {
 	        u08 TimeMax = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8);
 		    u08 TimeMin = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) & 0x00FF);
 			if ((Cntr.TmrCoin > TimeMin) && (Cntr.TmrCoin < TimeMax)) {
-				 key_kode |= (1 << 0);		    }
+				 FLAG_SET(key_kode, SygCoinGet);
+			}
 			
 		}
 		else {
-			key_kode &= ~(1 << 0);
+			FLAG_RESET(key_kode, SygCoinGet);
 	    }
 		Cntr.TmrCoin = 0;
 	}
@@ -212,225 +212,12 @@ u16 KeySkan(u16 key_kode) {
 	        u08 TimeMax = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8);
 		    u08 TimeMin = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) & 0x00FF);
 			if ((Cntr.TmrBill > TimeMin) && (Cntr.TmrBill < TimeMax)) {
-				key_kode |= (1 << 1);
+				FLAG_SET(key_kode, SygBillGet);
 		    }
 			
 		}
 		else {
-			key_kode &= ~(1 << 1);
-		}
-		Cntr.TmrBill = 0;
-	}
-    
-//=================================
-	
-	if (!(WATER_PRESENT)) {	
- 	    if (Cntr.NoWater == 20) {
-            key_kode |= (1 << 2);
-			Cntr.NoWater = 30;
-		}    
-        else if (Cntr.NoWater < 20) {
-		    Cntr.NoWater++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 2);
-	    Cntr.NoWater = 0;
-	}
-//=================================	
-
-	if (STATUS_PWR_12V) {		      
-        if (Cntr.NoPower1 == 20) {
-			key_kode |= (1 << 3);
-			Cntr.NoPower1 = 30;
-		}    
-        else if (Cntr.NoPower1 < 20) {
-		    Cntr.NoPower1++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 3);
-	    Cntr.NoPower1 = 0;
-	}
-//=================================
-
-	if (STATUS_PWR_5V) {		      
-        if (Cntr.NoPower2 == 20) {
-			key_kode |= (1 << 4);
-			Cntr.NoPower2 = 30;
-		}    
-        else if (Cntr.NoPower2 < 20) {
-		    Cntr.NoPower2++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 4);
-	    Cntr.NoPower2 = 0;
-	}
-//=================================	
-
-	if (!(BTN_DOOR)) {				  
-	    if (Cntr.DoorOpn == 20) {
-			key_kode |= (1 << 5);
-			Cntr.DoorOpn = 30;
-		}    
-        else if (Cntr.DoorOpn < 20) {
-		    Cntr.DoorOpn++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 5);   
-	    Cntr.DoorOpn = 0;
-	}
-//=================================
-   	
-	if (!(BTN_START)) {
-	    if (Cntr.Start == 20) {
-			key_kode |= (1 << 6);
-			Cntr.Start = 30;
-		}    
-        else if (Cntr.Start < 20) {
-		    Cntr.Start++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 6);
-	    Cntr.Start = 0;
-	}
-//=================================
-
-	if (!(BTN_STOP)) {
-        if (Cntr.Stop == 20) {
-			key_kode |= (1 << 7);
-			Cntr.Stop = 30;
-		}    
-        else if (Cntr.Stop < 20) {
-		    Cntr.Stop++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 7);
-	    Cntr.Stop = 0;
-	}
-//=================================
-
-	if (BTN_RESET) {
- 	    if (Cntr.Reset == 20) {
-			key_kode |= (1 << 8);
-			Cntr.Reset = 30;
-		}    
-        else if (Cntr.Reset < 20) {
-		    Cntr.Reset++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 8);
-	    Cntr.Reset = 0;
-	}
-	
-//=================================
-
-	if (STATUS_COUNT_BILL) {
-	    if (Cntr.NoWrkBill == 25000) {
-			key_kode |= (1 << 9);
-			Cntr.NoWrkBill = 25000 + 10;
-		}    
-        else if (Cntr.NoWrkBill < 25000) {
-		    Cntr.NoWrkBill++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 9);
-	    Cntr.NoWrkBill = 0;
-	}
-	
-//=================================
-
-	if (!BTN_REGISTRATOR_PRESENT) {
-	    if (Cntr.RegPresent == 20) {
-			key_kode |= (1 << 10);
-			Cntr.RegPresent = 30;
-		}    
-        else if (Cntr.RegPresent < 20) {
-		    Cntr.RegPresent++;
-        }
-	}
-	else {
-		key_kode &= ~(1 << 10);
-	    Cntr.RegPresent = 0;
-	}
-
-//=================================
-
-	if (BTN_RESERV1) {
-	    if (FLAG_SET(BtnCurrState, SygReserv1Press) {
-		    Cntr.Reserv1Press = 0;
-		} else if (Cntr.Reserv1Press < 200) {
-		    Cntr.Reserv1Press++;
-        } else if (Cntr.Reserv1Press == 200) {
-		    Cntr.Reserv1Press = 0;
-		    key_kode |= (1 << 11);
-		    FLAG_SET(BtnCurrState, SygReserv1Press);
-        }
-	}
-	else {
-	    if (!FLAG_GET(BtnCurrState, SygReserv1Press) {
-		    Cntr.Reserv1Press = 0;
-		} else if (Cntr.Reserv1Press < 200) {
-		    Cntr.Reserv1Press++;
-        } else if (Cntr.Reserv1Press == 200) {
-		    Cntr.Reserv1Press = 0;
-		    key_kode &= ~(1 << 11);
-		    FLAG_RESET(BtnCurrState, SygServiceKey);
-        }
-
-	}
-	
-
-    return key_kode;	
-}
-*/
-
-u16 KeySkan(u16 key_kode) { 
-
-	if (COUNT_COIN) {
-       
-        if (Cntr.TmrCoin < (u08)((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8)) {
-		    Cntr.TmrCoin++;
-        }
-	}
-	else {
-	    if (Cntr.TmrCoin > 0) {
-	        u08 TimeMax = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) >> 8);
-		    u08 TimeMin = ((EEPR_LOCAL_COPY.coin_time_pulse_coef) & 0x00FF);
-			if ((Cntr.TmrCoin > TimeMin) && (Cntr.TmrCoin < TimeMax)) {
-				 key_kode |= (1 << 0);		    }
-			
-		}
-		else {
-			key_kode &= ~(1 << 0);
-	    }
-		Cntr.TmrCoin = 0;
-	}
-
-
-	if (COUNT_BILL) {
-        
-        if (Cntr.TmrBill < (u08)((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8)) {
-		    Cntr.TmrBill++;
-        }
-	}
-	else {
-	    if (Cntr.TmrBill > 0) {
-	        u08 TimeMax = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) >> 8);
-		    u08 TimeMin = ((EEPR_LOCAL_COPY.bill_time_pulse_coef) & 0x00FF);
-			if ((Cntr.TmrBill > TimeMin) && (Cntr.TmrBill < TimeMax)) {
-				key_kode |= (1 << 1);
-		    }
-			
-		}
-		else {
-			key_kode &= ~(1 << 1);
+			FLAG_RESET(key_kode, SygBillGet);
 		}
 		Cntr.TmrBill = 0;
 	}
@@ -514,7 +301,7 @@ u16 KeySkan(u16 key_kode) {
 
 	if (!(BTN_DOOR)) {				  
 	    if (Cntr.DoorOpn == 20) {
-			key_kode |= (1 << 5);
+			FLAG_SET(key_kode, SygDoorOpn);
 			Cntr.DoorOpn = 30;
 		}    
         else if (Cntr.DoorOpn < 20) {
@@ -522,7 +309,7 @@ u16 KeySkan(u16 key_kode) {
         }
 	}
 	else {
-		key_kode &= ~(1 << 5);   
+		FLAG_RESET(key_kode, SygDoorOpn);
 	    Cntr.DoorOpn = 0;
 	}
 
@@ -530,7 +317,7 @@ u16 KeySkan(u16 key_kode) {
    	
 	if (!(BTN_START)) {
 	    if (Cntr.Start == 20) {
-			key_kode |= (1 << 6);
+			FLAG_SET(key_kode, SygStart);
 			Cntr.Start = 30;
 		}    
         else if (Cntr.Start < 20) {
@@ -538,14 +325,14 @@ u16 KeySkan(u16 key_kode) {
         }
 	}
 	else {
-		key_kode &= ~(1 << 6);
+		FLAG_RESET(key_kode, SygStart);
 	    Cntr.Start = 0;
 	}
 //=================================
 
 	if (!(BTN_STOP)) {
         if (Cntr.Stop == 20) {
-			key_kode |= (1 << 7);
+			FLAG_SET(key_kode, SygStop);
 			Cntr.Stop = 30;
 		}    
         else if (Cntr.Stop < 20) {
@@ -553,7 +340,7 @@ u16 KeySkan(u16 key_kode) {
         }
 	}
 	else {
-		key_kode &= ~(1 << 7);
+		FLAG_RESET(key_kode, SygStop);
 	    Cntr.Stop = 0;
 	}
 //=================================
