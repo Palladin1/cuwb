@@ -15,6 +15,11 @@
 #define  EXT_EEPR_LINE_WRT_SIZE    15
 
 
+#define  FLAG_SET(f, n)      ((f) |=  (1 << (n)))
+#define  FLAG_RESET(f, n)    ((f) &= ~(1 << (n)))
+#define  FLAG_GET(f, n)      ((f) &   (1 << (n)))
+
+
 typedef struct {
     u08 Second;
     u08 Minute; 

@@ -33,16 +33,18 @@ static struct {
     u08 Reserv1Press;
 } Cntr;
 
-static struct {
-    u08 NoWater       :  1;
-    u08 NoPower1      :  1;
-    u08 NoPower2      :  1;
-    u08 DoorOpn       :  1;
-    u08 Reset         :  1;
-    u16 NoWrkBill     :  1;
-    u08 RegPresent    :  1;
-    u08 Reserv1Press  :  1;
-} CurrState;
+
+static  uint8_t BtnCurrState;
+enum {
+    FlNoWater,
+    FlNoPower1,
+    FlNoPower2,
+    FlDoorOpn,
+    FlReset,
+    FlNoWrkBill,
+    FlRegPresent,
+    FlReserv1Press,
+} ;
 
 static u08 PumpShouldTurnOn = 0;
 
@@ -370,25 +372,25 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (BTN_RESERV1) {
-	    if (CurrState.Reserv1Press) {
+	    if (FLAG_SET(BtnCurrState, FlReserv1Press) {
 		    Cntr.Reserv1Press = 0;
 		} else if (Cntr.Reserv1Press < 200) {
 		    Cntr.Reserv1Press++;
         } else if (Cntr.Reserv1Press == 200) {
 		    Cntr.Reserv1Press = 0;
 		    key_kode |= (1 << 11);
-		    CurrState.Reserv1Press = 1;
+		    FLAG_SET(BtnCurrState, FlReserv1Press = 1;
         }
 	}
 	else {
-	    if (!CurrState.Reserv1Press) {
+	    if (!FLAG_GET(BtnCurrState, FlReserv1Press) {
 		    Cntr.Reserv1Press = 0;
 		} else if (Cntr.Reserv1Press < 200) {
 		    Cntr.Reserv1Press++;
         } else if (Cntr.Reserv1Press == 200) {
 		    Cntr.Reserv1Press = 0;
 		    key_kode &= ~(1 << 11);
-		    CurrState.Reserv1Press = 0;
+		    FLAG_RESET(BtnCurrState, FlReserv1Press = 0;
         }
 
 	}
@@ -445,75 +447,75 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 	
 	if (!(WATER_PRESENT)) {
-	    if (CurrState.NoWater) {
+	    if (FLAG_GET(BtnCurrState, FlNoWater)) {
 		    Cntr.NoWater = 0;
 		} else if (Cntr.NoWater < 200) {
 		    Cntr.NoWater++;
         } else if (Cntr.NoWater == 200) {
 		    Cntr.NoWater = 0;
 		    key_kode |= (1 << 2);
-		    CurrState.NoWater = 1;
+		    FLAG_SET(BtnCurrState, FlNoWater);
         }
 	}
 	else {
-	    if (!CurrState.NoWater) {
+	    if (!FLAG_GET(BtnCurrState, FlNoWater)) {
 		    Cntr.NoWater = 0;
 		} else if (Cntr.NoWater < 200) {
 		    Cntr.NoWater++;
         } else if (Cntr.NoWater == 200) {
 		    Cntr.NoWater = 0;
 		    key_kode &= ~(1 << 2);
-		    CurrState.NoWater = 0;
+		    FLAG_RESET(BtnCurrState, FlNoWater);
         }
 	}
 
 //=================================	
 
 	if (STATUS_PWR_12V) {
-	    if (CurrState.NoPower1) {
+	    if (FLAG_GET(BtnCurrState, FlNoPower1)) {
 		    Cntr.NoPower1 = 0;
 		} else if (Cntr.NoPower1 < 20) {
 		    Cntr.NoPower1++;
         } else if (Cntr.NoPower1 == 20) {
 		    Cntr.NoPower1 = 0;
 		    key_kode |= (1 << 3);
-		    CurrState.NoPower1 = 1;
+		    FLAG_SET(BtnCurrState, FlNoPower1);
         }
 	}
 	else {
-	    if (!CurrState.NoPower1) {
+	    if (!FLAG_GET(BtnCurrState, FlNoPower1)) {
 		    Cntr.NoPower1 = 0;
 		} else if (Cntr.NoPower1 < 20) {
 		    Cntr.NoPower1++;
         } else if (Cntr.NoPower1 == 20) {
 		    Cntr.NoPower1 = 0;
 		    key_kode &= ~(1 << 3);
-		    CurrState.NoPower1 = 0;
+		    FLAG_RESET(BtnCurrState, FlNoPower1);
         }
 	}
 
 //=================================
 
 	if (STATUS_PWR_5V) {
-	    if (CurrState.NoPower2) {
+	    if (FLAG_GET(BtnCurrState, FlNoPower2)) {
 		    Cntr.NoPower2 = 0;
 		} else if (Cntr.NoPower2 < 20) {
 		    Cntr.NoPower2++;
         } else if (Cntr.NoPower2 == 20) {
 		    Cntr.NoPower2 = 0;
 		    key_kode |= (1 << 4);
-		    CurrState.NoPower2 = 1;
+		    FLAG_SET(BtnCurrState, FlNoPower2);
         }
 	}
 	else {
-	    if (!CurrState.NoPower2) {
+	    if (!FLAG_GET(BtnCurrState, FlNoPower2)) {
 		    Cntr.NoPower2 = 0;
 		} else if (Cntr.NoPower2 < 20) {
 		    Cntr.NoPower2++;
         } else if (Cntr.NoPower2 == 20) {
 		    Cntr.NoPower2 = 0;
 		    key_kode &= ~(1 << 4);
-		    CurrState.NoPower2 = 0;
+		    FLAG_RESET(BtnCurrState, FlNoPower2);
         }
 	}
 
@@ -566,25 +568,25 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (BTN_RESET) {
-	    if (CurrState.Reset) {
+	    if (FLAG_GET(BtnCurrState, FlReset)) {
 		    Cntr.Reset = 0;
 		} else if (Cntr.Reset < 200) {
 		    Cntr.Reset++;
         } else if (Cntr.Reset == 200) {
 		    Cntr.Reset = 0;
 		    key_kode |= (1 << 8);
-		    CurrState.Reset = 1;
+		    FLAG_SET(BtnCurrState, FlReset);
         }
 	}
 	else {
-	    if (!CurrState.Reset) {
+	    if (!FLAG_GET(BtnCurrState, FlReset)) {
 		    Cntr.Reset = 0;
 		} else if (Cntr.Reset < 200) {
 		    Cntr.Reset++;
         } else if (Cntr.Reset == 200) {
 		    Cntr.Reset = 0;
 		    key_kode &= ~(1 << 8);
-		    CurrState.Reset = 0;
+		    FLAG_RESET(BtnCurrState, FlReset);
         }
 	}
 	
@@ -592,25 +594,25 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (STATUS_COUNT_BILL) {
-	    if (CurrState.NoWrkBill) {
+	    if (FLAG_GET(BtnCurrState, FlNoWrkBill)) {
 		    Cntr.NoWrkBill = 0;
 		} else if (Cntr.NoWrkBill < 25000) {
 		    Cntr.NoWrkBill++;
         } else if (Cntr.NoWrkBill == 25000) {
 		    Cntr.NoWrkBill = 0;
 		    key_kode |= (1 << 9);
-		    CurrState.NoWrkBill = 1;
+		    FLAG_SET(BtnCurrState, FlNoWrkBill);
         }
 	}
 	else {
-	    if (!CurrState.NoWrkBill) {
+	    if (!FLAG_GET(BtnCurrState, FlNoWrkBill)) {
 		    Cntr.NoWrkBill = 0;
 		} else if (Cntr.NoWrkBill < 25000) {
 		    Cntr.NoWrkBill++;
         } else if (Cntr.NoWrkBill == 25000) {
 		    Cntr.NoWrkBill = 0;
 		    key_kode &= ~(1 << 9);
-		    CurrState.NoWrkBill = 0;
+		    FLAG_RESET(BtnCurrState, FlNoWrkBill);
         }
 
 	}
@@ -618,25 +620,25 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (!BTN_REGISTRATOR_PRESENT) {
-	    if (CurrState.RegPresent) {
+	    if (FLAG_GET(BtnCurrState, FlRegPresent)) {
 		    Cntr.RegPresent = 0;
 		} else if (Cntr.RegPresent < 200) {
 		    Cntr.RegPresent++;
         } else if (Cntr.RegPresent == 200) {
 		    Cntr.RegPresent = 0;
 		    key_kode |= (1 << 10);
-		    CurrState.RegPresent = 1;
+		    FLAG_SET(BtnCurrState, FlRegPresent);
         }
 	}
 	else {
-	    if (!CurrState.RegPresent) {
+	    if (!FLAG_GET(BtnCurrState, FlRegPresent)) {
 		    Cntr.RegPresent = 0;
 		} else if (Cntr.RegPresent < 200) {
 		    Cntr.RegPresent++;
         } else if (Cntr.RegPresent == 200) {
 		    Cntr.RegPresent = 0;
 		    key_kode &= ~(1 << 10);
-		    CurrState.RegPresent = 0;
+		    FLAG_RESET(BtnCurrState, FlRegPresent);
         }
 
 	}
@@ -644,25 +646,25 @@ u16 KeySkan(u16 key_kode) {
 //=================================
 
 	if (BTN_RESERV1) {
-	    if (CurrState.Reserv1Press) {
+	    if (FLAG_GET(BtnCurrState, FlReserv1Press)) {
 		    Cntr.Reserv1Press = 0;
 		} else if (Cntr.Reserv1Press < 200) {
 		    Cntr.Reserv1Press++;
         } else if (Cntr.Reserv1Press == 200) {
 		    Cntr.Reserv1Press = 0;
 		    key_kode |= (1 << 11);
-		    CurrState.Reserv1Press = 1;
+		    FLAG_SET(BtnCurrState, FlReserv1Press);
         }
 	}
 	else {
-	    if (!CurrState.Reserv1Press) {
+	    if (!FLAG_GET(BtnCurrState, FlReserv1Press)) {
 		    Cntr.Reserv1Press = 0;
 		} else if (Cntr.Reserv1Press < 200) {
 		    Cntr.Reserv1Press++;
         } else if (Cntr.Reserv1Press == 200) {
 		    Cntr.Reserv1Press = 0;
 		    key_kode &= ~(1 << 11);
-		    CurrState.Reserv1Press = 0;
+		    FLAG_RESET(BtnCurrState, FlReserv1Press);
         }
 
 	}

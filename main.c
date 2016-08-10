@@ -83,11 +83,14 @@ const char  Conn[] PROGMEM = "Connection: Keep-Alive\n\n\32"; // \32 - Ctrl^z
 
 #define  REPORT_FLAG_OK     0
 #define  REPORT_FLAG_ERR    1
+
+
 /*
 *********************************************************************************************************
 *                                            LOCAL VARIABLES
 *********************************************************************************************************
 */
+
 
 TimeAndDate TimeAndDate_System = {0};
 
@@ -232,6 +235,7 @@ u08 custom_at_handler(u08 *pData);
 * Returns     : none
 *********************************************************************************************************
 */
+
 
 int main( void )
 {
@@ -593,36 +597,39 @@ void vTask4( void *pvParameters )
  
     static  TimeAndDate Time_And_Date_Bcd = {0};
 
-    static  struct {
-        u08 SellEnable    : 1;
-        u08 SellStart     : 1;
-        u08 SellStop	  : 1;
-        u08 MergeEnable   : 1;
-        u08 ErrPower	  : 1;
-        u08 ErrWater	  : 1;
-        u08 SeifOpened    : 1;
-        u08 ErrMinWater   : 1;
-	    u08 ErrRsvBill    : 1;
-	    u08 WtrCntrErr    : 1;
-//	    u08 ServiceOpened : 1;
-		u08 MoneyGet      : 1;
-		u08 AppBlock      : 1;
-	} Fl;
+	static  uint8_t Fl;
+	static  uint8_t Sygnal_Get;
+
+    enum {
+        F_SellEnable,
+        F_SellStart,
+        F_SellStop,
+        F_MergeEnable,
+        F_ErrPower,
+        F_ErrWater,
+        F_SeifOpened,
+        F_ErrMinWater,
+	    F_ErrRsvBill,
+        F_WtrCntrErr,
+//        F_ServiceOpened,
+        F_MoneyGet,
+        F_AppBlock,
+	} ;
 
 	
-	static  struct {
-	    u08 NoWater    : 1;
-        u08 NoWrkBill  : 1;
-        u08 NoPower1   : 1;
-        u08 NoPower2   : 1;
-        u08 Start      : 1;
-        u08 Stop       : 1;
-        u08 Reset      : 1;
-        u08 DoorOpn    : 1;
-        u08 BillGet    : 1;
-        u08 CoinGet    : 1;
-	    u08 ServiceKey : 1;
-	} Sygnal_Get;
+	enum {
+        F_NoWater,
+        F_NoWrkBill,
+        F_NoPower1,
+        F_NoPower2,
+        F_Start,
+        F_Stop,
+        F_Reset,
+        F_DoorOpn,
+        F_BillGet,
+        F_CoinGet,
+        F_ServiceKey,
+	} ;
 
 
 	static  u08 Is_Registrator_Err_Gprs_Send = 0;
@@ -751,7 +758,7 @@ void vTask4( void *pvParameters )
 			     registrator_connect_prev = IsRegistratorConnect;
 	             registrator_state = WAIT_INIT;
   	         }    
-	         else if (IsRegistratorConnect && !Fl.MoneyGet && !Fl.SellStart) { 
+	         else if (IsRegistratorConnect && !FLAG_GET(Fl, F_MoneyGet) && !FLAG_GET(Fl, F_SellStart)) { 
 
 			     if (Fl_Send_Sell_End == 1) {
 				     registrator_state = SEND_SELL_END;
@@ -1013,13 +1020,13 @@ void vTask4( void *pvParameters )
 								   xSemaphoreGive(xI2CMutex);
 
                                    Hours_BeforeApparatBlock = h;
-							       if (!Fl.AppBlock && Hours_BeforeApparatBlock > (72 - (72 - 12))) {
-								       Fl.AppBlock = 1;
+							       if (!FLAG_GET(Fl, F_AppBlock) && Hours_BeforeApparatBlock > (72 - (72 - 12))) {
+								       FLAG_SET(Fl, F_AppBlock);
 							           SYSTEM_EVENTS = Fl_Ev_WillBlocked;
 				                       xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 							       }
 								   else {
-								       Fl.AppBlock = 0;
+								       FLAG_RESET(Fl, F_AppBlock);
 								   }
                                    
 
@@ -1130,44 +1137,46 @@ void vTask4( void *pvParameters )
 
 ///////////////////////////////////////////////////////////////////////////////////////
       
-        Fl.SellEnable = 1;	     
+        FLAG_SET(Fl, F_SellEnable);	     
 
      
 		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
 
-            Sygnal_Get.CoinGet   = ExtSignalStatus & 1;
-			Sygnal_Get.BillGet   = ((ExtSignalStatus >> 1) & 1);
-			Sygnal_Get.NoWater   = ((ExtSignalStatus >> 2) & 1);
-            Sygnal_Get.NoPower1  = ((ExtSignalStatus >> 3) & 1);
-			Sygnal_Get.NoPower2  = ((ExtSignalStatus >> 4) & 1);
-			Sygnal_Get.DoorOpn   = ((ExtSignalStatus >> 5) & 1);
-		    Sygnal_Get.Start     = ((ExtSignalStatus >> 6) & 1);
-		    Sygnal_Get.Stop      = ((ExtSignalStatus >> 7) & 1);
-		    Sygnal_Get.Reset     = ((ExtSignalStatus >> 8) & 1);
-		    Sygnal_Get.NoWrkBill = ((ExtSignalStatus >> 9) & 1);
+			(ExtSignalStatus & (1 << 0)) ? FLAG_SET(Sygnal_Get, F_CoinGet)   : FLAG_RESET(Sygnal_Get, F_CoinGet);
+			(ExtSignalStatus & (1 << 1)) ? FLAG_SET(Sygnal_Get, F_BillGet)   : FLAG_RESET(Sygnal_Get, F_BillGet);
+			(ExtSignalStatus & (1 << 2)) ? FLAG_SET(Sygnal_Get, F_NoWater)   : FLAG_RESET(Sygnal_Get, F_NoWater);
+			(ExtSignalStatus & (1 << 3)) ? FLAG_SET(Sygnal_Get, F_NoPower1)  : FLAG_RESET(Sygnal_Get, F_NoPower1);
+			(ExtSignalStatus & (1 << 4)) ? FLAG_SET(Sygnal_Get, F_NoPower2)  : FLAG_RESET(Sygnal_Get, F_NoPower2);
+			(ExtSignalStatus & (1 << 5)) ? FLAG_SET(Sygnal_Get, F_DoorOpn)   : FLAG_RESET(Sygnal_Get, F_DoorOpn);
+			(ExtSignalStatus & (1 << 6)) ? FLAG_SET(Sygnal_Get, F_Start)     : FLAG_RESET(Sygnal_Get, F_Start);
+			(ExtSignalStatus & (1 << 7)) ? FLAG_SET(Sygnal_Get, F_Stop)      : FLAG_RESET(Sygnal_Get, F_Stop);
+			(ExtSignalStatus & (1 << 8)) ? FLAG_SET(Sygnal_Get, F_Reset)     : FLAG_RESET(Sygnal_Get, F_Reset);
+			(ExtSignalStatus & (1 << 9)) ? FLAG_SET(Sygnal_Get, F_NoWrkBill) : FLAG_RESET(Sygnal_Get, F_NoWrkBill);
 
-			IsRegistratorConnect = ((ExtSignalStatus >> 10) & 1);
+			IsRegistratorConnect = (ExtSignalStatus & (1 << 10));
 
-			Sygnal_Get.ServiceKey = ((ExtSignalStatus >> 11) & 1);
+			(ExtSignalStatus & (1 << 11)) ? FLAG_SET(Sygnal_Get, F_ServiceKey) : FLAG_RESET(Sygnal_Get, F_ServiceKey);
 		}
 
     
 		if (is_service_mode) {
-		    Sygnal_Get.ServiceKey = 0;
+		    FLAG_RESET(Sygnal_Get, F_ServiceKey);
 		}
 
-		if (Sygnal_Get.NoPower1 || Sygnal_Get.NoPower2) {
+		if (FLAG_GET(Sygnal_Get, F_NoPower1) || FLAG_GET(Sygnal_Get, F_NoPower2)) {
 
-		    Fl.SellEnable = 0;
+		    FLAG_RESET(Fl, F_SellEnable);
 		    Fl_State.Power = REPORT_FLAG_ERR;            
           
-            if (!Fl.ErrPower) {
-		        Fl.ErrPower = 1;
+            if (!FLAG_GET(Fl, F_ErrPower)) {
+		        FLAG_SET(Fl, F_ErrPower);
 			    //Fl_Ev_NoPower = 1;
 	
 //                if (!is_service_mode) {
 
-                    if (Fl.SellStart || Fl.SellStop || Fl.MoneyGet || Fl.WtrCntrErr) {
+                    if (FLAG_GET(Fl, F_SellStart) || FLAG_GET(Fl, F_SellStop) 
+					                              || FLAG_GET(Fl, F_MoneyGet) 
+												  || FLAG_GET(Fl, F_WtrCntrErr)) {
 
                         if (CountPulse > 0) {
 						    ShouldReturnToBuyer.Money = PulseQuantityToMoney(CountPulse);
@@ -1192,7 +1201,7 @@ void vTask4( void *pvParameters )
 						}
 
 
-						if (Fl.MoneyGet && ManeySave > 0) {
+						if (FLAG_GET(Fl, F_MoneyGet) && ManeySave > 0) {
 					
 			                MoneyCounterToSave.Sum += ManeySave;
 
@@ -1223,7 +1232,7 @@ void vTask4( void *pvParameters )
                             
 							ManeySave = WaterSave = 0;
 
-							Fl.MoneyGet = 0;
+							FLAG_RESET(Fl, F_MoneyGet);
 		                }
 		            }
 //				}
@@ -1234,17 +1243,17 @@ void vTask4( void *pvParameters )
 	    }
         else {
 	        Fl_State.Power = REPORT_FLAG_OK;
-	        Fl.ErrPower = 0;
+	        FLAG_RESET(Fl, F_ErrPower);
 	    }
 			
-    	if (Sygnal_Get.NoWater && (!Fl.SellStop)) {
+    	if (FLAG_GET(Sygnal_Get, F_NoWater) && (!FLAG_GET(Fl, F_SellStop))) {
  
-    		Fl.SellEnable = 0;                                        
+    		FLAG_RESET(Fl, F_SellEnable);                                        
             Fl_State.Water = REPORT_FLAG_ERR;
 
-            if (!Fl.ErrWater) {
+            if (!FLAG_GET(Fl, F_ErrWater)) {
 			    gFlLedStateWater = 1;
-                Fl.ErrWater = 1;
+                FLAG_SET(Fl, F_ErrWater);
 		        //Fl_Ev_NoWater = 1;
 				SYSTEM_EVENTS = Fl_Ev_NoWater;
 				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
@@ -1252,13 +1261,13 @@ void vTask4( void *pvParameters )
 	    }
         else {
 		    gFlLedStateWater = 0;
-	        Fl.ErrWater = 0;
+	        FLAG_RESET(Fl, F_ErrWater);
 		    Fl_State.Water = REPORT_FLAG_OK;
 	    }
 
 		 /* if water counter don't count, we can't sell the water */ 
-		if (Fl.WtrCntrErr) {
-		    Fl.SellEnable = 0;
+		if (FLAG_GET(Fl, F_WtrCntrErr)) {
+		    FLAG_RESET(Fl, F_SellEnable);
 		}
 
         
@@ -1279,47 +1288,47 @@ void vTask4( void *pvParameters )
 		}
 
 
-		if (!is_service_mode && Fl_Send_Sell_End && !Fl_RegistratorErr && !Fl.SellStop) {  
-		    Fl.SellEnable = 0;
+		if (!is_service_mode && Fl_Send_Sell_End && !Fl_RegistratorErr && !FLAG_GET(Fl, F_SellStop)) {  
+		    FLAG_RESET(Fl, F_SellEnable);
 		}
 
 
-		if ((CountRManey >= 1000) || (!Fl.SellEnable) 
-	                              || Fl.SeifOpened 
-				    			  || Sygnal_Get.NoWater
-								  || Fl.WtrCntrErr) {
+		if ((CountRManey >= 1000) || (!FLAG_GET(Fl, F_SellEnable)) 
+	                              || FLAG_GET(Fl, F_SeifOpened) 
+				    			  || FLAG_GET(Sygnal_Get, F_NoWater)
+								  || FLAG_GET(Fl, F_WtrCntrErr)) {
 		    StopGetManey();
 	    }
-		else if (!is_service_mode && (Fl_RegistratorErr || (Fl.SellStop && Fl_Send_Sell_End)
-								                       || !IsRegistratorConnect)) {
+		else if (!is_service_mode && (Fl_RegistratorErr || (FLAG_GET(Fl, F_SellStop) && Fl_Send_Sell_End)
+								                        || !IsRegistratorConnect)) {
 		    StopGetManey();
 		}
 	    else {
-		    if (!Fl.SellStart) {
+		    if (!FLAG_GET(Fl, F_SellStart)) {
 			    StartGetManey();
 		    }
 	        else {
-		        Fl.SellEnable = 0;
+		        FLAG_RESET(Fl, F_SellEnable);
 		    }
 	    }
 
 	
-	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet) && !Fl.SellStart) {                         /* Chack the Fl.SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
-//	    if ((Sygnal_Get.CoinGet || Sygnal_Get.BillGet)) {                                          
+	    if ((FLAG_GET(Sygnal_Get, F_CoinGet) || FLAG_GET(Sygnal_Get, F_BillGet)) && !FLAG_GET(Fl, F_SellStart)) {                         /* Chack the (Fl, SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
+//	    if ((FLAG_GET(Sygnal_Get, F_CoinGet || FLAG_GET(Sygnal_Get, F_BillGet)) {                                          
             		
-            Fl.MoneyGet = 1;
+            FLAG_SET(Fl, F_MoneyGet);
 			timer_is_money_get = MONEY_GET_PERIOD;
 
-			if (Sygnal_Get.CoinGet) {
-			    Sygnal_Get.CoinGet = 0;
+			if (FLAG_GET(Sygnal_Get, F_CoinGet)) {
+			    FLAG_RESET(Sygnal_Get,  F_CoinGet);
 	    	    CountRManey += 25;
 		        ManeySave += 25;
 
 				coin_which_get_cntr += 25;
             } 
 			
-			if (Sygnal_Get.BillGet) {
-    			Sygnal_Get.BillGet = 0;
+			if (FLAG_GET(Sygnal_Get, F_BillGet)) {
+    			FLAG_RESET(Sygnal_Get, F_BillGet);
 		        CountRManey += 100;
 		        ManeySave += 100;
 				
@@ -1336,19 +1345,19 @@ void vTask4( void *pvParameters )
 		}
 	
 
-	    if (!Fl.MoneyGet) {
+	    if (!FLAG_GET(Fl, F_MoneyGet)) {
             CountRManey = PulseQuantityToMoney(CountPulse);
 		}
 		
 
-	    if (Sygnal_Get.Start && !Sygnal_Get.Stop 
-		                     && Fl.SellEnable    
-							 && !Fl.SellStart    
+	    if (FLAG_GET(Sygnal_Get, F_Start) && !FLAG_GET(Sygnal_Get, F_Stop) 
+		                     && FLAG_GET(Fl, F_SellEnable)    
+							 && !FLAG_GET(Fl, F_SellStart)    
 							 && CountPulse       
 							 && !timer_is_money_get) {
          
 		    StopGetManey();
-		    Fl.MoneyGet = 0;
+		    FLAG_RESET(Fl, F_MoneyGet);
 			
             if (ManeySave > 0) {
 
@@ -1402,32 +1411,28 @@ void vTask4( void *pvParameters )
             tmp_cnt_pulse = CountPulse;          
 
 		    SellingStart();
-		    Fl.SellStop = 0;
-		    Fl.SellStart = 1;
+		    FLAG_RESET(Fl, F_SellStop);
+		    FLAG_SET(Fl, F_SellStart);
 	    }
 
-if ((!(Sygnal_Get.Start) || Fl.SellStart)) {
-KLAPAN1_ON;
-	KLAPAN2_ON;
-	KLAPAN3_ON;}
 	    
-        if (Sygnal_Get.Stop && (!(Sygnal_Get.Start) || Fl.SellStart)) {
+        if (FLAG_GET(Sygnal_Get, F_Stop) && (!(FLAG_GET(Sygnal_Get, F_Start)) || FLAG_GET(Fl, F_SellStart))) {
 	        
 			SellingStop();
 
 				
 
-		    Fl.SellStart = 0;
-		    Fl.SellStop  = 1;
+		    FLAG_RESET(Fl, F_SellStart);
+		    FLAG_SET(Fl, F_SellStop);
 	    }
 
 
-	    if ((CountPulse <= PumpTimeCoef) && (Fl.SellStart || Fl.SellStop)) {
+	    if ((CountPulse <= PumpTimeCoef) && (FLAG_GET(Fl, F_SellStart) || FLAG_GET(Fl, F_SellStop))) {
 
 		    SellingStop();
 
-		    Fl.SellStart = 0; 
-		    Fl.SellStop = 0; 
+		    FLAG_RESET(Fl, F_SellStart); 
+		    FLAG_RESET(Fl, F_SellStop); 
             CountRManey = 0;	
 
             portENTER_CRITICAL();
@@ -1438,8 +1443,8 @@ KLAPAN1_ON;
     	}
 
 
-        //if (Sygnal_Get.ServiceKey) {
-		if (Sygnal_Get.ServiceKey && !Fl.SellStart) {
+        //if (FLAG_GET(Sygnal_Get, F_ServiceKey)) {
+		if (FLAG_GET(Sygnal_Get, F_ServiceKey) && !FLAG_GET(Fl, F_SellStart)) {
 		    if (is_service_key_present == 0) {
 			    is_service_key_present = 1; 
 
@@ -1467,13 +1472,13 @@ KLAPAN1_ON;
 	    }
 
 
-        if (Sygnal_Get.Reset && !Fl.SellStart) {
+        if (FLAG_GET(Sygnal_Get, F_Reset) && !FLAG_GET(Fl, F_SellStart)) {
 
-			if (!Fl.SeifOpened && Sygnal_Get.ServiceKey) {
+			if (!FLAG_GET(Fl, F_SeifOpened) && FLAG_GET(Sygnal_Get, F_ServiceKey)) {
 		        SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
 			    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 
-		    } else if (!Fl.SeifOpened && !Sygnal_Get.ServiceKey) { 
+		    } else if (!FLAG_GET(Fl, F_SeifOpened) && !FLAG_GET(Sygnal_Get, F_ServiceKey)) { 
 			    ENCASHMENT_T encashment_data;
 				u16 dattaH;
 		        u16 dattaL;
@@ -1539,24 +1544,24 @@ KLAPAN1_ON;
 #endif
 		    }
 
-			Fl.SeifOpened = 1;
+			FLAG_SET(Fl, F_SeifOpened);
         }
         else {
-			Fl.SeifOpened = 0;
+			FLAG_RESET(Fl, F_SeifOpened);
 	    }
 
-	    if (Sygnal_Get.DoorOpn && !Fl.MergeEnable) {
-		    if (!Fl.SellStart && !Fl.SellStop && !(Sygnal_Get.Reset) && !Fl.WtrCntrErr) {
+	    if (FLAG_GET(Sygnal_Get, F_DoorOpn) && !FLAG_GET(Fl, F_MergeEnable)) {
+		    if (!FLAG_GET(Fl, F_SellStart) && !FLAG_GET(Fl, F_SellStop) && !(FLAG_GET(Sygnal_Get, F_Reset)) && !FLAG_GET(Fl, F_WtrCntrErr)) {
 	
-	    		Fl.MergeEnable = 1;
+	    		FLAG_SET(Fl, F_MergeEnable);
 	            SellingStart();
 	        }
         }
 
 #if 0
-	    if (Sygnal_Get.DoorOpn && !Fl.MergeEnable && Sygnal_Get.Reset && !Fl.WtrCntrErr) {
+	    if (FLAG_GET(Sygnal_Get, DoorOpn && !FLAG_GET(Fl, F_MergeEnable && FLAG_GET(Sygnal_Get, Reset && !FLAG_GET(Fl, F_WtrCntrErr) {
 
-		   	Fl.MergeEnable = 1;
+		   	FLAG_SET(Fl, F_MergeEnable);
             xSemaphoreTake(xI2CMutex, portMAX_DELAY);
  		    IntEeprDwordWrite (AmountWaterEEPROMAdr, *max_size_barrel);
             xSemaphoreGive(xI2CMutex);		
@@ -1572,24 +1577,24 @@ KLAPAN1_ON;
 	    }
 #endif
 
-	    if (!Sygnal_Get.DoorOpn && Fl.MergeEnable) {
+	    if (!FLAG_GET(Sygnal_Get, F_DoorOpn) && FLAG_GET(Fl, F_MergeEnable)) {
 		    SellingStop();
-			Fl.MergeEnable = 0;
+			FLAG_RESET(Fl, F_MergeEnable);
 	    }
 
 #if 0
-		if (buzer_flag && Sygnal_Get.Stop) {
+		if (buzer_flag && FLAG_GET(Sygnal_Get, F_Stop)) {
    	        buzer_flag = 0;
 		}
 #endif
 
-        if (Fl.SellStart && !IS_COUNTER_WATER_NOT_ACTIVE 
-		                 && WtrCntTimer == 0) {
+        if (FLAG_GET(Fl, F_SellStart) && !IS_COUNTER_WATER_NOT_ACTIVE 
+		                            && WtrCntTimer == 0) {
 		
 		    if (tmp_cnt_pulse == CountPulse) {
       		   	SellingStop();
-		        Fl.SellStart = 0; 
-			    Fl.WtrCntrErr = 1;
+		        FLAG_RESET(Fl, F_SellStart); 
+			    FLAG_SET(Fl, F_WtrCntrErr);
 			}
 			else {
 			    tmp_cnt_pulse = CountPulse;
@@ -1600,7 +1605,7 @@ KLAPAN1_ON;
 		}
 
 
-        if (Fl.WtrCntrErr) {
+        if (FLAG_GET(Fl, F_WtrCntrErr)) {
 		    if (Fl_State.WtrCnt != REPORT_FLAG_ERR) {
 			    Fl_State.WtrCnt = REPORT_FLAG_ERR;
 			}
@@ -1610,12 +1615,12 @@ KLAPAN1_ON;
 		}
 
 
-		if (Fl.WtrCntrErr && Sygnal_Get.DoorOpn) {
-			Fl.WtrCntrErr = 0;
+		if (FLAG_GET(Fl, F_WtrCntrErr) && FLAG_GET(Sygnal_Get, F_DoorOpn)) {
+			FLAG_RESET(Fl, F_WtrCntrErr);
 	    }
 
 
-		if (Fl_Get_New_Data && !Fl.SellStart) {                                /* When sell finneshed or pause the quantity of water send to registrator */
+		if (Fl_Get_New_Data && !FLAG_GET(Fl, F_SellStart)) {                                /* When sell finneshed or pause the quantity of water send to registrator */
 			    Fl_Get_New_Data = 0;
                 Fl_Send_Sell_End = 1;
 	    }
@@ -1640,11 +1645,11 @@ KLAPAN1_ON;
     
 /////// the sygnall set when bill can't get money ////////////////////////////
 
-        if (Sygnal_Get.NoWrkBill && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
+        if (FLAG_GET(Sygnal_Get, F_NoWrkBill) && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
 
-	        if (!Fl.ErrRsvBill) {                                               // can't get the right status 
+	        if (!FLAG_GET(Fl, F_ErrRsvBill)) {                                               // can't get the right status 
 			    Fl_State.RsvBill = REPORT_FLAG_ERR;
-				Fl.ErrRsvBill = 1;
+				FLAG_SET(Fl, F_ErrRsvBill);
 
 				if (uxQueueMessagesWaiting(xEventsQueue) < 8) {
 				    SYSTEM_EVENTS = Fl_Ev_ErrorBill;
@@ -1652,16 +1657,16 @@ KLAPAN1_ON;
 				}
             }
 		}                                                          // of the bill receiver   
-        else if (Fl.ErrRsvBill) {
-	        Fl.ErrRsvBill = 0;
+        else if (FLAG_GET(Fl, F_ErrRsvBill)) {
+	        FLAG_RESET(Fl, F_ErrRsvBill);
 			Fl_State.RsvBill = REPORT_FLAG_OK;
 	    }
 
 //  ////////////////////////////////////////////////////////////////////////////////
  
         if ((EEPR_LOCAL_COPY.amount_water <= ((u32)EEPR_LOCAL_COPY.water_level_marck_min))) {
-	        if (!Fl.ErrMinWater) {
-	            Fl.ErrMinWater = 1;	
+	        if (!FLAG_GET(Fl, F_ErrMinWater)) {
+	            FLAG_SET(Fl, F_ErrMinWater);
 			    
 				SYSTEM_EVENTS = Fl_Ev_LimWater;
 				xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
@@ -1669,7 +1674,7 @@ KLAPAN1_ON;
             }
 	    }
         else {
-	        Fl.ErrMinWater = 0;	
+	        FLAG_RESET(Fl, F_ErrMinWater);	
 	    }
 
 //  ////////////////////////////////////////////////////////////////////////////////
