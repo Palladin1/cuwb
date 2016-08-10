@@ -20,6 +20,22 @@
 #define  FLAG_GET(f, n)      ((f) &   (1 << (n)))
 
 
+enum {
+    SygBillGet,
+    SygCoinGet,
+    SygNoWater,
+    SygNoPower1,
+    SygNoPower2,
+    SygDoorOpn,
+    SygStart,
+    SygStop,
+    SygReset,
+    SygNoWrkBill,
+    SygRegPresent,
+    SygServiceKey,
+} ;
+
+
 typedef struct {
     u08 Second;
     u08 Minute; 

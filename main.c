@@ -616,21 +616,6 @@ void vTask4( void *pvParameters )
         F_AppBlock,
 	} ;
 
-	
-	enum {
-        F_NoWater,
-        F_NoWrkBill,
-        F_NoPower1,
-        F_NoPower2,
-        F_Start,
-        F_Stop,
-        F_Reset,
-        F_DoorOpn,
-        F_BillGet,
-        F_CoinGet,
-        F_ServiceKey,
-	} ;
-
 
 	static  u08 Is_Registrator_Err_Gprs_Send = 0;
 
@@ -1142,28 +1127,22 @@ void vTask4( void *pvParameters )
      
 		if (xSemaphoreTake(xExtSignalStatusSem, 0) == pdTRUE) {  
 
-			(ExtSignalStatus & (1 << 0)) ? FLAG_SET(Sygnal_Get, F_CoinGet)   : FLAG_RESET(Sygnal_Get, F_CoinGet);
-			(ExtSignalStatus & (1 << 1)) ? FLAG_SET(Sygnal_Get, F_BillGet)   : FLAG_RESET(Sygnal_Get, F_BillGet);
-			(ExtSignalStatus & (1 << 2)) ? FLAG_SET(Sygnal_Get, F_NoWater)   : FLAG_RESET(Sygnal_Get, F_NoWater);
-			(ExtSignalStatus & (1 << 3)) ? FLAG_SET(Sygnal_Get, F_NoPower1)  : FLAG_RESET(Sygnal_Get, F_NoPower1);
-			(ExtSignalStatus & (1 << 4)) ? FLAG_SET(Sygnal_Get, F_NoPower2)  : FLAG_RESET(Sygnal_Get, F_NoPower2);
-			(ExtSignalStatus & (1 << 5)) ? FLAG_SET(Sygnal_Get, F_DoorOpn)   : FLAG_RESET(Sygnal_Get, F_DoorOpn);
-			(ExtSignalStatus & (1 << 6)) ? FLAG_SET(Sygnal_Get, F_Start)     : FLAG_RESET(Sygnal_Get, F_Start);
-			(ExtSignalStatus & (1 << 7)) ? FLAG_SET(Sygnal_Get, F_Stop)      : FLAG_RESET(Sygnal_Get, F_Stop);
-			(ExtSignalStatus & (1 << 8)) ? FLAG_SET(Sygnal_Get, F_Reset)     : FLAG_RESET(Sygnal_Get, F_Reset);
-			(ExtSignalStatus & (1 << 9)) ? FLAG_SET(Sygnal_Get, F_NoWrkBill) : FLAG_RESET(Sygnal_Get, F_NoWrkBill);
-
-			IsRegistratorConnect = (ExtSignalStatus & (1 << 10));
-
-			(ExtSignalStatus & (1 << 11)) ? FLAG_SET(Sygnal_Get, F_ServiceKey) : FLAG_RESET(Sygnal_Get, F_ServiceKey);
+             uint8_t i;
+			 for (i = 0; i < 12; i++) {
+			     if (i == SygRegPresent) {
+				     IsRegistratorConnect = (ExtSignalStatus & (1 << 10));
+			     } else {
+				     (FLAG_GET(ExtSignalStatus, i)) ? FLAG_SET(Sygnal_Get, i)   : FLAG_RESET(Sygnal_Get, i);
+				 }
+			 }
 		}
 
     
 		if (is_service_mode) {
-		    FLAG_RESET(Sygnal_Get, F_ServiceKey);
+		    FLAG_RESET(Sygnal_Get, SygServiceKey);
 		}
 
-		if (FLAG_GET(Sygnal_Get, F_NoPower1) || FLAG_GET(Sygnal_Get, F_NoPower2)) {
+		if (FLAG_GET(Sygnal_Get, SygNoPower1) || FLAG_GET(Sygnal_Get, SygNoPower2)) {
 
 		    FLAG_RESET(Fl, F_SellEnable);
 		    Fl_State.Power = REPORT_FLAG_ERR;            
@@ -1246,7 +1225,7 @@ void vTask4( void *pvParameters )
 	        FLAG_RESET(Fl, F_ErrPower);
 	    }
 			
-    	if (FLAG_GET(Sygnal_Get, F_NoWater) && (!FLAG_GET(Fl, F_SellStop))) {
+    	if (FLAG_GET(Sygnal_Get, SygNoWater) && (!FLAG_GET(Fl, F_SellStop))) {
  
     		FLAG_RESET(Fl, F_SellEnable);                                        
             Fl_State.Water = REPORT_FLAG_ERR;
@@ -1295,7 +1274,7 @@ void vTask4( void *pvParameters )
 
 		if ((CountRManey >= 1000) || (!FLAG_GET(Fl, F_SellEnable)) 
 	                              || FLAG_GET(Fl, F_SeifOpened) 
-				    			  || FLAG_GET(Sygnal_Get, F_NoWater)
+				    			  || FLAG_GET(Sygnal_Get, SygNoWater)
 								  || FLAG_GET(Fl, F_WtrCntrErr)) {
 		    StopGetManey();
 	    }
@@ -1313,22 +1292,22 @@ void vTask4( void *pvParameters )
 	    }
 
 	
-	    if ((FLAG_GET(Sygnal_Get, F_CoinGet) || FLAG_GET(Sygnal_Get, F_BillGet)) && !FLAG_GET(Fl, F_SellStart)) {                         /* Chack the (Fl, SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
-//	    if ((FLAG_GET(Sygnal_Get, F_CoinGet || FLAG_GET(Sygnal_Get, F_BillGet)) {                                          
+	    if ((FLAG_GET(Sygnal_Get, SygCoinGet) || FLAG_GET(Sygnal_Get, SygBillGet)) && !FLAG_GET(Fl, F_SellStart)) {                         /* Chack the (Fl, SellStart delete becouse this chacks to block the money getting when user push start button before all money count */ 
+//	    if ((FLAG_GET(Sygnal_Get, SygCoinGet || FLAG_GET(Sygnal_Get, SygBillGet)) {                                          
             		
             FLAG_SET(Fl, F_MoneyGet);
 			timer_is_money_get = MONEY_GET_PERIOD;
 
-			if (FLAG_GET(Sygnal_Get, F_CoinGet)) {
-			    FLAG_RESET(Sygnal_Get,  F_CoinGet);
+			if (FLAG_GET(Sygnal_Get, SygCoinGet)) {
+			    FLAG_RESET(Sygnal_Get,  SygCoinGet);
 	    	    CountRManey += 25;
 		        ManeySave += 25;
 
 				coin_which_get_cntr += 25;
             } 
 			
-			if (FLAG_GET(Sygnal_Get, F_BillGet)) {
-    			FLAG_RESET(Sygnal_Get, F_BillGet);
+			if (FLAG_GET(Sygnal_Get, SygBillGet)) {
+    			FLAG_RESET(Sygnal_Get, SygBillGet);
 		        CountRManey += 100;
 		        ManeySave += 100;
 				
@@ -1350,7 +1329,7 @@ void vTask4( void *pvParameters )
 		}
 		
 
-	    if (FLAG_GET(Sygnal_Get, F_Start) && !FLAG_GET(Sygnal_Get, F_Stop) 
+	    if (FLAG_GET(Sygnal_Get, SygStart) && !FLAG_GET(Sygnal_Get, SygStop) 
 		                     && FLAG_GET(Fl, F_SellEnable)    
 							 && !FLAG_GET(Fl, F_SellStart)    
 							 && CountPulse       
@@ -1416,7 +1395,7 @@ void vTask4( void *pvParameters )
 	    }
 
 	    
-        if (FLAG_GET(Sygnal_Get, F_Stop) && (!(FLAG_GET(Sygnal_Get, F_Start)) || FLAG_GET(Fl, F_SellStart))) {
+        if (FLAG_GET(Sygnal_Get, SygStop) && (!(FLAG_GET(Sygnal_Get, SygStart)) || FLAG_GET(Fl, F_SellStart))) {
 	        
 			SellingStop();
 
@@ -1443,8 +1422,8 @@ void vTask4( void *pvParameters )
     	}
 
 
-        //if (FLAG_GET(Sygnal_Get, F_ServiceKey)) {
-		if (FLAG_GET(Sygnal_Get, F_ServiceKey) && !FLAG_GET(Fl, F_SellStart)) {
+        //if (FLAG_GET(Sygnal_Get, SygServiceKey)) {
+		if (FLAG_GET(Sygnal_Get, SygServiceKey) && !FLAG_GET(Fl, F_SellStart)) {
 		    if (is_service_key_present == 0) {
 			    is_service_key_present = 1; 
 
@@ -1472,13 +1451,13 @@ void vTask4( void *pvParameters )
 	    }
 
 
-        if (FLAG_GET(Sygnal_Get, F_Reset) && !FLAG_GET(Fl, F_SellStart)) {
+        if (FLAG_GET(Sygnal_Get, SygReset) && !FLAG_GET(Fl, F_SellStart)) {
 
-			if (!FLAG_GET(Fl, F_SeifOpened) && FLAG_GET(Sygnal_Get, F_ServiceKey)) {
+			if (!FLAG_GET(Fl, F_SeifOpened) && FLAG_GET(Sygnal_Get, SygServiceKey)) {
 		        SYSTEM_EVENTS = Fl_Ev_ServiceOpening;
 			    xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
 
-		    } else if (!FLAG_GET(Fl, F_SeifOpened) && !FLAG_GET(Sygnal_Get, F_ServiceKey)) { 
+		    } else if (!FLAG_GET(Fl, F_SeifOpened) && !FLAG_GET(Sygnal_Get, SygServiceKey)) { 
 			    ENCASHMENT_T encashment_data;
 				u16 dattaH;
 		        u16 dattaL;
@@ -1550,8 +1529,8 @@ void vTask4( void *pvParameters )
 			FLAG_RESET(Fl, F_SeifOpened);
 	    }
 
-	    if (FLAG_GET(Sygnal_Get, F_DoorOpn) && !FLAG_GET(Fl, F_MergeEnable)) {
-		    if (!FLAG_GET(Fl, F_SellStart) && !FLAG_GET(Fl, F_SellStop) && !(FLAG_GET(Sygnal_Get, F_Reset)) && !FLAG_GET(Fl, F_WtrCntrErr)) {
+	    if (FLAG_GET(Sygnal_Get, SygDoorOpn) && !FLAG_GET(Fl, F_MergeEnable)) {
+		    if (!FLAG_GET(Fl, F_SellStart) && !FLAG_GET(Fl, F_SellStop) && !(FLAG_GET(Sygnal_Get, SygReset)) && !FLAG_GET(Fl, F_WtrCntrErr)) {
 	
 	    		FLAG_SET(Fl, F_MergeEnable);
 	            SellingStart();
@@ -1577,13 +1556,13 @@ void vTask4( void *pvParameters )
 	    }
 #endif
 
-	    if (!FLAG_GET(Sygnal_Get, F_DoorOpn) && FLAG_GET(Fl, F_MergeEnable)) {
+	    if (!FLAG_GET(Sygnal_Get, SygDoorOpn) && FLAG_GET(Fl, F_MergeEnable)) {
 		    SellingStop();
 			FLAG_RESET(Fl, F_MergeEnable);
 	    }
 
 #if 0
-		if (buzer_flag && FLAG_GET(Sygnal_Get, F_Stop)) {
+		if (buzer_flag && FLAG_GET(Sygnal_Get, SygStop)) {
    	        buzer_flag = 0;
 		}
 #endif
@@ -1615,7 +1594,7 @@ void vTask4( void *pvParameters )
 		}
 
 
-		if (FLAG_GET(Fl, F_WtrCntrErr) && FLAG_GET(Sygnal_Get, F_DoorOpn)) {
+		if (FLAG_GET(Fl, F_WtrCntrErr) && FLAG_GET(Sygnal_Get, SygDoorOpn)) {
 			FLAG_RESET(Fl, F_WtrCntrErr);
 	    }
 
@@ -1645,7 +1624,7 @@ void vTask4( void *pvParameters )
     
 /////// the sygnall set when bill can't get money ////////////////////////////
 
-        if (FLAG_GET(Sygnal_Get, F_NoWrkBill) && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
+        if (FLAG_GET(Sygnal_Get, SygNoWrkBill) && EEPR_LOCAL_COPY.board_version) {            // If board version the first we
 
 	        if (!FLAG_GET(Fl, F_ErrRsvBill)) {                                               // can't get the right status 
 			    Fl_State.RsvBill = REPORT_FLAG_ERR;
