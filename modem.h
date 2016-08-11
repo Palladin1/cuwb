@@ -31,6 +31,39 @@
 #define  GPIO_IS_SET(...)    __GPIO_SET(__VA_ARGS__)
 
 
+#if  GSM_MODEM_DBG
+
+#define  GSM_MODEM_BUF_MAX    3
+
+struct _GSM_MODEM_QUEUE {
+    uint8_t Buf[GSM_MODEM_BUF_MAX];
+    uint8_t BufCurrPos;
+} GSM_MODEM_QUEUE;
+
+
+static  GSM_MODEM_QUEUE  GsmModemQueue; 
+
+void GsmModemQueuefWrite (uint8_t data)
+{
+    GsmModemQueue.Buf[GsmModemQueue.BufCurrPos] = data;
+
+	GsmModemQueue.BufCurrPos++;
+
+	if (GsmModemQueue.BufCurrPos == GSM_MODEM_BUF_MAX) {
+	    GsmModemQueue.BufCurrPos = 0;
+	}
+}
+
+void GsmModemQueuefRead (GSM_MODEM_QUEUE * q)
+{
+    if ((&GsmModemQueue) != 0) {
+        g = &GsmModemQueue;
+	}
+}
+
+#endif  /* GSM_MODEM_M12_DBG */
+
+
 typedef enum {
 	    
     ACK_NO,
