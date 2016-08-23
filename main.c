@@ -1130,9 +1130,9 @@ void vTask4( void *pvParameters )
              uint8_t i;
 			 for (i = 0; i < 12; i++) {
 			     if (i == SygRegPresent) {
-				     IsRegistratorConnect = (ExtSignalStatus & (1 << SygRegPresent));
+				     IsRegistratorConnect = (FLAG_GET(ExtSignalStatus, i)) ?  1 : 0;
 			     } else {
-				     (FLAG_GET(ExtSignalStatus, i)) ? FLAG_SET(Sygnal_Get, i)   : FLAG_RESET(Sygnal_Get, i);
+				     (FLAG_GET(ExtSignalStatus, i)) ? FLAG_SET(Sygnal_Get, i) : FLAG_RESET(Sygnal_Get, i);
 				 }
 			 }
 		}
