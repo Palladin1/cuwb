@@ -167,7 +167,7 @@ xTimerHandle xTimer_ButtonPoll;
 xTimerHandle xTimer_NoWaterBuzzerSignal;
 xTimerHandle xTimer_BuzzerOff;
 
-xTimerHandle xTimer_ModemStart;
+xTimerHandle xTimer_ModemTimer;
 
 xTimerHandle xTimer_TimeBlockChack;
 
@@ -207,7 +207,7 @@ void vCallback_ButtonPoll (xTimerHandle xTimer);
 void vCallback_NoWaterBuzzerSignal (xTimerHandle xTimer);
 void vCallback_BuzzerOff (xTimerHandle xTimer);
 
-void vCallback_ModemStart (xTimerHandle xTimer);
+void vCallback_ModemTimer (xTimerHandle xTimer);
 
 void vCallback_TimerBlockCheck (xTimerHandle xTimer);
 
@@ -291,7 +291,7 @@ Uart0Enable(Uart0_Resiv,  19200);
 
 	xTimer_BuzzerOff = xTimerCreate((signed char *)"B", 200 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_BuzzerOff);
 
-	xTimer_ModemStart = xTimerCreate((signed char *)"M", 100 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemStart);
+	xTimer_ModemTimer = xTimerCreate((signed char *)"M", 60000 / portTICK_RATE_MS, pdFALSE, NULL, vCallback_ModemTimer);
 
 	xTimer_TimeBlockChack = xTimerCreate((signed char *)"R", 60000 / portTICK_RATE_MS, pdTRUE, NULL, vCallback_TimerBlockCheck);
 	xTimerReset(xTimer_TimeBlockChack, 0);
@@ -366,11 +366,11 @@ void vCallback_BuzzerOff (xTimerHandle xTimer)
 }
 
 
-void vCallback_ModemStart (xTimerHandle xTimer)
+void vCallback_ModemTimer (xTimerHandle xTimer)
 {
-    CARRENT_STATE = STATE_MODEM_ON;
+    //CARRENT_STATE = STATE_MODEM_ON;
 
-	BUZZER_OFF;
+	//BUZZER_OFF;
 }
 
 
@@ -408,8 +408,6 @@ void vTask2( void *pvParameters )
 
 	u08 after_reset = 1;
 
-    #define  MODEM_ERROR_TIMER_PERIOD    30*60*(1000 / 100);
-	static  u16 modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
 
 	for( ;; )
     {
@@ -487,10 +485,10 @@ void vTask2( void *pvParameters )
 			/*Send report*/
 			if (interval_for_send == 0) {
 		        interval_for_send = EEPR_LOCAL_COPY.report_interval;
+				
 				if (interval_for_send == 0) {
 			        interval_for_send = 1;
-				}
-				else {
+				} else {
 				    if (after_reset) {
 					    after_reset = 0;
 						SYSTEM_EVENTS = Fl_Ev_JustAfterReset;
@@ -500,15 +498,6 @@ void vTask2( void *pvParameters )
 				    if (uxQueueMessagesWaiting(xEventsQueue) == 0) { 
 				        SYSTEM_EVENTS = Fl_Ev_RequestData;
                         xQueueSend(xEventsQueue, &SYSTEM_EVENTS, 0);
-
-						modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
-					} else {
-					    if (modem_error_timer == 0) {
-						    modem_error_timer = MODEM_ERROR_TIMER_PERIOD;
-							CARRENT_STATE = STATE_MODEM_OFF;
-						} else {
-						    --modem_error_timer;
-						}
 					}
 				}
 		    }
@@ -1758,15 +1747,36 @@ void vTask5( void *pvParameters )
         Dns_Name[1] = 0;
 	}
 	
-    vTaskDelay(5000 / portTICK_RATE_MS);
-
+    #define  CONNECT_ERROR_PERIOD    30
+    static  uint8_t connect_error_timer = 0;
 
 	for( ;; )
     {
+        if (xTimerIsTimerActive(xTimer_ModemTimer) == pdFALSE) {                                   /* If data can't send to the server modem restart */
+            xTimerStart(xTimer_ModemTimer, 60000 / portTICK_RATE_MS);                              
+            connect_error_timer++;
+            
+            if (connect_error_timer >= CONNECT_ERROR_PERIOD) {
+                connect_error_timer = 0;
+                vTaskDelay(60000 / portTICK_RATE_MS);
+                CARRENT_STATE = STATE_MODEM_OFF;
+            }
+        }
 
         switch (CARRENT_STATE) {
 
             case STATE_MODEM_IDLE: {
+                 static  uint8_t is_turn_on = 1;
+                
+                 if (is_turn_on) {
+				     BUZZER_ON;                                                                    /* Beep sygnall when board is start  */
+                     vTaskDelay(100 / portTICK_RATE_MS);
+                     BUZZER_OFF;
+
+                     vTaskDelay(5000 / portTICK_RATE_MS);
+                     is_turn_on = 0;
+                     CARRENT_STATE = STATE_MODEM_ON;
+                 }
 			     break;
 			}
 					    
@@ -2149,6 +2159,8 @@ void vTask5( void *pvParameters )
 
 			case STATE_HTTP_SERVER_200_OK: {
 				 
+                 connect_error_timer = 0;
+                
 				 CARRENT_STATE = STATE_SOME_WAIT;
                  GSM_Timer.State_Change = STATE_GPRS_DISCONNECT;
                  GSM_Timer.Interval = 10000;
@@ -2265,9 +2277,6 @@ void vTask6( void *pvParameters )
     u08 com_buff[COM_BUFF_LEN];
 	u08 cnt = 0;
 
-	BUZZER_ON;                                                                 /* buzzer will be turn off when timeer finnished */
-	xTimerStart(xTimer_ModemStart, 0);
-	
 	xSemaphoreTake(xGsmModemWaitingSem, 0);
 
 	for( ;; )
